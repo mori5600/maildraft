@@ -1,10 +1,10 @@
 import {
-  useState,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type PropsWithChildren,
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
+  useState,
 } from "react";
 
 import { visualizeWhitespace } from "../lib/whitespace";
@@ -25,10 +25,7 @@ function toDisplayText(value: unknown): string {
   return String(value);
 }
 
-export function Panel({
-  children,
-  className,
-}: PropsWithChildren<{ className?: string }>) {
+export function Panel({ children, className }: PropsWithChildren<{ className?: string }>) {
   return (
     <section
       className={cn(
@@ -195,10 +192,7 @@ export function Textarea({
   );
 }
 
-export function Select({
-  className,
-  ...props
-}: SelectHTMLAttributes<HTMLSelectElement>) {
+export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select
       className={cn(

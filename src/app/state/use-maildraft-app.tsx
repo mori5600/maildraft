@@ -4,8 +4,8 @@ import {
   applyTemplateToDraft,
   createDraftFromTemplate,
   createEmptyDraft,
-  toDraftInput,
   type DraftInput,
+  toDraftInput,
 } from "../../modules/drafts/model";
 import { DraftWorkspace } from "../../modules/drafts/ui/DraftWorkspace";
 import {
@@ -15,14 +15,14 @@ import {
 } from "../../modules/renderer/render-draft";
 import {
   createEmptySignature,
-  toSignatureInput,
   type SignatureInput,
+  toSignatureInput,
 } from "../../modules/signatures/model";
 import { SignatureWorkspace } from "../../modules/signatures/ui/SignatureWorkspace";
 import {
   createEmptyTemplate,
-  toTemplateInput,
   type TemplateInput,
+  toTemplateInput,
 } from "../../modules/templates/model";
 import { TemplateWorkspace } from "../../modules/templates/ui/TemplateWorkspace";
 import { maildraftApi } from "../../shared/api/maildraft-api";
@@ -48,25 +48,25 @@ export function useMaildraftApp() {
 
   const [draftForm, setDraftForm] = useState<DraftInput>(() => createEmptyDraft(null));
   const [templateForm, setTemplateForm] = useState<TemplateInput>(() => createEmptyTemplate(null));
-  const [signatureForm, setSignatureForm] = useState<SignatureInput>(() => createEmptySignature(true));
+  const [signatureForm, setSignatureForm] = useState<SignatureInput>(() =>
+    createEmptySignature(true),
+  );
 
   useEffect(() => {
-    void initialize();
+    void (async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const nextSnapshot = await maildraftApi.loadSnapshot();
+        hydrateAll(nextSnapshot);
+        setNotice("ローカルデータを読み込みました。");
+      } catch (loadError) {
+        setError(asMessage(loadError));
+      } finally {
+        setIsLoading(false);
+      }
+    })();
   }, []);
-
-  async function initialize() {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const nextSnapshot = await maildraftApi.loadSnapshot();
-      hydrateAll(nextSnapshot);
-      setNotice("ローカルデータを読み込みました。");
-    } catch (loadError) {
-      setError(asMessage(loadError));
-    } finally {
-      setIsLoading(false);
-    }
-  }
 
   function hydrateAll(nextSnapshot: StoreSnapshot) {
     setSnapshot(nextSnapshot);
@@ -79,7 +79,9 @@ export function useMaildraftApp() {
     setSelectedTemplateId(firstTemplate?.id ?? null);
     setSelectedSignatureId(firstSignature?.id ?? null);
 
-    setDraftForm(firstDraft ? toDraftInput(firstDraft) : createEmptyDraft(getDefaultSignatureId(nextSnapshot)));
+    setDraftForm(
+      firstDraft ? toDraftInput(firstDraft) : createEmptyDraft(getDefaultSignatureId(nextSnapshot)),
+    );
     setTemplateForm(
       firstTemplate
         ? toTemplateInput(firstTemplate)
@@ -269,10 +271,7 @@ export function useMaildraftApp() {
     setNotice("新しい署名を作成しています。");
   }
 
-  function changeSignature<K extends keyof SignatureInput>(
-    field: K,
-    value: SignatureInput[K],
-  ) {
+  function changeSignature<K extends keyof SignatureInput>(field: K, value: SignatureInput[K]) {
     setSignatureForm((current) => ({
       ...current,
       [field]: value,
@@ -458,8 +457,7 @@ function pickTemplateInput(snapshot: StoreSnapshot, templateId: string | null): 
 
 function pickSignatureInput(snapshot: StoreSnapshot, signatureId: string | null): SignatureInput {
   const existing =
-    snapshot.signatures.find((signature) => signature.id === signatureId) ??
-    snapshot.signatures[0];
+    snapshot.signatures.find((signature) => signature.id === signatureId) ?? snapshot.signatures[0];
 
   if (!existing) {
     return createEmptySignature(snapshot.signatures.length === 0);

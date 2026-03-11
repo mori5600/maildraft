@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
-import type { Signature } from "../../signatures/model";
-import { formatStoredTime } from "../../../shared/lib/time";
+
 import { truncate } from "../../../shared/lib/text";
+import { formatStoredTime } from "../../../shared/lib/time";
 import { visualizeWhitespace } from "../../../shared/lib/whitespace";
 import { Button, Field, Input, Panel, Select, Textarea } from "../../../shared/ui/primitives";
+import type { Signature } from "../../signatures/model";
 import type { Template, TemplateInput } from "../model";
 
 interface TemplateWorkspaceProps {

@@ -11,9 +11,7 @@ function App() {
       <main className="min-h-screen bg-[#0f1117] px-6 py-6 text-[#d5d9e0]">
         <div className="mx-auto max-w-4xl">
           <Panel className="px-6 py-5">
-            <div className="text-[11px] uppercase tracking-[0.22em] text-[#6d7485]">
-              MailDraft
-            </div>
+            <div className="text-[11px] uppercase tracking-[0.22em] text-[#6d7485]">MailDraft</div>
             <h1 className="mt-3 text-lg font-medium text-[#eef2f7]">
               ローカルワークスペースを起動しています
             </h1>

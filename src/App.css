@@ -63,18 +63,15 @@
 
 .mail-compose-text {
   font-family:
-    "BIZ UDPGothic",
-    "Yu Gothic UI",
-    "Hiragino Sans",
-    "Meiryo",
-    "Segoe UI Variable Text",
-    sans-serif;
+    "BIZ UDPGothic", "Yu Gothic UI", "Hiragino Sans", "Meiryo", "Segoe UI Variable Text", sans-serif;
   font-size: 15px;
   font-weight: 400;
   line-height: 1.92;
   letter-spacing: 0.012em;
   font-kerning: normal;
-  font-feature-settings: "palt" 1, "pkna" 1;
+  font-feature-settings:
+    "palt" 1,
+    "pkna" 1;
 }
 
 .mail-compose-text::placeholder {
@@ -83,31 +80,25 @@
 
 .mail-preview-text {
   font-family:
-    "BIZ UDPGothic",
-    "Yu Gothic UI",
-    "Hiragino Sans",
-    "Meiryo",
-    "Segoe UI Variable Text",
-    sans-serif;
+    "BIZ UDPGothic", "Yu Gothic UI", "Hiragino Sans", "Meiryo", "Segoe UI Variable Text", sans-serif;
   font-size: 15px;
   font-weight: 400;
   line-height: 1.94;
   letter-spacing: 0.014em;
   font-kerning: normal;
-  font-feature-settings: "palt" 1, "pkna" 1;
+  font-feature-settings:
+    "palt" 1,
+    "pkna" 1;
 }
 
 .mail-signature-text {
   font-family:
-    "BIZ UDPGothic",
-    "Yu Gothic UI",
-    "Hiragino Sans",
-    "Meiryo",
-    "Segoe UI Variable Text",
-    sans-serif;
+    "BIZ UDPGothic", "Yu Gothic UI", "Hiragino Sans", "Meiryo", "Segoe UI Variable Text", sans-serif;
   font-size: 14px;
   font-weight: 400;
   line-height: 1.86;
   letter-spacing: 0.01em;
-  font-feature-settings: "palt" 1, "pkna" 1;
+  font-feature-settings:
+    "palt" 1,
+    "pkna" 1;
 }

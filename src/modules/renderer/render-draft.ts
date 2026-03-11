@@ -19,10 +19,7 @@ export function renderTemplatePreview(
   return joinSections([template.opening, template.body, template.closing, signature?.body ?? ""]);
 }
 
-export function collectDraftChecks(
-  draft: DraftInput,
-  signature: Signature | undefined,
-): string[] {
+export function collectDraftChecks(draft: DraftInput, signature: Signature | undefined): string[] {
   const checks: string[] = [];
 
   if (!draft.subject.trim()) {

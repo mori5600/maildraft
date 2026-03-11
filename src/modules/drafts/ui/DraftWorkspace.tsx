@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
-import type { Signature } from "../../signatures/model";
-import type { Template } from "../../templates/model";
-import { formatStoredTime } from "../../../shared/lib/time";
+
 import { truncate } from "../../../shared/lib/text";
+import { formatStoredTime } from "../../../shared/lib/time";
 import { visualizeWhitespace } from "../../../shared/lib/whitespace";
 import { Button, Field, Input, Panel, Select, Textarea } from "../../../shared/ui/primitives";
+import type { Signature } from "../../signatures/model";
+import type { Template } from "../../templates/model";
 import type { Draft, DraftInput } from "../model";
 import { draftLabel } from "../model";
 
@@ -213,10 +214,7 @@ export function DraftWorkspace({
       </Panel>
 
       <Panel className="flex min-h-0 flex-col overflow-hidden">
-        <PaneHeader
-          description={selectedSignature?.name ?? "署名なし"}
-          title="Preview"
-        />
+        <PaneHeader description={selectedSignature?.name ?? "署名なし"} title="Preview" />
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="border-b border-[#20242c] px-4 py-3">
