@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import type { DraftInput } from "../../modules/drafts/model";
 import type {
+  ImportedBackupSnapshot,
   LogEntrySnapshot,
   LoggingSettingsInput,
   LoggingSettingsSnapshot,
@@ -37,6 +38,12 @@ export const maildraftApi = {
   },
   loadLoggingSettings() {
     return invoke<LoggingSettingsSnapshot>("load_logging_settings");
+  },
+  exportBackup(path: string) {
+    return invoke<string>("export_backup", { path });
+  },
+  importBackup(path: string) {
+    return invoke<ImportedBackupSnapshot>("import_backup", { path });
   },
   loadRecentLogs(limit?: number) {
     return invoke<LogEntrySnapshot[]>("load_recent_logs", { limit });

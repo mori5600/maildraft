@@ -1,4 +1,4 @@
-import { type ReactNode,useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import { formatBytes } from "../../../shared/lib/bytes";
 import { PreviewOverlay } from "../../../shared/ui/PreviewOverlay";
@@ -14,6 +14,8 @@ import {
 } from "../model";
 
 interface SettingsWorkspaceProps {
+  isExportingBackup: boolean;
+  isImportingBackup: boolean;
   loggingSettings: LoggingSettingsSnapshot;
   loggingForm: LoggingSettingsInput;
   recentLogs: LogEntrySnapshot[];
@@ -22,22 +24,48 @@ interface SettingsWorkspaceProps {
     field: K,
     value: LoggingSettingsInput[K],
   ) => void;
+  onExportBackup: () => Promise<void>;
+  onImportBackup: () => Promise<void>;
   onSaveLoggingSettings: () => Promise<void>;
   onClearLogs: () => Promise<void>;
   onRefreshRecentLogs: (options?: { silent?: boolean }) => Promise<void>;
 }
 
+type SettingsSection = "logging" | "backup";
+
+const SETTINGS_SECTIONS: Array<{
+  id: SettingsSection;
+  label: string;
+  description: string;
+}> = [
+  {
+    id: "logging",
+    label: "ログ",
+    description: "記録方法と診断ログ",
+  },
+  {
+    id: "backup",
+    label: "バックアップ",
+    description: "書き出しと復元",
+  },
+];
+
 export function SettingsWorkspace({
+  isExportingBackup,
+  isImportingBackup,
   loggingSettings,
   loggingForm,
   recentLogs,
   isLoadingRecentLogs,
   onChangeLogging,
+  onExportBackup,
+  onImportBackup,
   onSaveLoggingSettings,
   onClearLogs,
   onRefreshRecentLogs,
 }: SettingsWorkspaceProps) {
   const [isLogViewerOpen, setIsLogViewerOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<SettingsSection>("logging");
   const isDirty =
     loggingForm.mode !== loggingSettings.mode ||
     loggingForm.retentionDays !== loggingSettings.retentionDays;
@@ -49,133 +77,222 @@ export function SettingsWorkspace({
 
   return (
     <>
-      <div className="grid h-full min-h-0 gap-3 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <Panel className="flex min-h-0 flex-col overflow-hidden">
-          <PaneHeader
-            action={
-              <Button
-                disabled={!isDirty}
-                size="sm"
-                variant="primary"
-                onClick={() => void onSaveLoggingSettings()}
-              >
-                Save
-              </Button>
-            }
-            description="本文や宛先を含まない診断ログだけを扱います。"
-            title="Logging"
-          />
+      <div className="grid h-full min-h-0 gap-3 overflow-y-auto pr-1 lg:grid-cols-[188px_minmax(0,1fr)] lg:overflow-hidden lg:pr-0">
+        <Panel className="overflow-hidden lg:h-full">
+          <PaneHeader description="設定カテゴリ" title="Settings" />
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3.5">
-            <div className="grid gap-3">
-              <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3.5 py-3">
-                <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
-                  Privacy policy
-                </div>
-                <div className="mt-2.5 space-y-1.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
-                  <p>件名、本文、宛先、署名本文、クリップボードの内容はログへ保存しません。</p>
-                  <p>
-                    記録するのは、処理の成功・失敗、所要時間、件数や文字数のような要約情報だけです。
-                  </p>
-                </div>
-              </section>
+          <div className="grid gap-1.5 px-2.5 py-2.5">
+            {SETTINGS_SECTIONS.map((section) => {
+              const active = activeSection === section.id;
 
-              <div className="grid gap-3 md:grid-cols-2">
-                <Field label="Log mode" hint={loggingModeDescription(loggingForm.mode)}>
-                  <Select
-                    value={loggingForm.mode}
-                    onChange={(event) =>
-                      onChangeLogging(
-                        "mode",
-                        event.currentTarget.value as LoggingSettingsInput["mode"],
-                      )
-                    }
-                  >
-                    {LOGGING_MODE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-
-                <Field label="Retention">
-                  <Select
-                    value={String(loggingForm.retentionDays)}
-                    onChange={(event) =>
-                      onChangeLogging(
-                        "retentionDays",
-                        Number(event.currentTarget.value) as LoggingSettingsInput["retentionDays"],
-                      )
-                    }
-                  >
-                    {RETENTION_DAY_OPTIONS.map((days) => (
-                      <option key={days} value={days}>
-                        {days}日
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-              </div>
-
-              <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3.5 py-3">
-                <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
-                  Current behavior
-                </div>
-                <div className="mt-2.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
-                  {loggingModeDescription(loggingSettings.mode)} 保持期間は{" "}
-                  {loggingSettings.retentionDays}
-                  日です。
-                </div>
-              </section>
-            </div>
-          </div>
-        </Panel>
-
-        <Panel className="flex min-h-0 flex-col overflow-hidden">
-          <PaneHeader
-            action={
-              <div className="flex items-center gap-2">
-                <Button size="sm" variant="secondary" onClick={openLogViewer}>
-                  View logs
-                </Button>
-                <Button
-                  disabled={loggingSettings.fileCount === 0}
-                  size="sm"
-                  variant="danger"
-                  onClick={() => void onClearLogs()}
+              return (
+                <button
+                  key={section.id}
+                  className={`rounded-[8px] border px-3 py-2 text-left transition-colors ${
+                    active
+                      ? "border-[var(--color-panel-border-strong)] bg-[var(--color-nav-active-bg)]"
+                      : "border-transparent bg-transparent hover:border-[var(--color-panel-border)] hover:bg-[var(--color-nav-hover-bg)]"
+                  }`}
+                  type="button"
+                  onClick={() => setActiveSection(section.id)}
                 >
-                  Clear logs
-                </Button>
-              </div>
-            }
-            description="ローカルに保存された診断情報"
-            title="Storage"
-          />
-
-          <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3.5">
-            <div className="grid gap-3">
-              <StatCard
-                label="Usage"
-                value={formatBytes(loggingSettings.totalBytes)}
-                note={`1ファイル ${formatBytes(loggingSettings.maxFileSizeBytes)} / current + ${loggingSettings.maxRotatedFiles}世代`}
-              />
-              <StatCard
-                label="Files"
-                value={`${loggingSettings.fileCount} files`}
-                note="JSONL 形式で保存"
-              />
-              <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3.5 py-3">
-                <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
-                  Log directory
-                </div>
-                <pre className="mt-2.5 overflow-x-auto whitespace-pre-wrap break-all text-[13px] leading-6 text-[var(--color-text-strong)]">
-                  {loggingSettings.directoryPath || "初回書き込み時に作成されます。"}
-                </pre>
-              </section>
-            </div>
+                  <div className="text-[13px] font-medium text-[var(--color-text-strong)]">
+                    {section.label}
+                  </div>
+                  <div className="mt-1 text-[11px] text-[var(--color-text-subtle)]">
+                    {section.description}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </Panel>
+
+        <div className="min-h-0 overflow-y-auto">
+          {activeSection === "logging" ? (
+            <div className="grid content-start gap-3">
+              <Panel className="overflow-hidden">
+                <PaneHeader
+                  action={
+                    <Button
+                      disabled={!isDirty}
+                      size="sm"
+                      variant="primary"
+                      onClick={() => void onSaveLoggingSettings()}
+                    >
+                      Save
+                    </Button>
+                  }
+                  description="診断ログに何を残すかを決めます。"
+                  title="ログ設定"
+                />
+
+                <div className="px-3.5 py-3.5">
+                  <div className="grid gap-3">
+                    <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3.5 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                        Privacy guarantees
+                      </div>
+                      <div className="mt-2.5 space-y-1.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
+                        <p>件名、本文、宛先、署名本文、クリップボードの内容はログへ保存しません。</p>
+                        <p>
+                          記録するのは、処理の成功・失敗、所要時間、件数や文字数のような要約情報だけです。
+                        </p>
+                      </div>
+                    </section>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <Field label="Log mode" hint={loggingModeDescription(loggingForm.mode)}>
+                        <Select
+                          value={loggingForm.mode}
+                          onChange={(event) =>
+                            onChangeLogging(
+                              "mode",
+                              event.currentTarget.value as LoggingSettingsInput["mode"],
+                            )
+                          }
+                        >
+                          {LOGGING_MODE_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </Select>
+                      </Field>
+
+                      <Field label="Retention">
+                        <Select
+                          value={String(loggingForm.retentionDays)}
+                          onChange={(event) =>
+                            onChangeLogging(
+                              "retentionDays",
+                              Number(
+                                event.currentTarget.value,
+                              ) as LoggingSettingsInput["retentionDays"],
+                            )
+                          }
+                        >
+                          {RETENTION_DAY_OPTIONS.map((days) => (
+                            <option key={days} value={days}>
+                              {days}日
+                            </option>
+                          ))}
+                        </Select>
+                      </Field>
+                    </div>
+
+                    <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3.5 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                        Current behavior
+                      </div>
+                      <div className="mt-2.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
+                        {loggingModeDescription(loggingSettings.mode)} 保持期間は{" "}
+                        {loggingSettings.retentionDays}
+                        日です。
+                      </div>
+                    </section>
+                  </div>
+                </div>
+              </Panel>
+
+              <Panel className="overflow-hidden">
+                <PaneHeader
+                  action={
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="secondary" onClick={openLogViewer}>
+                        View logs
+                      </Button>
+                      <Button
+                        disabled={loggingSettings.fileCount === 0}
+                        size="sm"
+                        variant="danger"
+                        onClick={() => void onClearLogs()}
+                      >
+                        Clear logs
+                      </Button>
+                    </div>
+                  }
+                  description="保存済みの診断ログを確認します。"
+                  title="診断ログ"
+                />
+
+                <div className="px-3.5 py-3.5">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <StatCard
+                      label="Usage"
+                      value={formatBytes(loggingSettings.totalBytes)}
+                      note={`1ファイル ${formatBytes(loggingSettings.maxFileSizeBytes)} / current + ${loggingSettings.maxRotatedFiles}世代`}
+                    />
+                    <StatCard
+                      label="Files"
+                      value={`${loggingSettings.fileCount} files`}
+                      note="JSONL 形式で保存"
+                    />
+                  </div>
+                  <section className="mt-3 rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3.5 py-3">
+                    <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                      Log directory
+                    </div>
+                    <pre className="mt-2.5 overflow-x-auto whitespace-pre-wrap break-all text-[13px] leading-6 text-[var(--color-text-strong)]">
+                      {loggingSettings.directoryPath || "初回書き込み時に作成されます。"}
+                    </pre>
+                  </section>
+                </div>
+              </Panel>
+            </div>
+          ) : (
+            <div className="grid content-start gap-3">
+              <Panel className="overflow-hidden">
+                <PaneHeader
+                  description="下書きデータの書き出しと復元"
+                  title="バックアップ"
+                />
+
+                <div className="px-3.5 py-3.5">
+                  <div className="grid gap-3">
+                    <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3.5 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                        What is included
+                      </div>
+                      <div className="mt-2.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
+                        下書き、テンプレート、署名、履歴、ログ設定を JSON
+                        として保存します。診断ログ本体は含めません。
+                      </div>
+                    </section>
+
+                    <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3.5 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                        Actions
+                      </div>
+                      <div className="mt-2.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
+                        Import は現在のローカルデータを置き換えます。必要なら先に
+                        Export を実行してください。
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button
+                          disabled={isExportingBackup || isImportingBackup}
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => void onExportBackup()}
+                        >
+                          {isExportingBackup ? "Exporting" : "Export"}
+                        </Button>
+                        <Button
+                          disabled={isExportingBackup || isImportingBackup}
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => void onImportBackup()}
+                        >
+                          {isImportingBackup ? "Importing" : "Import"}
+                        </Button>
+                      </div>
+                    </section>
+                  </div>
+                </div>
+              </Panel>
+            </div>
+          )}
+        </div>
       </div>
 
       <PreviewOverlay

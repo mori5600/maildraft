@@ -1,3 +1,4 @@
+import { confirm, open, save } from "@tauri-apps/plugin-dialog";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -42,6 +43,7 @@ import {
 } from "../../modules/templates/model";
 import { TemplateWorkspace } from "../../modules/templates/ui/TemplateWorkspace";
 import { maildraftApi } from "../../shared/api/maildraft-api";
+import { BACKUP_FILE_FILTER,createBackupDefaultFileName } from "../../shared/lib/backup";
 import { copyPlainText } from "../../shared/lib/clipboard";
 import { matchesSearchQuery } from "../../shared/lib/search";
 import {
@@ -70,6 +72,8 @@ export function useMaildraftApp() {
   const [recentLogs, setRecentLogs] = useState<LogEntrySnapshot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingRecentLogs, setIsLoadingRecentLogs] = useState(false);
+  const [isExportingBackup, setIsExportingBackup] = useState(false);
+  const [isImportingBackup, setIsImportingBackup] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState("ローカル保存の準備をしています。");
   const [view, setViewState] = useState<WorkspaceView>("drafts");
@@ -702,6 +706,69 @@ export function useMaildraftApp() {
     }
   }
 
+  async function exportBackup() {
+    try {
+      setError(null);
+      setIsExportingBackup(true);
+      const path = await save({
+        title: "MailDraft バックアップを書き出す",
+        defaultPath: createBackupDefaultFileName(),
+        filters: [BACKUP_FILE_FILTER],
+      });
+
+      if (!path) {
+        return;
+      }
+
+      await maildraftApi.exportBackup(path);
+      setNotice("バックアップを書き出しました。");
+    } catch (exportError) {
+      setError(asMessage(exportError));
+    } finally {
+      setIsExportingBackup(false);
+    }
+  }
+
+  async function importBackup() {
+    try {
+      setError(null);
+      const confirmed = await confirm(
+        "バックアップを読み込むと、現在の下書き・テンプレート・署名・履歴を置き換えます。続けますか？",
+        {
+          title: "MailDraft",
+          kind: "warning",
+          okLabel: "Import",
+          cancelLabel: "Cancel",
+        },
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      setIsImportingBackup(true);
+      const selected = await open({
+        title: "MailDraft バックアップを読み込む",
+        multiple: false,
+        filters: [BACKUP_FILE_FILTER],
+      });
+
+      if (!selected || Array.isArray(selected)) {
+        return;
+      }
+
+      const imported = await maildraftApi.importBackup(selected);
+      hydrateAll(imported.snapshot);
+      hydrateLoggingSettings(imported.loggingSettings);
+      setDraftAutoSaveState("idle");
+      setNotice("バックアップを読み込みました。");
+    } catch (importError) {
+      setError(asMessage(importError));
+    } finally {
+      setIsImportingBackup(false);
+    }
+  }
+
   return {
     views: [
       { id: "drafts" as const, label: "下書き", count: snapshot.drafts.length },
@@ -798,12 +865,16 @@ export function useMaildraftApp() {
     ),
     settingsWorkspace: (
       <SettingsWorkspace
+        isExportingBackup={isExportingBackup}
+        isImportingBackup={isImportingBackup}
         loggingForm={loggingForm}
         loggingSettings={loggingSettings}
         recentLogs={recentLogs}
         isLoadingRecentLogs={isLoadingRecentLogs}
         onChangeLogging={changeLogging}
         onClearLogs={clearLogs}
+        onExportBackup={exportBackup}
+        onImportBackup={importBackup}
         onRefreshRecentLogs={refreshRecentLogs}
         onSaveLoggingSettings={saveLoggingSettings}
       />

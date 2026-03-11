@@ -5,6 +5,7 @@ use std::io::Error;
 
 use app::state::AppState;
 use app::{
+    backup::ImportedBackupSnapshot,
     logging::LogEntrySnapshot,
     settings::{LoggingSettingsInput, LoggingSettingsSnapshot},
 };
@@ -76,6 +77,19 @@ fn load_logging_settings(
 }
 
 #[tauri::command]
+fn export_backup(state: tauri::State<'_, AppState>, path: String) -> Result<String, String> {
+    state.export_backup(&path)
+}
+
+#[tauri::command]
+fn import_backup(
+    state: tauri::State<'_, AppState>,
+    path: String,
+) -> Result<ImportedBackupSnapshot, String> {
+    state.import_backup(&path)
+}
+
+#[tauri::command]
 fn load_recent_logs(
     state: tauri::State<'_, AppState>,
     limit: Option<usize>,
@@ -100,6 +114,7 @@ fn clear_logs(state: tauri::State<'_, AppState>) -> Result<LoggingSettingsSnapsh
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let state = AppState::new(app.handle()).map_err(Error::other)?;
             tauri::Manager::manage(app, state);
@@ -116,6 +131,8 @@ pub fn run() {
             save_signature,
             delete_signature,
             load_logging_settings,
+            export_backup,
+            import_backup,
             load_recent_logs,
             save_logging_settings,
             clear_logs

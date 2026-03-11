@@ -166,6 +166,6 @@ function getViewDescription(view: WorkspaceView): string {
     case "signatures":
       return "差出人プロフィールを管理";
     case "settings":
-      return "診断ログの記録方法と保持期間を管理";
+      return "ログとバックアップを管理";
   }
 }

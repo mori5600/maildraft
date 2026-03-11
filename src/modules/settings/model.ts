@@ -1,3 +1,5 @@
+import type { StoreSnapshot } from "../../shared/types/store";
+
 export type LoggingMode = "off" | "errors_only" | "standard";
 
 export interface LoggingSettingsInput {
@@ -26,6 +28,11 @@ export interface LogEntrySnapshot {
 }
 
 export const RECENT_LOG_LIMIT = 80;
+
+export interface ImportedBackupSnapshot {
+  snapshot: StoreSnapshot;
+  loggingSettings: LoggingSettingsSnapshot;
+}
 
 export const LOGGING_MODE_OPTIONS: Array<{
   value: LoggingMode;
