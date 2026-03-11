@@ -69,19 +69,19 @@ export function DraftWorkspace({
                   key={draft.id}
                   className={`w-full rounded-lg border px-3 py-2.5 text-left transition-colors ${
                     isActive
-                      ? "border-[#314778] bg-[#161f31]"
-                      : "border-transparent hover:border-[#232831] hover:bg-[#181d24]"
+                      ? "border-[var(--color-list-active-border)] bg-[var(--color-list-active-bg)]"
+                      : "border-transparent hover:border-[var(--color-list-hover-border)] hover:bg-[var(--color-list-hover-bg)]"
                   }`}
                   onClick={() => onSelectDraft(draft.id)}
                   type="button"
                 >
-                  <div className="truncate text-sm font-medium text-[#eef2f7]">
+                  <div className="truncate text-sm font-medium text-[var(--color-text-strong)]">
                     {draftLabel(draft)}
                   </div>
-                  <div className="mt-1 truncate text-xs text-[#8a93a3]">
+                  <div className="mt-1 truncate text-xs text-[var(--color-text-muted)]">
                     {truncate(draft.subject || "件名未設定")}
                   </div>
-                  <div className="mt-2 text-[11px] text-[#667082]">
+                  <div className="mt-2 text-[11px] text-[var(--color-text-subtle)]">
                     {formatStoredTime(draft.updatedAt)}
                   </div>
                 </button>
@@ -233,21 +233,27 @@ export function DraftWorkspace({
         />
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="border-b border-[#20242c] px-4 py-3">
-            <div className="text-[11px] uppercase tracking-[0.18em] text-[#667082]">Subject</div>
-            <div className="mt-2 text-sm text-[#eef2f7]">{draftForm.subject || "件名未設定"}</div>
+          <div className="border-b border-[var(--color-panel-border-strong)] px-4 py-3">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+              Subject
+            </div>
+            <div className="mt-2 text-sm text-[var(--color-text-strong)]">
+              {draftForm.subject || "件名未設定"}
+            </div>
           </div>
 
-          <div className="border-b border-[#20242c] px-4 py-3">
-            <div className="text-[11px] uppercase tracking-[0.18em] text-[#667082]">Checks</div>
+          <div className="border-b border-[var(--color-panel-border-strong)] px-4 py-3">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+              Checks
+            </div>
             <div className="mt-2 space-y-2">
               {checks.map((check) => (
                 <div
                   key={check}
                   className={`rounded-md border px-3 py-2 text-sm ${
                     check.includes("通っています")
-                      ? "border-[#20352c] bg-[#121a16] text-[#98d5b7]"
-                      : "border-[#3a3423] bg-[#18150f] text-[#d8c18a]"
+                      ? "border-[var(--color-success-border)] bg-[var(--color-success-bg)] text-[var(--color-success-text)]"
+                      : "border-[var(--color-warning-border)] bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]"
                   }`}
                 >
                   {check}
@@ -257,8 +263,10 @@ export function DraftWorkspace({
           </div>
 
           <div className="px-4 py-3">
-            <div className="text-[11px] uppercase tracking-[0.18em] text-[#667082]">Body</div>
-            <pre className="mail-preview-text mt-2 overflow-x-auto rounded-lg border border-[#20242c] bg-[#0d1016] px-4 py-4 whitespace-pre-wrap text-[#d7dce5]">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+              Body
+            </div>
+            <pre className="mail-preview-text mt-2 overflow-x-auto rounded-lg border border-[var(--color-panel-border-strong)] bg-[var(--color-preview-bg)] px-4 py-4 whitespace-pre-wrap text-[var(--color-preview-text)]">
               {(showWhitespace ? visualizeWhitespace(previewText) : previewText) ||
                 "本文プレビューがここに表示されます。"}
             </pre>
@@ -279,10 +287,10 @@ function PaneHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-12 items-center justify-between gap-3 border-b border-[#20242c] px-4">
+    <div className="flex min-h-12 items-center justify-between gap-3 border-b border-[var(--color-panel-border-strong)] px-4">
       <div className="min-w-0">
-        <div className="text-sm font-medium text-[#eef2f7]">{title}</div>
-        <div className="truncate text-xs text-[#667082]">{description}</div>
+        <div className="text-sm font-medium text-[var(--color-text-strong)]">{title}</div>
+        <div className="truncate text-xs text-[var(--color-text-subtle)]">{description}</div>
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>

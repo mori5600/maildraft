@@ -27,6 +27,12 @@ import {
 import { TemplateWorkspace } from "../../modules/templates/ui/TemplateWorkspace";
 import { maildraftApi } from "../../shared/api/maildraft-api";
 import { copyPlainText } from "../../shared/lib/clipboard";
+import {
+  applyTheme,
+  type AppTheme,
+  persistTheme,
+  resolveInitialTheme,
+} from "../../shared/lib/theme";
 import type { StoreSnapshot, WorkspaceView } from "../../shared/types/store";
 
 const EMPTY_SNAPSHOT: StoreSnapshot = {
@@ -41,6 +47,7 @@ export function useMaildraftApp() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState("ローカル保存の準備をしています。");
   const [view, setView] = useState<WorkspaceView>("drafts");
+  const [theme, setTheme] = useState<AppTheme>(() => resolveInitialTheme());
   const [showWhitespace, setShowWhitespace] = useState(false);
 
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
@@ -68,6 +75,11 @@ export function useMaildraftApp() {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    applyTheme(theme);
+    persistTheme(theme);
+  }, [theme]);
 
   function hydrateAll(nextSnapshot: StoreSnapshot) {
     setSnapshot(nextSnapshot);
@@ -358,9 +370,17 @@ export function useMaildraftApp() {
     isLoading,
     error,
     notice,
+    theme,
     view,
     setView,
     showWhitespace,
+    toggleTheme() {
+      const nextTheme = theme === "dark" ? "light" : "dark";
+      setTheme(nextTheme);
+      setNotice(
+        nextTheme === "dark" ? "ダークモードに切り替えました。" : "ライトモードに切り替えました。",
+      );
+    },
     toggleWhitespace() {
       setShowWhitespace((current) => !current);
     },

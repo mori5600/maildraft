@@ -2,14 +2,160 @@
 
 @layer base {
   :root {
-    color: #d5d9e0;
-    background: #0f1117;
+    --color-app-bg: #0f1117;
+    --color-sidebar-bg: #0d1015;
+    --color-panel-bg: #141820;
+    --color-field-bg: #0f1319;
+    --color-preview-bg: #0d1016;
+    --color-panel-border: #1f232b;
+    --color-panel-border-strong: #20242c;
+    --color-sidebar-border: #1b1f27;
+    --color-field-border: #272d37;
+    --color-field-focus: #3e5fae;
+    --color-text: #d5d9e0;
+    --color-text-strong: #eef2f7;
+    --color-text-muted: #8b93a3;
+    --color-text-subtle: #667082;
+    --color-text-faint: #626a79;
+    --color-text-hint: #596171;
+    --color-text-overlay: #77829a;
+    --color-text-placeholder: #586171;
+    --color-notice: #6f7888;
+    --color-error: #f0a8b5;
+    --color-nav-active-bg: #171b23;
+    --color-nav-hover-bg: #141920;
+    --color-nav-count-active-bg: #10141a;
+    --color-nav-count-active-text: #9db9ff;
+    --color-nav-count-muted: #616a79;
+    --color-list-active-border: #314778;
+    --color-list-active-bg: #161f31;
+    --color-list-hover-border: #232831;
+    --color-list-hover-bg: #181d24;
+    --color-button-primary-border: #2f4b8b;
+    --color-button-primary-bg: #17233f;
+    --color-button-primary-text: #c6d7ff;
+    --color-button-primary-border-hover: #3a5aa8;
+    --color-button-primary-bg-hover: #1b2a4a;
+    --color-button-secondary-border: #272d37;
+    --color-button-secondary-bg: #181d24;
+    --color-button-secondary-text: #d5d9e0;
+    --color-button-secondary-border-hover: #323945;
+    --color-button-secondary-bg-hover: #1d232c;
+    --color-button-ghost-text: #8c95a5;
+    --color-button-ghost-border-hover: #232831;
+    --color-button-ghost-bg-hover: #161b22;
+    --color-button-ghost-text-hover: #d5d9e0;
+    --color-button-danger-border: #4c2a31;
+    --color-button-danger-bg: #1e1417;
+    --color-button-danger-text: #ebb2bd;
+    --color-button-danger-border-hover: #623740;
+    --color-button-danger-bg-hover: #24171b;
+    --color-pill-accent-border: #2f4b8b;
+    --color-pill-accent-bg: #17233f;
+    --color-pill-accent-text: #9db9ff;
+    --color-pill-neutral-border: #232831;
+    --color-pill-neutral-bg: #161b22;
+    --color-pill-neutral-text: #7a8291;
+    --color-preview-text: #d7dce5;
+    --color-success-border: #20352c;
+    --color-success-bg: #121a16;
+    --color-success-text: #98d5b7;
+    --color-warning-border: #3a3423;
+    --color-warning-bg: #18150f;
+    --color-warning-text: #d8c18a;
+    --color-default-badge-border: #3153a6;
+    --color-default-badge-bg: #152445;
+    --color-default-badge-text: #8eb1ff;
+    --color-checkbox-border: #364051;
+    --color-checkbox-bg: #0d1016;
+    --color-checkbox-text: #c5ccd7;
+    --color-selection: rgba(85, 141, 255, 0.26);
+    --color-scrollbar-thumb: rgba(102, 110, 126, 0.45);
+    --color-scrollbar-thumb-hover: rgba(132, 142, 161, 0.58);
+
+    color: var(--color-text);
+    background: var(--color-app-bg);
     color-scheme: dark;
     font-family: "Segoe UI Variable Text", "Yu Gothic UI", "Segoe UI", sans-serif;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  :root[data-theme="light"] {
+    --color-app-bg: #f4f6f9;
+    --color-sidebar-bg: #eef2f6;
+    --color-panel-bg: #ffffff;
+    --color-field-bg: #ffffff;
+    --color-preview-bg: #fafbfd;
+    --color-panel-border: #d8dee8;
+    --color-panel-border-strong: #e4e9f0;
+    --color-sidebar-border: #d6dde7;
+    --color-field-border: #ccd5e1;
+    --color-field-focus: #6a87c1;
+    --color-text: #334155;
+    --color-text-strong: #0f172a;
+    --color-text-muted: #667085;
+    --color-text-subtle: #7a8598;
+    --color-text-faint: #7a8598;
+    --color-text-hint: #8891a2;
+    --color-text-overlay: #93a0b4;
+    --color-text-placeholder: #8f99ab;
+    --color-notice: #6d788b;
+    --color-error: #b44a60;
+    --color-nav-active-bg: #e8eef7;
+    --color-nav-hover-bg: #edf2f7;
+    --color-nav-count-active-bg: #dbe7fb;
+    --color-nav-count-active-text: #34558c;
+    --color-nav-count-muted: #7b8798;
+    --color-list-active-border: #bfd0ec;
+    --color-list-active-bg: #eef4ff;
+    --color-list-hover-border: #dce3ec;
+    --color-list-hover-bg: #f6f8fb;
+    --color-button-primary-border: #b8caec;
+    --color-button-primary-bg: #edf3ff;
+    --color-button-primary-text: #34558c;
+    --color-button-primary-border-hover: #a4b8de;
+    --color-button-primary-bg-hover: #e4ecfb;
+    --color-button-secondary-border: #d7dee8;
+    --color-button-secondary-bg: #f4f7fa;
+    --color-button-secondary-text: #334155;
+    --color-button-secondary-border-hover: #c8d2de;
+    --color-button-secondary-bg-hover: #edf2f7;
+    --color-button-ghost-text: #667487;
+    --color-button-ghost-border-hover: #dce3eb;
+    --color-button-ghost-bg-hover: #eef3f8;
+    --color-button-ghost-text-hover: #1f2937;
+    --color-button-danger-border: #ebc3ca;
+    --color-button-danger-bg: #fff1f3;
+    --color-button-danger-text: #b14b5f;
+    --color-button-danger-border-hover: #dfacb7;
+    --color-button-danger-bg-hover: #ffe7eb;
+    --color-pill-accent-border: #b8caef;
+    --color-pill-accent-bg: #edf3ff;
+    --color-pill-accent-text: #3b5e96;
+    --color-pill-neutral-border: #d8dee6;
+    --color-pill-neutral-bg: #f4f6f8;
+    --color-pill-neutral-text: #748095;
+    --color-preview-text: #263243;
+    --color-success-border: #badfc7;
+    --color-success-bg: #ecfaf1;
+    --color-success-text: #31714c;
+    --color-warning-border: #ead7aa;
+    --color-warning-bg: #fff7e8;
+    --color-warning-text: #8b6b1d;
+    --color-default-badge-border: #b8caef;
+    --color-default-badge-bg: #edf3ff;
+    --color-default-badge-text: #3b5e96;
+    --color-checkbox-border: #bcc7d6;
+    --color-checkbox-bg: #ffffff;
+    --color-checkbox-text: #334155;
+    --color-selection: rgba(95, 139, 255, 0.18);
+    --color-scrollbar-thumb: rgba(123, 135, 152, 0.35);
+    --color-scrollbar-thumb-hover: rgba(110, 124, 144, 0.48);
+
+    color-scheme: light;
   }
 
   * {
@@ -25,7 +171,8 @@
   body {
     margin: 0;
     min-width: 360px;
-    background: #0f1117;
+    background: var(--color-app-bg);
+    color: var(--color-text);
   }
 
   button,
@@ -36,7 +183,7 @@
   }
 
   ::selection {
-    background: rgba(85, 141, 255, 0.26);
+    background: var(--color-selection);
   }
 
   ::-webkit-scrollbar {
@@ -51,12 +198,12 @@
   ::-webkit-scrollbar-thumb {
     border: 3px solid transparent;
     border-radius: 999px;
-    background: rgba(102, 110, 126, 0.45);
+    background: var(--color-scrollbar-thumb);
     background-clip: content-box;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(132, 142, 161, 0.58);
+    background: var(--color-scrollbar-thumb-hover);
     background-clip: content-box;
   }
 }
