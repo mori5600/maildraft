@@ -1,5 +1,6 @@
 import {
   type ButtonHTMLAttributes,
+  type ComponentPropsWithoutRef,
   type InputHTMLAttributes,
   type PropsWithChildren,
   type SelectHTMLAttributes,
@@ -25,13 +26,18 @@ function toDisplayText(value: unknown): string {
   return String(value);
 }
 
-export function Panel({ children, className }: PropsWithChildren<{ className?: string }>) {
+export function Panel({
+  children,
+  className,
+  ...props
+}: PropsWithChildren<{ className?: string }> & ComponentPropsWithoutRef<"section">) {
   return (
     <section
       className={cn(
         "rounded-[10px] border border-[var(--color-panel-border)] bg-[var(--color-panel-bg)] text-[var(--color-text)]",
         className,
       )}
+      {...props}
     >
       {children}
     </section>

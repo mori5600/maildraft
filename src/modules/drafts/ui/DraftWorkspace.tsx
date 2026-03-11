@@ -1,8 +1,9 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 
 import { truncate } from "../../../shared/lib/text";
 import { formatStoredTime } from "../../../shared/lib/time";
 import { visualizeWhitespace } from "../../../shared/lib/whitespace";
+import { PreviewOverlay } from "../../../shared/ui/PreviewOverlay";
 import { Button, Field, Input, Panel, Select, Textarea } from "../../../shared/ui/primitives";
 import type { Signature } from "../../signatures/model";
 import type { Template } from "../../templates/model";
@@ -44,236 +45,312 @@ export function DraftWorkspace({
   onDeleteDraft,
   onApplyTemplate,
 }: DraftWorkspaceProps) {
+  const [isWidePreviewOpen, setIsWidePreviewOpen] = useState(false);
   const selectedSignature = signatures.find((signature) => signature.id === draftForm.signatureId);
   const canCopyPreview = previewText.trim().length > 0;
+  const canExpandPreview =
+    previewText.trim().length > 0 || draftForm.subject.trim().length > 0 || checks.length > 0;
+  const previewBodyText =
+    (showWhitespace ? visualizeWhitespace(previewText) : previewText) ||
+    "本文プレビューがここに表示されます。";
 
   return (
-    <div className="grid h-full min-h-0 gap-4 xl:grid-cols-[260px_minmax(0,1fr)_340px]">
-      <Panel className="flex min-h-0 flex-col overflow-hidden">
-        <PaneHeader
-          action={
-            <Button size="sm" variant="ghost" onClick={onCreateDraft}>
-              New
-            </Button>
-          }
-          description={`${drafts.length} drafts`}
-          title="Draft list"
-        />
-        <div className="min-h-0 flex-1 overflow-y-auto p-2">
-          <div className="space-y-1">
-            {drafts.map((draft) => {
-              const isActive = draft.id === selectedDraftId;
+    <>
+      <div className="grid h-full min-h-0 gap-4 xl:grid-cols-[260px_minmax(0,1fr)_340px]">
+        <Panel className="flex min-h-0 flex-col overflow-hidden">
+          <PaneHeader
+            action={
+              <Button size="sm" variant="ghost" onClick={onCreateDraft}>
+                New
+              </Button>
+            }
+            description={`${drafts.length} drafts`}
+            title="Draft list"
+          />
+          <div className="min-h-0 flex-1 overflow-y-auto p-2">
+            <div className="space-y-1">
+              {drafts.map((draft) => {
+                const isActive = draft.id === selectedDraftId;
 
-              return (
-                <button
-                  key={draft.id}
-                  className={`w-full rounded-lg border px-3 py-2.5 text-left transition-colors ${
-                    isActive
-                      ? "border-[var(--color-list-active-border)] bg-[var(--color-list-active-bg)]"
-                      : "border-transparent hover:border-[var(--color-list-hover-border)] hover:bg-[var(--color-list-hover-bg)]"
-                  }`}
-                  onClick={() => onSelectDraft(draft.id)}
-                  type="button"
-                >
-                  <div className="truncate text-sm font-medium text-[var(--color-text-strong)]">
-                    {draftLabel(draft)}
-                  </div>
-                  <div className="mt-1 truncate text-xs text-[var(--color-text-muted)]">
-                    {truncate(draft.subject || "件名未設定")}
-                  </div>
-                  <div className="mt-2 text-[11px] text-[var(--color-text-subtle)]">
-                    {formatStoredTime(draft.updatedAt)}
-                  </div>
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={draft.id}
+                    className={`w-full rounded-lg border px-3 py-2.5 text-left transition-colors ${
+                      isActive
+                        ? "border-[var(--color-list-active-border)] bg-[var(--color-list-active-bg)]"
+                        : "border-transparent hover:border-[var(--color-list-hover-border)] hover:bg-[var(--color-list-hover-bg)]"
+                    }`}
+                    onClick={() => onSelectDraft(draft.id)}
+                    type="button"
+                  >
+                    <div className="truncate text-sm font-medium text-[var(--color-text-strong)]">
+                      {draftLabel(draft)}
+                    </div>
+                    <div className="mt-1 truncate text-xs text-[var(--color-text-muted)]">
+                      {truncate(draft.subject || "件名未設定")}
+                    </div>
+                    <div className="mt-2 text-[11px] text-[var(--color-text-subtle)]">
+                      {formatStoredTime(draft.updatedAt)}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </Panel>
+        </Panel>
 
-      <Panel className="flex min-h-0 flex-col overflow-hidden">
-        <PaneHeader
-          action={
-            <div className="flex gap-2">
-              <Button size="sm" variant="ghost" onClick={() => void onDeleteDraft()}>
-                {selectedDraftId ? "Delete" : "Reset"}
-              </Button>
-              <Button size="sm" variant="primary" onClick={() => void onSaveDraft()}>
-                Save
-              </Button>
-            </div>
-          }
-          description={draftLabel(draftForm)}
-          title="Editor"
-        />
+        <Panel className="flex min-h-0 flex-col overflow-hidden">
+          <PaneHeader
+            action={
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={() => void onDeleteDraft()}>
+                  {selectedDraftId ? "Delete" : "Reset"}
+                </Button>
+                <Button size="sm" variant="primary" onClick={() => void onSaveDraft()}>
+                  Save
+                </Button>
+              </div>
+            }
+            description={draftLabel(draftForm)}
+            title="Editor"
+          />
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-          <div className="grid gap-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Label">
-                <Input
-                  placeholder="4/12 打ち合わせお礼"
-                  showWhitespace={showWhitespace}
-                  value={draftForm.title}
-                  onChange={(event) => onChangeDraft("title", event.currentTarget.value)}
-                />
-              </Field>
-              <Field label="Subject">
-                <Input
-                  placeholder="件名"
-                  showWhitespace={showWhitespace}
-                  value={draftForm.subject}
-                  onChange={(event) => onChangeDraft("subject", event.currentTarget.value)}
-                />
-              </Field>
-            </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+            <div className="grid gap-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Label">
+                  <Input
+                    placeholder="4/12 打ち合わせお礼"
+                    showWhitespace={showWhitespace}
+                    value={draftForm.title}
+                    onChange={(event) => onChangeDraft("title", event.currentTarget.value)}
+                  />
+                </Field>
+                <Field label="Subject">
+                  <Input
+                    placeholder="件名"
+                    showWhitespace={showWhitespace}
+                    value={draftForm.subject}
+                    onChange={(event) => onChangeDraft("subject", event.currentTarget.value)}
+                  />
+                </Field>
+              </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Template">
-                <Select
-                  value={draftForm.templateId ?? ""}
-                  onChange={(event) => {
-                    const templateId = event.currentTarget.value;
-                    if (!templateId) {
-                      onChangeDraft("templateId", null);
-                      return;
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Template">
+                  <Select
+                    value={draftForm.templateId ?? ""}
+                    onChange={(event) => {
+                      const templateId = event.currentTarget.value;
+                      if (!templateId) {
+                        onChangeDraft("templateId", null);
+                        return;
+                      }
+
+                      onApplyTemplate(templateId);
+                    }}
+                  >
+                    <option value="">テンプレートなし</option>
+                    {templates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+                <Field label="Signature">
+                  <Select
+                    value={draftForm.signatureId ?? ""}
+                    onChange={(event) =>
+                      onChangeDraft("signatureId", event.currentTarget.value || null)
                     }
+                  >
+                    <option value="">署名なし</option>
+                    {signatures.map((signature) => (
+                      <option key={signature.id} value={signature.id}>
+                        {signature.name}
+                        {signature.isDefault ? " (既定)" : ""}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              </div>
 
-                    onApplyTemplate(templateId);
-                  }}
-                >
-                  <option value="">テンプレートなし</option>
-                  {templates.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.name}
-                    </option>
-                  ))}
-                </Select>
+              <Field label="Recipient note" hint="社名や担当者など">
+                <Input
+                  placeholder="株式会社サンプル 佐藤様"
+                  showWhitespace={showWhitespace}
+                  value={draftForm.recipient}
+                  onChange={(event) => onChangeDraft("recipient", event.currentTarget.value)}
+                />
               </Field>
-              <Field label="Signature">
-                <Select
-                  value={draftForm.signatureId ?? ""}
-                  onChange={(event) =>
-                    onChangeDraft("signatureId", event.currentTarget.value || null)
-                  }
-                >
-                  <option value="">署名なし</option>
-                  {signatures.map((signature) => (
-                    <option key={signature.id} value={signature.id}>
-                      {signature.name}
-                      {signature.isDefault ? " (既定)" : ""}
-                    </option>
-                  ))}
-                </Select>
+
+              <Field label="Opening">
+                <Textarea
+                  className="min-h-[144px]"
+                  placeholder={"株式会社サンプル\n佐藤 様"}
+                  rows={5}
+                  showWhitespace={showWhitespace}
+                  textClassName="mail-compose-text"
+                  value={draftForm.opening}
+                  onChange={(event) => onChangeDraft("opening", event.currentTarget.value)}
+                />
+              </Field>
+
+              <Field label="Body">
+                <Textarea
+                  className="min-h-[320px]"
+                  placeholder="本文"
+                  rows={12}
+                  showWhitespace={showWhitespace}
+                  textClassName="mail-compose-text"
+                  value={draftForm.body}
+                  onChange={(event) => onChangeDraft("body", event.currentTarget.value)}
+                />
+              </Field>
+
+              <Field label="Closing">
+                <Textarea
+                  className="min-h-[144px]"
+                  placeholder="引き続きよろしくお願いいたします。"
+                  rows={5}
+                  showWhitespace={showWhitespace}
+                  textClassName="mail-compose-text"
+                  value={draftForm.closing}
+                  onChange={(event) => onChangeDraft("closing", event.currentTarget.value)}
+                />
               </Field>
             </div>
-
-            <Field label="Recipient note" hint="社名や担当者など">
-              <Input
-                placeholder="株式会社サンプル 佐藤様"
-                showWhitespace={showWhitespace}
-                value={draftForm.recipient}
-                onChange={(event) => onChangeDraft("recipient", event.currentTarget.value)}
-              />
-            </Field>
-
-            <Field label="Opening">
-              <Textarea
-                className="min-h-[144px]"
-                placeholder={"株式会社サンプル\n佐藤 様"}
-                rows={5}
-                showWhitespace={showWhitespace}
-                textClassName="mail-compose-text"
-                value={draftForm.opening}
-                onChange={(event) => onChangeDraft("opening", event.currentTarget.value)}
-              />
-            </Field>
-
-            <Field label="Body">
-              <Textarea
-                className="min-h-[320px]"
-                placeholder="本文"
-                rows={12}
-                showWhitespace={showWhitespace}
-                textClassName="mail-compose-text"
-                value={draftForm.body}
-                onChange={(event) => onChangeDraft("body", event.currentTarget.value)}
-              />
-            </Field>
-
-            <Field label="Closing">
-              <Textarea
-                className="min-h-[144px]"
-                placeholder="引き続きよろしくお願いいたします。"
-                rows={5}
-                showWhitespace={showWhitespace}
-                textClassName="mail-compose-text"
-                value={draftForm.closing}
-                onChange={(event) => onChangeDraft("closing", event.currentTarget.value)}
-              />
-            </Field>
           </div>
-        </div>
-      </Panel>
+        </Panel>
 
-      <Panel className="flex min-h-0 flex-col overflow-hidden">
-        <PaneHeader
-          action={
-            <Button
-              disabled={!canCopyPreview}
-              size="sm"
-              variant="ghost"
-              onClick={() => void onCopyPreview()}
-            >
-              Copy
-            </Button>
-          }
-          description={selectedSignature?.name ?? "署名なし"}
-          title="Preview"
-        />
-
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="border-b border-[var(--color-panel-border-strong)] px-4 py-3">
-            <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
-              Subject
-            </div>
-            <div className="mt-2 text-sm text-[var(--color-text-strong)]">
-              {draftForm.subject || "件名未設定"}
-            </div>
-          </div>
-
-          <div className="border-b border-[var(--color-panel-border-strong)] px-4 py-3">
-            <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
-              Checks
-            </div>
-            <div className="mt-2 space-y-2">
-              {checks.map((check) => (
-                <div
-                  key={check}
-                  className={`rounded-md border px-3 py-2 text-sm ${
-                    check.includes("通っています")
-                      ? "border-[var(--color-success-border)] bg-[var(--color-success-bg)] text-[var(--color-success-text)]"
-                      : "border-[var(--color-warning-border)] bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]"
-                  }`}
+        <Panel className="flex min-h-0 flex-col overflow-hidden">
+          <PaneHeader
+            action={
+              <div className="flex gap-2">
+                <Button
+                  disabled={!canExpandPreview}
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setIsWidePreviewOpen(true)}
                 >
-                  {check}
-                </div>
-              ))}
+                  Expand
+                </Button>
+                <Button
+                  disabled={!canCopyPreview}
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void onCopyPreview()}
+                >
+                  Copy
+                </Button>
+              </div>
+            }
+            description={selectedSignature?.name ?? "署名なし"}
+            title="Preview"
+          />
+
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="border-b border-[var(--color-panel-border-strong)] px-4 py-3">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+                Subject
+              </div>
+              <div className="mt-2 text-sm text-[var(--color-text-strong)]">
+                {draftForm.subject || "件名未設定"}
+              </div>
+            </div>
+
+            <div className="border-b border-[var(--color-panel-border-strong)] px-4 py-3">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+                Checks
+              </div>
+              <div className="mt-2 space-y-2">
+                {checks.map((check) => (
+                  <div
+                    key={check}
+                    className={`rounded-md border px-3 py-2 text-sm ${
+                      check.includes("通っています")
+                        ? "border-[var(--color-success-border)] bg-[var(--color-success-bg)] text-[var(--color-success-text)]"
+                        : "border-[var(--color-warning-border)] bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]"
+                    }`}
+                  >
+                    {check}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="px-4 py-3">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+                Body
+              </div>
+              <pre className="mail-preview-text mt-2 overflow-x-auto rounded-lg border border-[var(--color-panel-border-strong)] bg-[var(--color-preview-bg)] px-4 py-4 whitespace-pre-wrap text-[var(--color-preview-text)]">
+                {previewBodyText}
+              </pre>
             </div>
           </div>
+        </Panel>
+      </div>
 
-          <div className="px-4 py-3">
+      <PreviewOverlay
+        action={
+          <Button
+            disabled={!canCopyPreview}
+            size="sm"
+            variant="ghost"
+            onClick={() => void onCopyPreview()}
+          >
+            Copy
+          </Button>
+        }
+        description={selectedSignature?.name ?? "署名なし"}
+        isOpen={isWidePreviewOpen}
+        title="Draft preview"
+        onClose={() => setIsWidePreviewOpen(false)}
+      >
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
+          <section className="rounded-xl border border-[var(--color-panel-border-strong)] bg-[var(--color-preview-bg)] p-5">
             <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
               Body
             </div>
-            <pre className="mail-preview-text mt-2 overflow-x-auto rounded-lg border border-[var(--color-panel-border-strong)] bg-[var(--color-preview-bg)] px-4 py-4 whitespace-pre-wrap text-[var(--color-preview-text)]">
-              {(showWhitespace ? visualizeWhitespace(previewText) : previewText) ||
-                "本文プレビューがここに表示されます。"}
+            <pre className="mail-preview-text mt-3 min-h-[520px] overflow-x-auto whitespace-pre-wrap text-[var(--color-preview-text)]">
+              {previewBodyText}
             </pre>
+          </section>
+
+          <div className="space-y-4">
+            <section className="rounded-xl border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] p-5">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+                Subject
+              </div>
+              <div className="mt-3 text-sm text-[var(--color-text-strong)]">
+                {draftForm.subject || "件名未設定"}
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] p-5">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+                Checks
+              </div>
+              <div className="mt-3 space-y-2">
+                {checks.map((check) => (
+                  <div
+                    key={check}
+                    className={`rounded-md border px-3 py-2 text-sm ${
+                      check.includes("通っています")
+                        ? "border-[var(--color-success-border)] bg-[var(--color-success-bg)] text-[var(--color-success-text)]"
+                        : "border-[var(--color-warning-border)] bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]"
+                    }`}
+                  >
+                    {check}
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
         </div>
-      </Panel>
-    </div>
+      </PreviewOverlay>
+    </>
   );
 }
 

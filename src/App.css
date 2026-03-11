@@ -69,6 +69,7 @@
     --color-checkbox-border: #364051;
     --color-checkbox-bg: #0d1016;
     --color-checkbox-text: #c5ccd7;
+    --color-overlay-backdrop: rgba(7, 10, 15, 0.72);
     --color-selection: rgba(85, 141, 255, 0.26);
     --color-scrollbar-thumb: rgba(102, 110, 126, 0.45);
     --color-scrollbar-thumb-hover: rgba(132, 142, 161, 0.58);
@@ -151,6 +152,7 @@
     --color-checkbox-border: #bcc7d6;
     --color-checkbox-bg: #ffffff;
     --color-checkbox-text: #334155;
+    --color-overlay-backdrop: rgba(103, 116, 139, 0.3);
     --color-selection: rgba(95, 139, 255, 0.18);
     --color-scrollbar-thumb: rgba(123, 135, 152, 0.35);
     --color-scrollbar-thumb-hover: rgba(110, 124, 144, 0.48);
