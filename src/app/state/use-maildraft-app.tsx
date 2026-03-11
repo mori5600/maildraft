@@ -26,6 +26,7 @@ import {
 } from "../../modules/templates/model";
 import { TemplateWorkspace } from "../../modules/templates/ui/TemplateWorkspace";
 import { maildraftApi } from "../../shared/api/maildraft-api";
+import { copyPlainText } from "../../shared/lib/clipboard";
 import type { StoreSnapshot, WorkspaceView } from "../../shared/types/store";
 
 const EMPTY_SNAPSHOT: StoreSnapshot = {
@@ -148,6 +149,16 @@ export function useMaildraftApp() {
       setNotice("下書きを削除しました。");
     } catch (deleteError) {
       setError(asMessage(deleteError));
+    }
+  }
+
+  async function copyDraftPreview() {
+    try {
+      setError(null);
+      await copyPlainText(draftPreviewText);
+      setNotice("プレーンテキストの本文をコピーしました。");
+    } catch (copyError) {
+      setError(asMessage(copyError));
     }
   }
 
@@ -365,6 +376,7 @@ export function useMaildraftApp() {
         templates={snapshot.templates}
         onApplyTemplate={applyTemplate}
         onChangeDraft={changeDraft}
+        onCopyPreview={copyDraftPreview}
         onCreateDraft={createDraft}
         onDeleteDraft={deleteDraft}
         onSaveDraft={saveDraft}

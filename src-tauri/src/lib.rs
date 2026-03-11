@@ -58,6 +58,7 @@ fn delete_signature(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
             let state = AppState::new(&app.handle()).map_err(Error::other)?;
             tauri::Manager::manage(app, state);

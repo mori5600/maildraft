@@ -169,7 +169,11 @@ impl StoreSnapshot {
     }
 
     fn clean_broken_references(&mut self) {
-        let template_ids: Vec<&str> = self.templates.iter().map(|template| template.id.as_str()).collect();
+        let template_ids: Vec<&str> = self
+            .templates
+            .iter()
+            .map(|template| template.id.as_str())
+            .collect();
         let signature_ids: Vec<&str> = self
             .signatures
             .iter()

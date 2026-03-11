@@ -15,7 +15,10 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(app: &AppHandle) -> AppResult<Self> {
-        let store_dir = app.path().app_data_dir().map_err(|error| error.to_string())?;
+        let store_dir = app
+            .path()
+            .app_data_dir()
+            .map_err(|error| error.to_string())?;
         fs::create_dir_all(&store_dir).map_err(|error| error.to_string())?;
 
         let store_path = store_dir.join("maildraft-store.json");

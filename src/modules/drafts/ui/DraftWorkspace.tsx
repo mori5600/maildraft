@@ -21,6 +21,7 @@ interface DraftWorkspaceProps {
   onSelectDraft: (id: string) => void;
   onCreateDraft: () => void;
   onChangeDraft: <K extends keyof DraftInput>(field: K, value: DraftInput[K]) => void;
+  onCopyPreview: () => Promise<void>;
   onSaveDraft: () => Promise<void>;
   onDeleteDraft: () => Promise<void>;
   onApplyTemplate: (templateId: string) => void;
@@ -38,11 +39,13 @@ export function DraftWorkspace({
   onSelectDraft,
   onCreateDraft,
   onChangeDraft,
+  onCopyPreview,
   onSaveDraft,
   onDeleteDraft,
   onApplyTemplate,
 }: DraftWorkspaceProps) {
   const selectedSignature = signatures.find((signature) => signature.id === draftForm.signatureId);
+  const canCopyPreview = previewText.trim().length > 0;
 
   return (
     <div className="grid h-full min-h-0 gap-4 xl:grid-cols-[260px_minmax(0,1fr)_340px]">
@@ -214,7 +217,20 @@ export function DraftWorkspace({
       </Panel>
 
       <Panel className="flex min-h-0 flex-col overflow-hidden">
-        <PaneHeader description={selectedSignature?.name ?? "署名なし"} title="Preview" />
+        <PaneHeader
+          action={
+            <Button
+              disabled={!canCopyPreview}
+              size="sm"
+              variant="ghost"
+              onClick={() => void onCopyPreview()}
+            >
+              Copy
+            </Button>
+          }
+          description={selectedSignature?.name ?? "署名なし"}
+          title="Preview"
+        />
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="border-b border-[#20242c] px-4 py-3">
