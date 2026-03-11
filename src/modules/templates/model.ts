@@ -43,3 +43,15 @@ export function toTemplateInput(template: Template): TemplateInput {
     signatureId: template.signatureId,
   };
 }
+
+export function duplicateTemplateInput(template: TemplateInput): TemplateInput {
+  return {
+    ...template,
+    id: crypto.randomUUID(),
+    name: withCopySuffix(template.name),
+  };
+}
+
+function withCopySuffix(value: string): string {
+  return value.trim() ? `${value.trim()} コピー` : "コピー";
+}

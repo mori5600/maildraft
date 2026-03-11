@@ -26,6 +26,7 @@ interface DraftWorkspaceProps {
   showWhitespace: boolean;
   autoSaveLabel: string;
   searchQuery: string;
+  canDuplicate: boolean;
   onSelectDraft: (id: string) => void;
   onCreateDraft: () => void;
   onChangeSearchQuery: (value: string) => void;
@@ -34,6 +35,7 @@ interface DraftWorkspaceProps {
   onCopyPreview: () => Promise<void>;
   onSaveDraft: () => Promise<void>;
   onDeleteDraft: () => Promise<void>;
+  onDuplicateDraft: () => Promise<void>;
   onRestoreDraftHistory: (historyId: string) => Promise<void>;
   onApplyTemplate: (templateId: string) => void;
 }
@@ -53,6 +55,7 @@ export function DraftWorkspace({
   showWhitespace,
   autoSaveLabel,
   searchQuery,
+  canDuplicate,
   onSelectDraft,
   onCreateDraft,
   onChangeSearchQuery,
@@ -61,6 +64,7 @@ export function DraftWorkspace({
   onCopyPreview,
   onSaveDraft,
   onDeleteDraft,
+  onDuplicateDraft,
   onRestoreDraftHistory,
   onApplyTemplate,
 }: DraftWorkspaceProps) {
@@ -152,6 +156,14 @@ export function DraftWorkspace({
           <PaneHeader
             action={
               <div className="flex gap-2">
+                <Button
+                  disabled={!canDuplicate}
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void onDuplicateDraft()}
+                >
+                  Duplicate
+                </Button>
                 <Button size="sm" variant="ghost" onClick={() => void onDeleteDraft()}>
                   {selectedDraftId ? "Delete" : "Reset"}
                 </Button>

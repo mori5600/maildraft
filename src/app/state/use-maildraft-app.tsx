@@ -7,6 +7,7 @@ import {
   draftHasMeaningfulContent,
   type DraftInput,
   draftInputsEqual,
+  duplicateDraftInput,
   toDraftInput,
 } from "../../modules/drafts/model";
 import { DraftWorkspace } from "../../modules/drafts/ui/DraftWorkspace";
@@ -28,12 +29,14 @@ import {
 import { SettingsWorkspace } from "../../modules/settings/ui/SettingsWorkspace";
 import {
   createEmptySignature,
+  duplicateSignatureInput,
   type SignatureInput,
   toSignatureInput,
 } from "../../modules/signatures/model";
 import { SignatureWorkspace } from "../../modules/signatures/ui/SignatureWorkspace";
 import {
   createEmptyTemplate,
+  duplicateTemplateInput,
   type TemplateInput,
   toTemplateInput,
 } from "../../modules/templates/model";
@@ -345,6 +348,26 @@ export function useMaildraftApp() {
     });
   }
 
+  async function duplicateDraft() {
+    if (!selectedDraftId) {
+      return;
+    }
+
+    const duplicate = duplicateDraftInput(draftForm);
+
+    try {
+      setError(null);
+      const nextSnapshot = await maildraftApi.saveDraft(duplicate);
+      setSnapshot(nextSnapshot);
+      setSelectedDraftId(duplicate.id);
+      setDraftForm(pickDraftInput(nextSnapshot, duplicate.id));
+      setDraftAutoSaveState("saved");
+      setNotice("下書きを複製しました。");
+    } catch (duplicateError) {
+      setError(asMessage(duplicateError));
+    }
+  }
+
   async function deleteDraft() {
     if (!selectedDraftId) {
       createDraft();
@@ -450,6 +473,25 @@ export function useMaildraftApp() {
     }
   }
 
+  async function duplicateTemplate() {
+    if (!selectedTemplateId) {
+      return;
+    }
+
+    const duplicate = duplicateTemplateInput(templateForm);
+
+    try {
+      setError(null);
+      const nextSnapshot = await maildraftApi.saveTemplate(duplicate);
+      setSnapshot(nextSnapshot);
+      setSelectedTemplateId(duplicate.id);
+      setTemplateForm(pickTemplateInput(nextSnapshot, duplicate.id));
+      setNotice("テンプレートを複製しました。");
+    } catch (duplicateError) {
+      setError(asMessage(duplicateError));
+    }
+  }
+
   async function deleteTemplate() {
     if (!selectedTemplateId) {
       createTemplate();
@@ -550,6 +592,33 @@ export function useMaildraftApp() {
       setNotice("署名を保存しました。");
     } catch (saveError) {
       setError(asMessage(saveError));
+    }
+  }
+
+  async function duplicateSignature() {
+    if (!selectedSignatureId) {
+      return;
+    }
+
+    const duplicate = duplicateSignatureInput(signatureForm);
+
+    try {
+      setError(null);
+      const nextSnapshot = await maildraftApi.saveSignature(duplicate);
+      setSnapshot(nextSnapshot);
+      setSelectedSignatureId(duplicate.id);
+      setSignatureForm(pickSignatureInput(nextSnapshot, duplicate.id));
+      setDraftForm((current) => ({
+        ...current,
+        signatureId: pickExistingSignatureId(nextSnapshot, current.signatureId),
+      }));
+      setTemplateForm((current) => ({
+        ...current,
+        signatureId: pickExistingSignatureId(nextSnapshot, current.signatureId),
+      }));
+      setNotice("署名を複製しました。");
+    } catch (duplicateError) {
+      setError(asMessage(duplicateError));
     }
   }
 
@@ -661,6 +730,7 @@ export function useMaildraftApp() {
     draftWorkspace: (
       <DraftWorkspace
         autoSaveLabel={formatDraftAutoSaveState(draftAutoSaveState)}
+        canDuplicate={selectedDraftId !== null}
         checks={draftChecks}
         draftForm={draftForm}
         draftHistory={draftHistory}
@@ -681,6 +751,7 @@ export function useMaildraftApp() {
         onCopyPreview={copyDraftPreview}
         onCreateDraft={createDraft}
         onDeleteDraft={deleteDraft}
+        onDuplicateDraft={duplicateDraft}
         onRestoreDraftHistory={restoreDraftHistory}
         onSaveDraft={saveDraft}
         onSelectDraft={selectDraft}
@@ -688,12 +759,14 @@ export function useMaildraftApp() {
     ),
     templateWorkspace: (
       <TemplateWorkspace
+        canDuplicate={selectedTemplateId !== null}
         searchQuery={templateSearchQuery}
         totalTemplateCount={snapshot.templates.length}
         onChangeTemplate={changeTemplate}
         onChangeSearchQuery={changeTemplateSearchQuery}
         onCreateTemplate={createTemplate}
         onDeleteTemplate={deleteTemplate}
+        onDuplicateTemplate={duplicateTemplate}
         onSaveTemplate={saveTemplate}
         onSelectTemplate={selectTemplate}
         onStartDraftFromTemplate={startDraftFromTemplate}
@@ -707,12 +780,14 @@ export function useMaildraftApp() {
     ),
     signatureWorkspace: (
       <SignatureWorkspace
+        canDuplicate={selectedSignatureId !== null}
         searchQuery={signatureSearchQuery}
         totalSignatureCount={snapshot.signatures.length}
         onChangeSignature={changeSignature}
         onChangeSearchQuery={changeSignatureSearchQuery}
         onCreateSignature={createSignature}
         onDeleteSignature={deleteSignature}
+        onDuplicateSignature={duplicateSignature}
         onSaveSignature={saveSignature}
         onSelectSignature={selectSignature}
         selectedSignatureId={selectedSignatureId}

@@ -90,6 +90,15 @@ export function applyTemplateToDraft(draft: DraftInput, template: Template): Dra
   };
 }
 
+export function duplicateDraftInput(draft: DraftInput): DraftInput {
+  return {
+    ...draft,
+    id: crypto.randomUUID(),
+    title: withCopySuffix(draft.title.trim() ? draft.title : draftLabel(draft)),
+    variableValues: { ...draft.variableValues },
+  };
+}
+
 export function toDraftInput(draft: Draft): DraftInput {
   return {
     id: draft.id,
@@ -166,4 +175,8 @@ function variableValuesEqual(left: Record<string, string>, right: Record<string,
   }
 
   return leftKeys.every((key, index) => key === rightKeys[index] && left[key] === right[key]);
+}
+
+function withCopySuffix(value: string): string {
+  return value.trim() ? `${value.trim()} コピー` : "コピー";
 }

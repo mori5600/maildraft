@@ -31,3 +31,16 @@ export function toSignatureInput(signature: Signature): SignatureInput {
     isDefault: signature.isDefault,
   };
 }
+
+export function duplicateSignatureInput(signature: SignatureInput): SignatureInput {
+  return {
+    ...signature,
+    id: crypto.randomUUID(),
+    name: withCopySuffix(signature.name),
+    isDefault: false,
+  };
+}
+
+function withCopySuffix(value: string): string {
+  return value.trim() ? `${value.trim()} コピー` : "コピー";
+}

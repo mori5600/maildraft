@@ -17,12 +17,14 @@ interface TemplateWorkspaceProps {
   previewText: string;
   showWhitespace: boolean;
   searchQuery: string;
+  canDuplicate: boolean;
   onSelectTemplate: (id: string) => void;
   onCreateTemplate: () => void;
   onChangeSearchQuery: (value: string) => void;
   onChangeTemplate: <K extends keyof TemplateInput>(field: K, value: TemplateInput[K]) => void;
   onSaveTemplate: () => Promise<void>;
   onDeleteTemplate: () => Promise<void>;
+  onDuplicateTemplate: () => Promise<void>;
   onStartDraftFromTemplate: () => void;
 }
 
@@ -35,12 +37,14 @@ export function TemplateWorkspace({
   previewText,
   showWhitespace,
   searchQuery,
+  canDuplicate,
   onSelectTemplate,
   onCreateTemplate,
   onChangeSearchQuery,
   onChangeTemplate,
   onSaveTemplate,
   onDeleteTemplate,
+  onDuplicateTemplate,
   onStartDraftFromTemplate,
 }: TemplateWorkspaceProps) {
   const [isWidePreviewOpen, setIsWidePreviewOpen] = useState(false);
@@ -127,6 +131,14 @@ export function TemplateWorkspace({
           <PaneHeader
             action={
               <div className="flex gap-2">
+                <Button
+                  disabled={!canDuplicate}
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void onDuplicateTemplate()}
+                >
+                  Duplicate
+                </Button>
                 <Button size="sm" variant="ghost" onClick={() => void onDeleteTemplate()}>
                   {selectedTemplateId ? "Delete" : "Reset"}
                 </Button>

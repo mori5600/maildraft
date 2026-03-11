@@ -13,12 +13,14 @@ interface SignatureWorkspaceProps {
   signatureForm: SignatureInput;
   showWhitespace: boolean;
   searchQuery: string;
+  canDuplicate: boolean;
   onSelectSignature: (id: string) => void;
   onCreateSignature: () => void;
   onChangeSearchQuery: (value: string) => void;
   onChangeSignature: <K extends keyof SignatureInput>(field: K, value: SignatureInput[K]) => void;
   onSaveSignature: () => Promise<void>;
   onDeleteSignature: () => Promise<void>;
+  onDuplicateSignature: () => Promise<void>;
 }
 
 export function SignatureWorkspace({
@@ -28,12 +30,14 @@ export function SignatureWorkspace({
   signatureForm,
   showWhitespace,
   searchQuery,
+  canDuplicate,
   onSelectSignature,
   onCreateSignature,
   onChangeSearchQuery,
   onChangeSignature,
   onSaveSignature,
   onDeleteSignature,
+  onDuplicateSignature,
 }: SignatureWorkspaceProps) {
   const [isWidePreviewOpen, setIsWidePreviewOpen] = useState(false);
   const canExpandPreview = signatureForm.body.trim().length > 0;
@@ -121,6 +125,14 @@ export function SignatureWorkspace({
           <PaneHeader
             action={
               <div className="flex gap-2">
+                <Button
+                  disabled={!canDuplicate}
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void onDuplicateSignature()}
+                >
+                  Duplicate
+                </Button>
                 <Button size="sm" variant="ghost" onClick={() => void onDeleteSignature()}>
                   {selectedSignatureId ? "Delete" : "Reset"}
                 </Button>
