@@ -87,15 +87,21 @@ function App() {
 
             <div className="flex items-center gap-3">
               <Button
+                className="w-[104px] justify-center"
                 size="sm"
                 variant={app.showWhitespace ? "primary" : "secondary"}
                 onClick={app.toggleWhitespace}
               >
-                {app.showWhitespace ? "Spaces on" : "Spaces off"}
+                Spaces
               </Button>
-              {app.showWhitespace ? (
-                <div className="text-[11px] text-[#6f7888]">· 半角 / □ 全角</div>
-              ) : null}
+              <div
+                aria-hidden={!app.showWhitespace}
+                className={`w-[96px] text-[11px] text-[#6f7888] transition-opacity ${
+                  app.showWhitespace ? "opacity-100" : "opacity-0"
+                }`}
+              >
+                · 半角 / □ 全角
+              </div>
               <div
                 className={`max-w-[320px] truncate text-xs ${
                   app.error ? "text-[#f0a8b5]" : "text-[#6f7888]"

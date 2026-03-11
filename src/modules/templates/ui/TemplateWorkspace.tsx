@@ -137,8 +137,10 @@ export function TemplateWorkspace({
 
             <Field label="Opening">
               <Textarea
+                className="min-h-[144px]"
                 rows={5}
                 showWhitespace={showWhitespace}
+                textClassName="mail-compose-text"
                 value={templateForm.opening}
                 onChange={(event) => onChangeTemplate("opening", event.currentTarget.value)}
               />
@@ -146,9 +148,10 @@ export function TemplateWorkspace({
 
             <Field label="Body">
               <Textarea
-                className="min-h-[280px]"
+                className="min-h-[320px]"
                 rows={12}
                 showWhitespace={showWhitespace}
+                textClassName="mail-compose-text"
                 value={templateForm.body}
                 onChange={(event) => onChangeTemplate("body", event.currentTarget.value)}
               />
@@ -156,8 +159,10 @@ export function TemplateWorkspace({
 
             <Field label="Closing">
               <Textarea
+                className="min-h-[144px]"
                 rows={5}
                 showWhitespace={showWhitespace}
+                textClassName="mail-compose-text"
                 value={templateForm.closing}
                 onChange={(event) => onChangeTemplate("closing", event.currentTarget.value)}
               />
@@ -186,7 +191,7 @@ export function TemplateWorkspace({
           </div>
           <div className="px-4 py-3">
             <div className="text-[11px] uppercase tracking-[0.18em] text-[#667082]">Body</div>
-            <pre className="mt-2 overflow-x-auto rounded-lg border border-[#20242c] bg-[#0d1016] px-4 py-4 font-mono text-[13px] leading-7 whitespace-pre-wrap text-[#d7dce5]">
+            <pre className="mail-preview-text mt-2 overflow-x-auto rounded-lg border border-[#20242c] bg-[#0d1016] px-4 py-4 whitespace-pre-wrap text-[#d7dce5]">
               {(showWhitespace ? visualizeWhitespace(previewText) : previewText) ||
                 "テンプレートのプレビューがここに表示されます。"}
             </pre>

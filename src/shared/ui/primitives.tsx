@@ -99,10 +99,14 @@ export function Field({
 export function Input({
   className,
   showWhitespace = false,
+  textClassName,
   value,
   placeholder,
   ...props
-}: InputHTMLAttributes<HTMLInputElement> & { showWhitespace?: boolean }) {
+}: InputHTMLAttributes<HTMLInputElement> & {
+  showWhitespace?: boolean;
+  textClassName?: string;
+}) {
   const displayValue = toDisplayText(value);
   const overlayText = displayValue || (typeof placeholder === "string" ? placeholder : "");
 
@@ -111,7 +115,10 @@ export function Input({
       {showWhitespace ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 flex items-center overflow-hidden rounded-md px-3 text-sm text-[#77829a]"
+          className={cn(
+            "pointer-events-none absolute inset-0 flex items-center overflow-hidden rounded-md px-3 text-sm text-[#77829a]",
+            textClassName,
+          )}
         >
           <div className="truncate">{visualizeWhitespace(overlayText) || " "}</div>
         </div>
@@ -119,6 +126,7 @@ export function Input({
       <input
         className={cn(
           "w-full rounded-md border border-[#272d37] bg-[#0f1319] px-3 py-2.5 text-sm text-[#e5e9f0] outline-none transition-colors placeholder:text-[#586171] focus:border-[#3e5fae]",
+          textClassName,
           showWhitespace && "text-transparent caret-[#e5e9f0]",
           className,
         )}
@@ -133,11 +141,15 @@ export function Input({
 export function Textarea({
   className,
   showWhitespace = false,
+  textClassName,
   value,
   placeholder,
   onScroll,
   ...props
-}: TextareaHTMLAttributes<HTMLTextAreaElement> & { showWhitespace?: boolean }) {
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  showWhitespace?: boolean;
+  textClassName?: string;
+}) {
   const [scrollTop, setScrollTop] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const displayValue = toDisplayText(value);
@@ -148,7 +160,10 @@ export function Textarea({
       {showWhitespace ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 overflow-hidden rounded-md px-3 py-2.5 text-sm leading-7 text-[#77829a]"
+          className={cn(
+            "pointer-events-none absolute inset-0 overflow-hidden rounded-md px-3 py-2.5 text-sm leading-7 text-[#77829a]",
+            textClassName,
+          )}
         >
           <pre
             className="min-h-full whitespace-pre-wrap break-words"
@@ -163,6 +178,7 @@ export function Textarea({
       <textarea
         className={cn(
           "min-h-32 w-full rounded-md border border-[#272d37] bg-[#0f1319] px-3 py-2.5 text-sm leading-7 text-[#e5e9f0] outline-none transition-colors placeholder:text-[#586171] focus:border-[#3e5fae]",
+          textClassName,
           showWhitespace && "text-transparent caret-[#e5e9f0]",
           className,
         )}

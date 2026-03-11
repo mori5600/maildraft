@@ -116,6 +116,7 @@ export function SignatureWorkspace({
                 className="min-h-[360px]"
                 rows={14}
                 showWhitespace={showWhitespace}
+                textClassName="mail-signature-text"
                 value={signatureForm.body}
                 onChange={(event) => onChangeSignature("body", event.currentTarget.value)}
               />
@@ -127,7 +128,7 @@ export function SignatureWorkspace({
       <Panel className="flex min-h-0 flex-col overflow-hidden">
         <PaneHeader description="Rendered block" title="Preview" />
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-          <pre className="overflow-x-auto rounded-lg border border-[#20242c] bg-[#0d1016] px-4 py-4 font-mono text-[13px] leading-7 whitespace-pre-wrap text-[#d7dce5]">
+          <pre className="mail-signature-text overflow-x-auto rounded-lg border border-[#20242c] bg-[#0d1016] px-4 py-4 whitespace-pre-wrap text-[#d7dce5]">
             {(showWhitespace ? visualizeWhitespace(signatureForm.body) : signatureForm.body) ||
               "署名プレビューがここに表示されます。"}
           </pre>
