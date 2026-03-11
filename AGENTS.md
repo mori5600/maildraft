@@ -1,0 +1,74 @@
+# AGENTS.md
+
+## Project Overview
+- MailDraft is a local-first desktop app for writing email drafts.
+- Stack: Tauri v2, React 19, TypeScript, Vite, Tailwind CSS v4, Rust.
+- The app manages drafts, templates, signatures, and rendered previews.
+
+## Development Commands
+- Install dependencies: `npm install`
+- Frontend dev: `npm run dev`
+- Tauri dev: `npm run tauri dev`
+- Frontend build: `npm run build`
+- Lint: `npm run lint`
+- Lint with fixes: `npm run lint:fix`
+- Format: `npm run format`
+- Check formatting: `npm run format:check`
+- Rust check: `cargo check --manifest-path src-tauri\\Cargo.toml`
+- Production bundle: `npm run tauri build`
+
+## Architecture
+
+### Frontend
+- `src/app`: app shell, routes, top-level state
+- `src/modules/drafts`: draft models and draft UI
+- `src/modules/templates`: template models and template UI
+- `src/modules/signatures`: signature models and signature UI
+- `src/modules/renderer`: derived preview and validation logic
+- `src/shared`: reusable UI primitives and shared utilities
+
+### Backend
+- `src-tauri/src/app`: Tauri app wiring and shared state
+- `src-tauri/src/modules`: backend modules aligned with frontend domains
+- `src-tauri/capabilities`: Tauri capability configuration
+
+## Data and UI Conventions
+- Keep the data-oriented structure. Prefer adding code under the relevant domain module instead of creating broad global folders.
+- Treat rendered preview data as derived data. Do not store redundant preview text unless there is a strong reason.
+- Preserve the current editor-like UI direction: calm, minimal, and dense rather than decorative.
+- When changing colors or surfaces, extend the existing CSS variable theme system in `src/App.css`.
+- Support both dark and light themes for any new UI work.
+- Keep whitespace visualization compatible with normal copy behavior. Visual markers are for display only.
+
+## Existing UX Features
+- Draft previews can be copied as plain text.
+- Draft, template, and signature previews can be expanded in overlay views.
+- Theme switching is persisted locally.
+- Whitespace visualization can be toggled on and off.
+
+## Tauri Notes
+- If you add a new Tauri plugin, update both Rust registration and capability permissions.
+- Clipboard behavior uses `@tauri-apps/plugin-clipboard-manager` in Tauri mode and `navigator.clipboard` in browser fallback mode.
+- Prefer app-safe APIs over deprecated browser commands such as `document.execCommand`.
+
+## Validation Checklist
+- Run `npm run lint`
+- Run `npm run build`
+- Run `cargo check --manifest-path src-tauri\\Cargo.toml`
+- If you touch formatting-heavy files, also run `npm run format`
+
+## Version Control
+- This repository uses `jj` for normal day-to-day work.
+- Use `jj status`, `jj diff`, and `jj log` to inspect current work.
+- Prefer `jj commit -m "..."` for finished changes.
+- Use `jj squash` to fold fixups into the previous change when needed.
+- Push with `jj git push --remote origin` when bookmark tracking is already configured.
+- If you need to publish the current change to `main` explicitly, confirm the target first and then use a `jj git push --remote origin --named ...` form that matches the current bookmark state.
+- An empty `@` working copy after commit is normal in `jj`.
+
+## Implementation Guidance for Codex
+- Make focused changes and preserve the current module boundaries.
+- Use `apply_patch` for manual file edits.
+- Prefer `rg` for searching.
+- Do not overwrite unrelated user changes.
+- If you add user-facing behavior, mention how to verify it locally.
