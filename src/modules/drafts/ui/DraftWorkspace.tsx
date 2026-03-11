@@ -191,9 +191,12 @@ export function DraftWorkspace({
               </div>
 
               <Field label="Recipient note" hint="社名や担当者など">
-                <Input
-                  placeholder="株式会社サンプル 佐藤様"
+                <Textarea
+                  className="min-h-[108px]"
+                  placeholder={"株式会社サンプル\n営業部\n佐藤 様"}
+                  rows={3}
                   showWhitespace={showWhitespace}
+                  textClassName="mail-compose-text"
                   value={draftForm.recipient}
                   onChange={(event) => onChangeDraft("recipient", event.currentTarget.value)}
                 />
@@ -202,7 +205,7 @@ export function DraftWorkspace({
               <Field label="Opening">
                 <Textarea
                   className="min-h-[144px]"
-                  placeholder={"株式会社サンプル\n佐藤 様"}
+                  placeholder={"いつもお世話になっております。\n株式会社サンプルの田中です。"}
                   rows={5}
                   showWhitespace={showWhitespace}
                   textClassName="mail-compose-text"
