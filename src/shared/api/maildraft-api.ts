@@ -1,0 +1,30 @@
+import { invoke } from "@tauri-apps/api/core";
+
+import type { DraftInput } from "../../modules/drafts/model";
+import type { SignatureInput } from "../../modules/signatures/model";
+import type { TemplateInput } from "../../modules/templates/model";
+import type { StoreSnapshot } from "../types/store";
+
+export const maildraftApi = {
+  loadSnapshot() {
+    return invoke<StoreSnapshot>("load_snapshot");
+  },
+  saveDraft(input: DraftInput) {
+    return invoke<StoreSnapshot>("save_draft", { input });
+  },
+  deleteDraft(id: string) {
+    return invoke<StoreSnapshot>("delete_draft", { id });
+  },
+  saveTemplate(input: TemplateInput) {
+    return invoke<StoreSnapshot>("save_template", { input });
+  },
+  deleteTemplate(id: string) {
+    return invoke<StoreSnapshot>("delete_template", { id });
+  },
+  saveSignature(input: SignatureInput) {
+    return invoke<StoreSnapshot>("save_signature", { input });
+  },
+  deleteSignature(id: string) {
+    return invoke<StoreSnapshot>("delete_signature", { id });
+  },
+};
