@@ -2,16 +2,16 @@
 
 @layer base {
   :root {
-    --color-app-bg: #0f1117;
-    --color-sidebar-bg: #0d1015;
-    --color-panel-bg: #141820;
-    --color-field-bg: #0f1319;
-    --color-preview-bg: #0d1016;
-    --color-panel-border: #1f232b;
-    --color-panel-border-strong: #20242c;
-    --color-sidebar-border: #1b1f27;
-    --color-field-border: #272d37;
-    --color-field-focus: #3e5fae;
+    --color-app-bg: #0d1015;
+    --color-sidebar-bg: #0a0d12;
+    --color-panel-bg: #12161d;
+    --color-field-bg: #0d1117;
+    --color-preview-bg: #0b0f15;
+    --color-panel-border: #21262f;
+    --color-panel-border-strong: #2a303a;
+    --color-sidebar-border: #181d25;
+    --color-field-border: #2b323d;
+    --color-field-focus: #4a69b4;
     --color-text: #d5d9e0;
     --color-text-strong: #eef2f7;
     --color-text-muted: #8b93a3;
@@ -22,22 +22,22 @@
     --color-text-placeholder: #586171;
     --color-notice: #6f7888;
     --color-error: #f0a8b5;
-    --color-nav-active-bg: #171b23;
-    --color-nav-hover-bg: #141920;
-    --color-nav-count-active-bg: #10141a;
+    --color-nav-active-bg: #151a22;
+    --color-nav-hover-bg: #12171e;
+    --color-nav-count-active-bg: #0e1218;
     --color-nav-count-active-text: #9db9ff;
     --color-nav-count-muted: #616a79;
     --color-list-active-border: #314778;
     --color-list-active-bg: #161f31;
     --color-list-hover-border: #232831;
     --color-list-hover-bg: #181d24;
-    --color-button-primary-border: #2f4b8b;
-    --color-button-primary-bg: #17233f;
+    --color-button-primary-border: #35539a;
+    --color-button-primary-bg: #16233f;
     --color-button-primary-text: #c6d7ff;
     --color-button-primary-border-hover: #3a5aa8;
     --color-button-primary-bg-hover: #1b2a4a;
-    --color-button-secondary-border: #272d37;
-    --color-button-secondary-bg: #181d24;
+    --color-button-secondary-border: #2a313c;
+    --color-button-secondary-bg: #171c23;
     --color-button-secondary-text: #d5d9e0;
     --color-button-secondary-border-hover: #323945;
     --color-button-secondary-bg-hover: #1d232c;
@@ -53,8 +53,8 @@
     --color-pill-accent-border: #2f4b8b;
     --color-pill-accent-bg: #17233f;
     --color-pill-accent-text: #9db9ff;
-    --color-pill-neutral-border: #232831;
-    --color-pill-neutral-bg: #161b22;
+    --color-pill-neutral-border: #252c36;
+    --color-pill-neutral-bg: #141920;
     --color-pill-neutral-text: #7a8291;
     --color-preview-text: #d7dce5;
     --color-success-border: #20352c;
@@ -85,16 +85,16 @@
   }
 
   :root[data-theme="light"] {
-    --color-app-bg: #f4f6f9;
-    --color-sidebar-bg: #eef2f6;
+    --color-app-bg: #f2f5f8;
+    --color-sidebar-bg: #ecf0f5;
     --color-panel-bg: #ffffff;
     --color-field-bg: #ffffff;
     --color-preview-bg: #fafbfd;
-    --color-panel-border: #d8dee8;
-    --color-panel-border-strong: #e4e9f0;
-    --color-sidebar-border: #d6dde7;
-    --color-field-border: #ccd5e1;
-    --color-field-focus: #6a87c1;
+    --color-panel-border: #d5dde8;
+    --color-panel-border-strong: #e0e6ef;
+    --color-sidebar-border: #d3dbe6;
+    --color-field-border: #c9d3df;
+    --color-field-focus: #6280b9;
     --color-text: #334155;
     --color-text-strong: #0f172a;
     --color-text-muted: #667085;
@@ -105,8 +105,8 @@
     --color-text-placeholder: #8f99ab;
     --color-notice: #6d788b;
     --color-error: #b44a60;
-    --color-nav-active-bg: #e8eef7;
-    --color-nav-hover-bg: #edf2f7;
+    --color-nav-active-bg: #e5edf8;
+    --color-nav-hover-bg: #ebf0f6;
     --color-nav-count-active-bg: #dbe7fb;
     --color-nav-count-active-text: #34558c;
     --color-nav-count-muted: #7b8798;
@@ -119,8 +119,8 @@
     --color-button-primary-text: #34558c;
     --color-button-primary-border-hover: #a4b8de;
     --color-button-primary-bg-hover: #e4ecfb;
-    --color-button-secondary-border: #d7dee8;
-    --color-button-secondary-bg: #f4f7fa;
+    --color-button-secondary-border: #d3dbe6;
+    --color-button-secondary-bg: #f3f6f9;
     --color-button-secondary-text: #334155;
     --color-button-secondary-border-hover: #c8d2de;
     --color-button-secondary-bg-hover: #edf2f7;
@@ -136,8 +136,8 @@
     --color-pill-accent-border: #b8caef;
     --color-pill-accent-bg: #edf3ff;
     --color-pill-accent-text: #3b5e96;
-    --color-pill-neutral-border: #d8dee6;
-    --color-pill-neutral-bg: #f4f6f8;
+    --color-pill-neutral-border: #d5dce5;
+    --color-pill-neutral-bg: #f2f5f8;
     --color-pill-neutral-text: #748095;
     --color-preview-text: #263243;
     --color-success-border: #badfc7;
@@ -213,10 +213,10 @@
 .mail-compose-text {
   font-family:
     "BIZ UDPGothic", "Yu Gothic UI", "Hiragino Sans", "Meiryo", "Segoe UI Variable Text", sans-serif;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 400;
-  line-height: 1.92;
-  letter-spacing: 0.012em;
+  line-height: 1.84;
+  letter-spacing: 0.008em;
   font-kerning: normal;
   font-feature-settings:
     "palt" 1,
@@ -224,16 +224,16 @@
 }
 
 .mail-compose-text::placeholder {
-  letter-spacing: 0.01em;
+  letter-spacing: 0.008em;
 }
 
 .mail-preview-text {
   font-family:
     "BIZ UDPGothic", "Yu Gothic UI", "Hiragino Sans", "Meiryo", "Segoe UI Variable Text", sans-serif;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 400;
-  line-height: 1.94;
-  letter-spacing: 0.014em;
+  line-height: 1.88;
+  letter-spacing: 0.01em;
   font-kerning: normal;
   font-feature-settings:
     "palt" 1,
@@ -243,10 +243,10 @@
 .mail-signature-text {
   font-family:
     "BIZ UDPGothic", "Yu Gothic UI", "Hiragino Sans", "Meiryo", "Segoe UI Variable Text", sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
-  line-height: 1.86;
-  letter-spacing: 0.01em;
+  line-height: 1.78;
+  letter-spacing: 0.008em;
   font-feature-settings:
     "palt" 1,
     "pkna" 1;

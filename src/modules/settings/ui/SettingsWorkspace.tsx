@@ -49,7 +49,7 @@ export function SettingsWorkspace({
 
   return (
     <>
-      <div className="grid h-full min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid h-full min-h-0 gap-3 xl:grid-cols-[minmax(0,1fr)_300px]">
         <Panel className="flex min-h-0 flex-col overflow-hidden">
           <PaneHeader
             action={
@@ -66,13 +66,13 @@ export function SettingsWorkspace({
             title="Logging"
           />
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
-            <div className="grid gap-5">
-              <section className="rounded-xl border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-4 py-4">
-                <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+          <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3.5">
+            <div className="grid gap-3">
+              <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3.5 py-3">
+                <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
                   Privacy policy
                 </div>
-                <div className="mt-3 space-y-2 text-sm leading-7 text-[var(--color-text-muted)]">
+                <div className="mt-2.5 space-y-1.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
                   <p>件名、本文、宛先、署名本文、クリップボードの内容はログへ保存しません。</p>
                   <p>
                     記録するのは、処理の成功・失敗、所要時間、件数や文字数のような要約情報だけです。
@@ -80,7 +80,7 @@ export function SettingsWorkspace({
                 </div>
               </section>
 
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-3 md:grid-cols-2">
                 <Field label="Log mode" hint={loggingModeDescription(loggingForm.mode)}>
                   <Select
                     value={loggingForm.mode}
@@ -118,11 +118,11 @@ export function SettingsWorkspace({
                 </Field>
               </div>
 
-              <section className="rounded-xl border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-4 py-4">
-                <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+              <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3.5 py-3">
+                <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
                   Current behavior
                 </div>
-                <div className="mt-3 text-sm leading-7 text-[var(--color-text-muted)]">
+                <div className="mt-2.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
                   {loggingModeDescription(loggingSettings.mode)} 保持期間は{" "}
                   {loggingSettings.retentionDays}
                   日です。
@@ -153,8 +153,8 @@ export function SettingsWorkspace({
             title="Storage"
           />
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
-            <div className="grid gap-4">
+          <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3.5">
+            <div className="grid gap-3">
               <StatCard
                 label="Usage"
                 value={formatBytes(loggingSettings.totalBytes)}
@@ -165,11 +165,11 @@ export function SettingsWorkspace({
                 value={`${loggingSettings.fileCount} files`}
                 note="JSONL 形式で保存"
               />
-              <section className="rounded-xl border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-4 py-4">
-                <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+              <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3.5 py-3">
+                <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
                   Log directory
                 </div>
-                <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all text-sm leading-6 text-[var(--color-text-strong)]">
+                <pre className="mt-2.5 overflow-x-auto whitespace-pre-wrap break-all text-[13px] leading-6 text-[var(--color-text-strong)]">
                   {loggingSettings.directoryPath || "初回書き込み時に作成されます。"}
                 </pre>
               </section>
@@ -194,9 +194,9 @@ export function SettingsWorkspace({
         onClose={() => setIsLogViewerOpen(false)}
         title="Recent logs"
       >
-        <div className="grid gap-3">
+        <div className="grid gap-2.5">
           {recentLogs.length === 0 ? (
-            <div className="rounded-lg border border-[var(--color-panel-border)] bg-[var(--color-panel-bg)] px-4 py-4 text-sm leading-7 text-[var(--color-text-muted)]">
+            <div className="rounded-[8px] border border-[var(--color-panel-border)] bg-[var(--color-panel-bg)] px-3.5 py-3 text-[13px] leading-6 text-[var(--color-text-muted)]">
               {isLoadingRecentLogs
                 ? "安全なログを読み込んでいます。"
                 : "まだ表示できる診断ログはありません。"}
@@ -220,10 +220,10 @@ function PaneHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-12 items-center justify-between gap-3 border-b border-[var(--color-panel-border-strong)] px-4">
+    <div className="flex min-h-11 items-center justify-between gap-3 border-b border-[var(--color-panel-border-strong)] px-3.5">
       <div className="min-w-0">
-        <div className="text-sm font-medium text-[var(--color-text-strong)]">{title}</div>
-        <div className="truncate text-xs text-[var(--color-text-subtle)]">{description}</div>
+        <div className="text-[13px] font-medium text-[var(--color-text-strong)]">{title}</div>
+        <div className="truncate text-[11px] text-[var(--color-text-subtle)]">{description}</div>
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>
@@ -232,12 +232,12 @@ function PaneHeader({
 
 function StatCard({ label, value, note }: { label: string; value: string; note: string }) {
   return (
-    <section className="rounded-xl border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-4 py-4">
-      <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+    <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3.5 py-3">
+      <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
         {label}
       </div>
-      <div className="mt-3 text-lg font-medium text-[var(--color-text-strong)]">{value}</div>
-      <div className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">{note}</div>
+      <div className="mt-2.5 text-[17px] font-medium text-[var(--color-text-strong)]">{value}</div>
+      <div className="mt-1.5 text-[13px] leading-6 text-[var(--color-text-muted)]">{note}</div>
     </section>
   );
 }
@@ -248,13 +248,13 @@ function LogEntryCard({ entry }: { entry: LogEntrySnapshot }) {
   );
 
   return (
-    <article className="rounded-lg border border-[var(--color-panel-border)] bg-[var(--color-panel-bg)] px-4 py-4">
-      <div className="flex items-start justify-between gap-4">
+    <article className="rounded-[8px] border border-[var(--color-panel-border)] bg-[var(--color-panel-bg)] px-3.5 py-3">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-sm font-medium text-[var(--color-text-strong)]">
+          <div className="text-[13px] font-medium text-[var(--color-text-strong)]">
             {entry.eventName}
           </div>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[var(--color-text-subtle)]">
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-[var(--color-text-subtle)]">
             <span>{formatLogTimestamp(entry.timestampMs)}</span>
             <span>{entry.module}</span>
             <span>{entry.result}</span>
@@ -268,18 +268,18 @@ function LogEntryCard({ entry }: { entry: LogEntrySnapshot }) {
       </div>
 
       {contextEntries.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
           {contextEntries.map(([key, value]) => (
             <span
               key={key}
-              className="rounded-md border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-2.5 py-1.5 text-xs text-[var(--color-text-muted)]"
+              className="rounded-[7px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-2.5 py-1 text-[11px] text-[var(--color-text-muted)]"
             >
               {key}: {formatLogValue(value)}
             </span>
           ))}
         </div>
       ) : (
-        <div className="mt-3 text-xs text-[var(--color-text-subtle)]">
+        <div className="mt-2.5 text-[11px] text-[var(--color-text-subtle)]">
           追加の要約情報はありません。
         </div>
       )}

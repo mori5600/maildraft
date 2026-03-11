@@ -32,25 +32,25 @@ function App() {
 
   return (
     <main className="min-h-screen bg-[var(--color-app-bg)] text-[var(--color-text)]">
-      <div className="grid min-h-screen grid-cols-[188px_minmax(0,1fr)]">
-        <aside className="flex min-h-screen flex-col border-r border-[var(--color-sidebar-border)] bg-[var(--color-sidebar-bg)] px-2 py-3">
-          <div className="px-3 py-2">
+      <div className="grid min-h-screen grid-cols-[176px_minmax(0,1fr)]">
+        <aside className="flex min-h-screen flex-col border-r border-[var(--color-sidebar-border)] bg-[var(--color-sidebar-bg)] px-2 py-2.5">
+          <div className="px-2.5 py-2">
             <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--color-text-faint)]">
               MailDraft
             </div>
-            <div className="mt-2 text-sm font-medium text-[var(--color-text-strong)]">
+            <div className="mt-1.5 text-[13px] font-medium text-[var(--color-text-strong)]">
               Workspace
             </div>
           </div>
 
-          <nav className="mt-3 space-y-1">
+          <nav className="mt-2.5 space-y-1">
             {app.views.map((item) => {
               const active = app.view === item.id;
 
               return (
                 <button
                   key={item.id}
-                  className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left transition-colors ${
+                  className={`flex w-full items-center justify-between rounded-[7px] px-2.5 py-1.5 text-left transition-colors ${
                     active
                       ? "bg-[var(--color-nav-active-bg)] text-[var(--color-text-strong)]"
                       : "text-[var(--color-text-muted)] hover:bg-[var(--color-nav-hover-bg)] hover:text-[var(--color-text)]"
@@ -58,10 +58,10 @@ function App() {
                   onClick={() => app.setView(item.id)}
                   type="button"
                 >
-                  <span className="text-sm font-medium">{item.label}</span>
+                  <span className="text-[13px] font-medium">{item.label}</span>
                   {typeof item.count === "number" ? (
                     <span
-                      className={`rounded-md px-1.5 py-0.5 text-[11px] ${
+                      className={`rounded-[6px] px-1.5 py-0.5 text-[10px] ${
                         active
                           ? "bg-[var(--color-nav-count-active-bg)] text-[var(--color-nav-count-active-text)]"
                           : "text-[var(--color-nav-count-muted)]"
@@ -75,21 +75,25 @@ function App() {
             })}
           </nav>
 
-          <div className="mt-auto px-3 py-2 text-xs text-[var(--color-text-faint)]">
+          <div className="mt-auto px-2.5 py-2 text-[11px] text-[var(--color-text-faint)]">
             local-first
           </div>
         </aside>
 
         <div className="flex min-h-screen flex-col">
-          <header className="flex min-h-12 items-center justify-between gap-4 border-b border-[var(--color-sidebar-border)] px-4">
+          <header className="flex min-h-11 items-center justify-between gap-3 border-b border-[var(--color-sidebar-border)] px-4">
             <div>
-              <div className="text-sm font-medium text-[var(--color-text-strong)]">{viewTitle}</div>
-              <div className="mt-0.5 text-xs text-[var(--color-text-faint)]">{viewDescription}</div>
+              <div className="text-[13px] font-medium text-[var(--color-text-strong)]">
+                {viewTitle}
+              </div>
+              <div className="mt-0.5 text-[11px] text-[var(--color-text-faint)]">
+                {viewDescription}
+              </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               <Button
-                className="w-[112px] justify-center"
+                className="w-[104px] justify-center"
                 size="sm"
                 variant={app.theme === "light" ? "primary" : "secondary"}
                 onClick={app.toggleTheme}
@@ -99,7 +103,7 @@ function App() {
               {supportsWhitespace ? (
                 <>
                   <Button
-                    className="w-[104px] justify-center"
+                    className="w-[96px] justify-center"
                     size="sm"
                     variant={app.showWhitespace ? "primary" : "secondary"}
                     onClick={app.toggleWhitespace}
@@ -108,7 +112,7 @@ function App() {
                   </Button>
                   <div
                     aria-hidden={!app.showWhitespace}
-                    className={`w-[96px] text-[11px] text-[var(--color-notice)] transition-opacity ${
+                    className={`w-[88px] text-[10px] text-[var(--color-notice)] transition-opacity ${
                       app.showWhitespace ? "opacity-100" : "opacity-0"
                     }`}
                   >
@@ -117,7 +121,7 @@ function App() {
                 </>
               ) : null}
               <div
-                className={`max-w-[320px] truncate text-xs ${
+                className={`max-w-[280px] truncate text-[11px] ${
                   app.error ? "text-[var(--color-error)]" : "text-[var(--color-notice)]"
                 }`}
               >
@@ -126,7 +130,7 @@ function App() {
             </div>
           </header>
 
-          <div className="flex-1 overflow-hidden p-3">
+          <div className="flex-1 overflow-hidden p-2.5">
             {app.view === "drafts" ? app.draftWorkspace : null}
             {app.view === "templates" ? app.templateWorkspace : null}
             {app.view === "signatures" ? app.signatureWorkspace : null}

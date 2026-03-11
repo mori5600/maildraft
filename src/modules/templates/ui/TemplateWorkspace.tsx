@@ -45,7 +45,7 @@ export function TemplateWorkspace({
 
   return (
     <>
-      <div className="grid h-full min-h-0 gap-4 xl:grid-cols-[260px_minmax(0,1fr)_320px]">
+      <div className="grid h-full min-h-0 gap-3 xl:grid-cols-[248px_minmax(0,1fr)_300px]">
         <Panel className="flex min-h-0 flex-col overflow-hidden">
           <PaneHeader
             action={
@@ -56,7 +56,7 @@ export function TemplateWorkspace({
             description={`${templates.length} templates`}
             title="Template list"
           />
-          <div className="min-h-0 flex-1 overflow-y-auto p-2">
+          <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
             <div className="space-y-1">
               {templates.map((template) => {
                 const isActive = template.id === selectedTemplateId;
@@ -64,7 +64,7 @@ export function TemplateWorkspace({
                 return (
                   <button
                     key={template.id}
-                    className={`w-full rounded-lg border px-3 py-2.5 text-left transition-colors ${
+                    className={`w-full rounded-[7px] border px-2.5 py-2 text-left transition-colors ${
                       isActive
                         ? "border-[var(--color-list-active-border)] bg-[var(--color-list-active-bg)]"
                         : "border-transparent hover:border-[var(--color-list-hover-border)] hover:bg-[var(--color-list-hover-bg)]"
@@ -72,13 +72,13 @@ export function TemplateWorkspace({
                     onClick={() => onSelectTemplate(template.id)}
                     type="button"
                   >
-                    <div className="truncate text-sm font-medium text-[var(--color-text-strong)]">
+                    <div className="truncate text-[13px] font-medium text-[var(--color-text-strong)]">
                       {template.name}
                     </div>
-                    <div className="mt-1 truncate text-xs text-[var(--color-text-muted)]">
+                    <div className="mt-1 truncate text-[11px] text-[var(--color-text-muted)]">
                       {truncate(template.subject || "件名未設定")}
                     </div>
-                    <div className="mt-2 text-[11px] text-[var(--color-text-subtle)]">
+                    <div className="mt-1.5 text-[10px] text-[var(--color-text-subtle)]">
                       {formatStoredTime(template.updatedAt)}
                     </div>
                   </button>
@@ -104,9 +104,9 @@ export function TemplateWorkspace({
             title="Template editor"
           />
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-            <div className="grid gap-4">
-              <div className="grid gap-4 md:grid-cols-2">
+          <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3.5">
+            <div className="grid gap-3">
+              <div className="grid gap-3 md:grid-cols-2">
                 <Field label="Name">
                   <Input
                     showWhitespace={showWhitespace}
@@ -123,7 +123,7 @@ export function TemplateWorkspace({
                 </Field>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_200px]">
                 <Field label="Signature">
                   <Select
                     value={templateForm.signatureId ?? ""}
@@ -141,14 +141,14 @@ export function TemplateWorkspace({
                   </Select>
                 </Field>
 
-                <div className="rounded-lg border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3 py-3 text-sm text-[var(--color-text-muted)]">
+                <div className="rounded-[7px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3 py-2.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
                   {"`{{相手名}}` や `{{日付}}` をそのまま保存できます。"}
                 </div>
               </div>
 
               <Field label="Opening">
                 <Textarea
-                  className="min-h-[144px]"
+                  className="min-h-[132px]"
                   rows={5}
                   showWhitespace={showWhitespace}
                   textClassName="mail-compose-text"
@@ -159,7 +159,7 @@ export function TemplateWorkspace({
 
               <Field label="Body">
                 <Textarea
-                  className="min-h-[320px]"
+                  className="min-h-[280px]"
                   rows={12}
                   showWhitespace={showWhitespace}
                   textClassName="mail-compose-text"
@@ -170,7 +170,7 @@ export function TemplateWorkspace({
 
               <Field label="Closing">
                 <Textarea
-                  className="min-h-[144px]"
+                  className="min-h-[132px]"
                   rows={5}
                   showWhitespace={showWhitespace}
                   textClassName="mail-compose-text"
@@ -204,19 +204,19 @@ export function TemplateWorkspace({
           />
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="border-b border-[var(--color-panel-border-strong)] px-4 py-3">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+            <div className="border-b border-[var(--color-panel-border-strong)] px-3.5 py-3">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
                 Subject
               </div>
-              <div className="mt-2 text-sm text-[var(--color-text-strong)]">
+              <div className="mt-1.5 text-[13px] text-[var(--color-text-strong)]">
                 {templateForm.subject || "件名未設定"}
               </div>
             </div>
-            <div className="px-4 py-3">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+            <div className="px-3.5 py-3">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
                 Body
               </div>
-              <pre className="mail-preview-text mt-2 overflow-x-auto rounded-lg border border-[var(--color-panel-border-strong)] bg-[var(--color-preview-bg)] px-4 py-4 whitespace-pre-wrap text-[var(--color-preview-text)]">
+              <pre className="mail-preview-text mt-2 overflow-x-auto rounded-[7px] border border-[var(--color-panel-border-strong)] bg-[var(--color-preview-bg)] px-3.5 py-3 whitespace-pre-wrap text-[var(--color-preview-text)]">
                 {previewBodyText}
               </pre>
             </div>
@@ -235,21 +235,21 @@ export function TemplateWorkspace({
         title="Template preview"
         onClose={() => setIsWidePreviewOpen(false)}
       >
-        <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
-          <section className="rounded-xl border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] p-5">
-            <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+        <div className="grid gap-3 xl:grid-cols-[260px_minmax(0,1fr)]">
+          <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] p-4">
+            <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
               Subject
             </div>
-            <div className="mt-3 text-sm text-[var(--color-text-strong)]">
+            <div className="mt-2.5 text-[13px] text-[var(--color-text-strong)]">
               {templateForm.subject || "件名未設定"}
             </div>
           </section>
 
-          <section className="rounded-xl border border-[var(--color-panel-border-strong)] bg-[var(--color-preview-bg)] p-5">
-            <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+          <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-preview-bg)] p-4">
+            <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
               Body
             </div>
-            <pre className="mail-preview-text mt-3 min-h-[520px] overflow-x-auto whitespace-pre-wrap text-[var(--color-preview-text)]">
+            <pre className="mail-preview-text mt-2.5 min-h-[480px] overflow-x-auto whitespace-pre-wrap text-[var(--color-preview-text)]">
               {previewBodyText}
             </pre>
           </section>
@@ -269,10 +269,10 @@ function PaneHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-12 items-center justify-between gap-3 border-b border-[var(--color-panel-border-strong)] px-4">
+    <div className="flex min-h-11 items-center justify-between gap-3 border-b border-[var(--color-panel-border-strong)] px-3.5">
       <div className="min-w-0">
-        <div className="text-sm font-medium text-[var(--color-text-strong)]">{title}</div>
-        <div className="truncate text-xs text-[var(--color-text-subtle)]">{description}</div>
+        <div className="text-[13px] font-medium text-[var(--color-text-strong)]">{title}</div>
+        <div className="truncate text-[11px] text-[var(--color-text-subtle)]">{description}</div>
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>

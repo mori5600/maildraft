@@ -70,7 +70,7 @@ export function DraftWorkspace({
 
   return (
     <>
-      <div className="grid h-full min-h-0 gap-4 xl:grid-cols-[260px_minmax(0,1fr)_340px]">
+      <div className="grid h-full min-h-0 gap-3 xl:grid-cols-[248px_minmax(0,1fr)_320px]">
         <Panel className="flex min-h-0 flex-col overflow-hidden">
           <PaneHeader
             action={
@@ -81,7 +81,7 @@ export function DraftWorkspace({
             description={`${drafts.length} drafts`}
             title="Draft list"
           />
-          <div className="min-h-0 flex-1 overflow-y-auto p-2">
+          <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
             <div className="space-y-1">
               {drafts.map((draft) => {
                 const isActive = draft.id === selectedDraftId;
@@ -89,7 +89,7 @@ export function DraftWorkspace({
                 return (
                   <button
                     key={draft.id}
-                    className={`w-full rounded-lg border px-3 py-2.5 text-left transition-colors ${
+                    className={`w-full rounded-[7px] border px-2.5 py-2 text-left transition-colors ${
                       isActive
                         ? "border-[var(--color-list-active-border)] bg-[var(--color-list-active-bg)]"
                         : "border-transparent hover:border-[var(--color-list-hover-border)] hover:bg-[var(--color-list-hover-bg)]"
@@ -97,13 +97,13 @@ export function DraftWorkspace({
                     onClick={() => onSelectDraft(draft.id)}
                     type="button"
                   >
-                    <div className="truncate text-sm font-medium text-[var(--color-text-strong)]">
+                    <div className="truncate text-[13px] font-medium text-[var(--color-text-strong)]">
                       {draftLabel(draft)}
                     </div>
-                    <div className="mt-1 truncate text-xs text-[var(--color-text-muted)]">
+                    <div className="mt-1 truncate text-[11px] text-[var(--color-text-muted)]">
                       {truncate(draft.subject || "件名未設定")}
                     </div>
-                    <div className="mt-2 text-[11px] text-[var(--color-text-subtle)]">
+                    <div className="mt-1.5 text-[10px] text-[var(--color-text-subtle)]">
                       {formatStoredTime(draft.updatedAt)}
                     </div>
                   </button>
@@ -129,9 +129,9 @@ export function DraftWorkspace({
             title="Editor"
           />
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-            <div className="grid gap-4">
-              <div className="grid gap-4 md:grid-cols-2">
+          <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3.5">
+            <div className="grid gap-3">
+              <div className="grid gap-3 md:grid-cols-2">
                 <Field label="Label">
                   <Input
                     placeholder="4/12 打ち合わせお礼"
@@ -150,7 +150,7 @@ export function DraftWorkspace({
                 </Field>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-3 md:grid-cols-2">
                 <Field label="Template">
                   <Select
                     value={draftForm.templateId ?? ""}
@@ -192,7 +192,7 @@ export function DraftWorkspace({
 
               <Field label="Recipient note" hint="社名や担当者など">
                 <Textarea
-                  className="min-h-[108px]"
+                  className="min-h-[96px]"
                   placeholder={"株式会社サンプル\n営業部\n佐藤 様"}
                   rows={3}
                   showWhitespace={showWhitespace}
@@ -204,7 +204,7 @@ export function DraftWorkspace({
 
               <Field label="Opening">
                 <Textarea
-                  className="min-h-[144px]"
+                  className="min-h-[132px]"
                   placeholder={"いつもお世話になっております。\n株式会社サンプルの田中です。"}
                   rows={5}
                   showWhitespace={showWhitespace}
@@ -216,7 +216,7 @@ export function DraftWorkspace({
 
               <Field label="Body">
                 <Textarea
-                  className="min-h-[320px]"
+                  className="min-h-[280px]"
                   placeholder="本文"
                   rows={12}
                   showWhitespace={showWhitespace}
@@ -228,7 +228,7 @@ export function DraftWorkspace({
 
               <Field label="Closing">
                 <Textarea
-                  className="min-h-[144px]"
+                  className="min-h-[132px]"
                   placeholder="引き続きよろしくお願いいたします。"
                   rows={5}
                   showWhitespace={showWhitespace}
@@ -276,13 +276,13 @@ export function DraftWorkspace({
           />
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="border-b border-[var(--color-panel-border-strong)] px-4 py-3">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+            <div className="border-b border-[var(--color-panel-border-strong)] px-3.5 py-3">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
                 Variables
               </div>
-              <div className="mt-3 space-y-3">
+              <div className="mt-2.5 space-y-2.5">
                 {variableNames.length === 0 ? (
-                  <div className="rounded-md border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3 py-3 text-sm leading-6 text-[var(--color-text-muted)]">
+                  <div className="rounded-[7px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3 py-2.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
                     この下書きには差し込み変数がありません。
                   </div>
                 ) : (
@@ -299,7 +299,7 @@ export function DraftWorkspace({
                         />
                       </Field>
                     ))}
-                    <div className="rounded-md border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3 py-3 text-sm leading-6 text-[var(--color-text-muted)]">
+                    <div className="rounded-[7px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3 py-2.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
                       本文中の <code>{`{{...}}`}</code>{" "}
                       はそのまま保存し、プレビューとコピー時に差し込みます。
                     </div>
@@ -308,24 +308,24 @@ export function DraftWorkspace({
               </div>
             </div>
 
-            <div className="border-b border-[var(--color-panel-border-strong)] px-4 py-3">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+            <div className="border-b border-[var(--color-panel-border-strong)] px-3.5 py-3">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
                 Subject
               </div>
-              <div className="mt-2 text-sm text-[var(--color-text-strong)]">
+              <div className="mt-1.5 text-[13px] text-[var(--color-text-strong)]">
                 {previewSubject || "件名未設定"}
               </div>
             </div>
 
-            <div className="border-b border-[var(--color-panel-border-strong)] px-4 py-3">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+            <div className="border-b border-[var(--color-panel-border-strong)] px-3.5 py-3">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
                 Checks
               </div>
-              <div className="mt-2 space-y-2">
+              <div className="mt-2 space-y-1.5">
                 {checks.map((check) => (
                   <div
                     key={check}
-                    className={`rounded-md border px-3 py-2 text-sm ${
+                    className={`rounded-[7px] border px-3 py-1.5 text-[13px] ${
                       check.includes("通っています")
                         ? "border-[var(--color-success-border)] bg-[var(--color-success-bg)] text-[var(--color-success-text)]"
                         : "border-[var(--color-warning-border)] bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]"
@@ -337,11 +337,11 @@ export function DraftWorkspace({
               </div>
             </div>
 
-            <div className="px-4 py-3">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+            <div className="px-3.5 py-3">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
                 Body
               </div>
-              <pre className="mail-preview-text mt-2 overflow-x-auto rounded-lg border border-[var(--color-panel-border-strong)] bg-[var(--color-preview-bg)] px-4 py-4 whitespace-pre-wrap text-[var(--color-preview-text)]">
+              <pre className="mail-preview-text mt-2 overflow-x-auto rounded-[7px] border border-[var(--color-panel-border-strong)] bg-[var(--color-preview-bg)] px-3.5 py-3 whitespace-pre-wrap text-[var(--color-preview-text)]">
                 {previewBodyText}
               </pre>
             </div>
@@ -365,35 +365,35 @@ export function DraftWorkspace({
         title="Draft preview"
         onClose={() => setIsWidePreviewOpen(false)}
       >
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
-          <section className="rounded-xl border border-[var(--color-panel-border-strong)] bg-[var(--color-preview-bg)] p-5">
-            <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_280px]">
+          <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-preview-bg)] p-4">
+            <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
               Body
             </div>
-            <pre className="mail-preview-text mt-3 min-h-[520px] overflow-x-auto whitespace-pre-wrap text-[var(--color-preview-text)]">
+            <pre className="mail-preview-text mt-2.5 min-h-[480px] overflow-x-auto whitespace-pre-wrap text-[var(--color-preview-text)]">
               {previewBodyText}
             </pre>
           </section>
 
-          <div className="space-y-4">
-            <section className="rounded-xl border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] p-5">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+          <div className="space-y-3">
+            <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] p-4">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
                 Subject
               </div>
-              <div className="mt-3 text-sm text-[var(--color-text-strong)]">
+              <div className="mt-2.5 text-[13px] text-[var(--color-text-strong)]">
                 {previewSubject || "件名未設定"}
               </div>
             </section>
 
-            <section className="rounded-xl border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] p-5">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+            <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] p-4">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
                 Checks
               </div>
-              <div className="mt-3 space-y-2">
+              <div className="mt-2.5 space-y-1.5">
                 {checks.map((check) => (
                   <div
                     key={check}
-                    className={`rounded-md border px-3 py-2 text-sm ${
+                    className={`rounded-[7px] border px-3 py-1.5 text-[13px] ${
                       check.includes("通っています")
                         ? "border-[var(--color-success-border)] bg-[var(--color-success-bg)] text-[var(--color-success-text)]"
                         : "border-[var(--color-warning-border)] bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]"
@@ -433,10 +433,10 @@ function PaneHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-12 items-center justify-between gap-3 border-b border-[var(--color-panel-border-strong)] px-4">
+    <div className="flex min-h-11 items-center justify-between gap-3 border-b border-[var(--color-panel-border-strong)] px-3.5">
       <div className="min-w-0">
-        <div className="text-sm font-medium text-[var(--color-text-strong)]">{title}</div>
-        <div className="truncate text-xs text-[var(--color-text-subtle)]">{description}</div>
+        <div className="text-[13px] font-medium text-[var(--color-text-strong)]">{title}</div>
+        <div className="truncate text-[11px] text-[var(--color-text-subtle)]">{description}</div>
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>
