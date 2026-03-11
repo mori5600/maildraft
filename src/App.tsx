@@ -1,10 +1,14 @@
 import "./App.css";
 
 import { useMaildraftApp } from "./app/state/use-maildraft-app";
+import type { WorkspaceView } from "./shared/types/store";
 import { Button, Panel } from "./shared/ui/primitives";
 
 function App() {
   const app = useMaildraftApp();
+  const supportsWhitespace = app.view !== "settings";
+  const viewTitle = getViewTitle(app.view);
+  const viewDescription = getViewDescription(app.view);
 
   if (app.isLoading) {
     return (
@@ -55,15 +59,17 @@ function App() {
                   type="button"
                 >
                   <span className="text-sm font-medium">{item.label}</span>
-                  <span
-                    className={`rounded-md px-1.5 py-0.5 text-[11px] ${
-                      active
-                        ? "bg-[var(--color-nav-count-active-bg)] text-[var(--color-nav-count-active-text)]"
-                        : "text-[var(--color-nav-count-muted)]"
-                    }`}
-                  >
-                    {item.count}
-                  </span>
+                  {typeof item.count === "number" ? (
+                    <span
+                      className={`rounded-md px-1.5 py-0.5 text-[11px] ${
+                        active
+                          ? "bg-[var(--color-nav-count-active-bg)] text-[var(--color-nav-count-active-text)]"
+                          : "text-[var(--color-nav-count-muted)]"
+                      }`}
+                    >
+                      {item.count}
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
@@ -77,20 +83,8 @@ function App() {
         <div className="flex min-h-screen flex-col">
           <header className="flex min-h-12 items-center justify-between gap-4 border-b border-[var(--color-sidebar-border)] px-4">
             <div>
-              <div className="text-sm font-medium text-[var(--color-text-strong)]">
-                {app.view === "drafts"
-                  ? "Drafts"
-                  : app.view === "templates"
-                    ? "Templates"
-                    : "Signatures"}
-              </div>
-              <div className="mt-0.5 text-xs text-[var(--color-text-faint)]">
-                {app.view === "drafts"
-                  ? "件名・本文・署名を分けて編集"
-                  : app.view === "templates"
-                    ? "定型文と推奨署名を管理"
-                    : "差出人プロフィールを管理"}
-              </div>
+              <div className="text-sm font-medium text-[var(--color-text-strong)]">{viewTitle}</div>
+              <div className="mt-0.5 text-xs text-[var(--color-text-faint)]">{viewDescription}</div>
             </div>
 
             <div className="flex items-center gap-3">
@@ -102,22 +96,26 @@ function App() {
               >
                 {app.theme === "dark" ? "Dark mode" : "Light mode"}
               </Button>
-              <Button
-                className="w-[104px] justify-center"
-                size="sm"
-                variant={app.showWhitespace ? "primary" : "secondary"}
-                onClick={app.toggleWhitespace}
-              >
-                Spaces
-              </Button>
-              <div
-                aria-hidden={!app.showWhitespace}
-                className={`w-[96px] text-[11px] text-[var(--color-notice)] transition-opacity ${
-                  app.showWhitespace ? "opacity-100" : "opacity-0"
-                }`}
-              >
-                · 半角 / □ 全角
-              </div>
+              {supportsWhitespace ? (
+                <>
+                  <Button
+                    className="w-[104px] justify-center"
+                    size="sm"
+                    variant={app.showWhitespace ? "primary" : "secondary"}
+                    onClick={app.toggleWhitespace}
+                  >
+                    Spaces
+                  </Button>
+                  <div
+                    aria-hidden={!app.showWhitespace}
+                    className={`w-[96px] text-[11px] text-[var(--color-notice)] transition-opacity ${
+                      app.showWhitespace ? "opacity-100" : "opacity-0"
+                    }`}
+                  >
+                    · 半角 / □ 全角
+                  </div>
+                </>
+              ) : null}
               <div
                 className={`max-w-[320px] truncate text-xs ${
                   app.error ? "text-[var(--color-error)]" : "text-[var(--color-notice)]"
@@ -132,6 +130,7 @@ function App() {
             {app.view === "drafts" ? app.draftWorkspace : null}
             {app.view === "templates" ? app.templateWorkspace : null}
             {app.view === "signatures" ? app.signatureWorkspace : null}
+            {app.view === "settings" ? app.settingsWorkspace : null}
           </div>
         </div>
       </div>
@@ -140,3 +139,29 @@ function App() {
 }
 
 export default App;
+
+function getViewTitle(view: WorkspaceView): string {
+  switch (view) {
+    case "drafts":
+      return "Drafts";
+    case "templates":
+      return "Templates";
+    case "signatures":
+      return "Signatures";
+    case "settings":
+      return "Settings";
+  }
+}
+
+function getViewDescription(view: WorkspaceView): string {
+  switch (view) {
+    case "drafts":
+      return "件名・本文・署名を分けて編集";
+    case "templates":
+      return "定型文と推奨署名を管理";
+    case "signatures":
+      return "差出人プロフィールを管理";
+    case "settings":
+      return "診断ログの記録方法と保持期間を管理";
+  }
+}

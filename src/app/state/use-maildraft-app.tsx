@@ -14,6 +14,13 @@ import {
   renderTemplatePreview,
 } from "../../modules/renderer/render-draft";
 import {
+  createDefaultLoggingSettingsSnapshot,
+  type LoggingSettingsInput,
+  type LoggingSettingsSnapshot,
+  toLoggingSettingsInput,
+} from "../../modules/settings/model";
+import { SettingsWorkspace } from "../../modules/settings/ui/SettingsWorkspace";
+import {
   createEmptySignature,
   type SignatureInput,
   toSignatureInput,
@@ -40,9 +47,12 @@ const EMPTY_SNAPSHOT: StoreSnapshot = {
   templates: [],
   signatures: [],
 };
+const DEFAULT_LOGGING_SETTINGS = createDefaultLoggingSettingsSnapshot();
 
 export function useMaildraftApp() {
   const [snapshot, setSnapshot] = useState<StoreSnapshot>(EMPTY_SNAPSHOT);
+  const [loggingSettings, setLoggingSettings] =
+    useState<LoggingSettingsSnapshot>(DEFAULT_LOGGING_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState("ローカル保存の準備をしています。");
@@ -59,15 +69,22 @@ export function useMaildraftApp() {
   const [signatureForm, setSignatureForm] = useState<SignatureInput>(() =>
     createEmptySignature(true),
   );
+  const [loggingForm, setLoggingForm] = useState<LoggingSettingsInput>(() =>
+    toLoggingSettingsInput(DEFAULT_LOGGING_SETTINGS),
+  );
 
   useEffect(() => {
     void (async () => {
       try {
         setIsLoading(true);
         setError(null);
-        const nextSnapshot = await maildraftApi.loadSnapshot();
+        const [nextSnapshot, nextLoggingSettings] = await Promise.all([
+          maildraftApi.loadSnapshot(),
+          maildraftApi.loadLoggingSettings(),
+        ]);
         hydrateAll(nextSnapshot);
-        setNotice("ローカルデータを読み込みました。");
+        hydrateLoggingSettings(nextLoggingSettings);
+        setNotice("ローカルデータと診断設定を読み込みました。");
       } catch (loadError) {
         setError(asMessage(loadError));
       } finally {
@@ -105,6 +122,11 @@ export function useMaildraftApp() {
         ? toSignatureInput(firstSignature)
         : createEmptySignature(nextSnapshot.signatures.length === 0),
     );
+  }
+
+  function hydrateLoggingSettings(nextLoggingSettings: LoggingSettingsSnapshot) {
+    setLoggingSettings(nextLoggingSettings);
+    setLoggingForm(toLoggingSettingsInput(nextLoggingSettings));
   }
 
   function selectDraft(id: string) {
@@ -349,6 +371,38 @@ export function useMaildraftApp() {
     }
   }
 
+  function changeLogging<K extends keyof LoggingSettingsInput>(
+    field: K,
+    value: LoggingSettingsInput[K],
+  ) {
+    setLoggingForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  async function saveLoggingSettings() {
+    try {
+      setError(null);
+      const nextLoggingSettings = await maildraftApi.saveLoggingSettings(loggingForm);
+      hydrateLoggingSettings(nextLoggingSettings);
+      setNotice("ログ設定を保存しました。");
+    } catch (saveError) {
+      setError(asMessage(saveError));
+    }
+  }
+
+  async function clearLogs() {
+    try {
+      setError(null);
+      const nextLoggingSettings = await maildraftApi.clearLogs();
+      hydrateLoggingSettings(nextLoggingSettings);
+      setNotice("診断ログを削除しました。");
+    } catch (clearError) {
+      setError(asMessage(clearError));
+    }
+  }
+
   const selectedDraftSignature = snapshot.signatures.find(
     (signature) => signature.id === draftForm.signatureId,
   );
@@ -365,6 +419,7 @@ export function useMaildraftApp() {
       { id: "drafts" as const, label: "下書き", count: snapshot.drafts.length },
       { id: "templates" as const, label: "テンプレート", count: snapshot.templates.length },
       { id: "signatures" as const, label: "署名", count: snapshot.signatures.length },
+      { id: "settings" as const, label: "設定" },
     ],
     snapshot,
     isLoading,
@@ -430,6 +485,15 @@ export function useMaildraftApp() {
         showWhitespace={showWhitespace}
         signatureForm={signatureForm}
         signatures={snapshot.signatures}
+      />
+    ),
+    settingsWorkspace: (
+      <SettingsWorkspace
+        loggingForm={loggingForm}
+        loggingSettings={loggingSettings}
+        onChangeLogging={changeLogging}
+        onClearLogs={clearLogs}
+        onSaveLoggingSettings={saveLoggingSettings}
       />
     ),
   };

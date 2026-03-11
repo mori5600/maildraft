@@ -8,4 +8,4 @@ export interface StoreSnapshot {
   signatures: Signature[];
 }
 
-export type WorkspaceView = "drafts" | "templates" | "signatures";
+export type WorkspaceView = "drafts" | "templates" | "signatures" | "settings";

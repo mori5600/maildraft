@@ -3,6 +3,7 @@ mod modules;
 
 use std::io::Error;
 
+use app::settings::{LoggingSettingsInput, LoggingSettingsSnapshot};
 use app::state::AppState;
 use modules::{
     drafts::DraftInput, signatures::SignatureInput, store::StoreSnapshot, templates::TemplateInput,
@@ -55,12 +56,32 @@ fn delete_signature(
     state.delete_signature(&id)
 }
 
+#[tauri::command]
+fn load_logging_settings(
+    state: tauri::State<'_, AppState>,
+) -> Result<LoggingSettingsSnapshot, String> {
+    state.load_logging_settings()
+}
+
+#[tauri::command]
+fn save_logging_settings(
+    state: tauri::State<'_, AppState>,
+    input: LoggingSettingsInput,
+) -> Result<LoggingSettingsSnapshot, String> {
+    state.save_logging_settings(input)
+}
+
+#[tauri::command]
+fn clear_logs(state: tauri::State<'_, AppState>) -> Result<LoggingSettingsSnapshot, String> {
+    state.clear_logs()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
-            let state = AppState::new(&app.handle()).map_err(Error::other)?;
+            let state = AppState::new(app.handle()).map_err(Error::other)?;
             tauri::Manager::manage(app, state);
             Ok(())
         })
@@ -72,7 +93,10 @@ pub fn run() {
             save_template,
             delete_template,
             save_signature,
-            delete_signature
+            delete_signature,
+            load_logging_settings,
+            save_logging_settings,
+            clear_logs
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
