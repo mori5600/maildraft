@@ -10,13 +10,16 @@ import type { Template, TemplateInput } from "../model";
 
 interface TemplateWorkspaceProps {
   templates: Template[];
+  totalTemplateCount: number;
   signatures: Signature[];
   selectedTemplateId: string | null;
   templateForm: TemplateInput;
   previewText: string;
   showWhitespace: boolean;
+  searchQuery: string;
   onSelectTemplate: (id: string) => void;
   onCreateTemplate: () => void;
+  onChangeSearchQuery: (value: string) => void;
   onChangeTemplate: <K extends keyof TemplateInput>(field: K, value: TemplateInput[K]) => void;
   onSaveTemplate: () => Promise<void>;
   onDeleteTemplate: () => Promise<void>;
@@ -25,13 +28,16 @@ interface TemplateWorkspaceProps {
 
 export function TemplateWorkspace({
   templates,
+  totalTemplateCount,
   signatures,
   selectedTemplateId,
   templateForm,
   previewText,
   showWhitespace,
+  searchQuery,
   onSelectTemplate,
   onCreateTemplate,
+  onChangeSearchQuery,
   onChangeTemplate,
   onSaveTemplate,
   onDeleteTemplate,
@@ -42,6 +48,9 @@ export function TemplateWorkspace({
   const previewBodyText =
     (showWhitespace ? visualizeWhitespace(previewText) : previewText) ||
     "テンプレートのプレビューがここに表示されます。";
+  const templateCountLabel = searchQuery.trim()
+    ? `${templates.length} / ${totalTemplateCount} templates`
+    : `${totalTemplateCount} templates`;
 
   return (
     <>
@@ -53,38 +62,64 @@ export function TemplateWorkspace({
                 New
               </Button>
             }
-            description={`${templates.length} templates`}
+            description={templateCountLabel}
             title="Template list"
           />
-          <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
-            <div className="space-y-1">
-              {templates.map((template) => {
-                const isActive = template.id === selectedTemplateId;
-
-                return (
-                  <button
-                    key={template.id}
-                    className={`w-full rounded-[7px] border px-2.5 py-2 text-left transition-colors ${
-                      isActive
-                        ? "border-[var(--color-list-active-border)] bg-[var(--color-list-active-bg)]"
-                        : "border-transparent hover:border-[var(--color-list-hover-border)] hover:bg-[var(--color-list-hover-bg)]"
-                    }`}
-                    onClick={() => onSelectTemplate(template.id)}
-                    type="button"
-                  >
-                    <div className="truncate text-[13px] font-medium text-[var(--color-text-strong)]">
-                      {template.name}
-                    </div>
-                    <div className="mt-1 truncate text-[11px] text-[var(--color-text-muted)]">
-                      {truncate(template.subject || "件名未設定")}
-                    </div>
-                    <div className="mt-1.5 text-[10px] text-[var(--color-text-subtle)]">
-                      {formatStoredTime(template.updatedAt)}
-                    </div>
-                  </button>
-                );
-              })}
+          <div className="border-b border-[var(--color-panel-border-strong)] px-1.5 py-1.5">
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="テンプレートを検索"
+                type="search"
+                value={searchQuery}
+                onChange={(event) => onChangeSearchQuery(event.currentTarget.value)}
+              />
+              <Button
+                disabled={!searchQuery}
+                size="sm"
+                variant="ghost"
+                onClick={() => onChangeSearchQuery("")}
+              >
+                Clear
+              </Button>
             </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
+            {templates.length === 0 ? (
+              <div className="rounded-[7px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3 py-2.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
+                {searchQuery.trim()
+                  ? "検索に一致するテンプレートはありません。"
+                  : "まだテンプレートはありません。"}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {templates.map((template) => {
+                  const isActive = template.id === selectedTemplateId;
+
+                  return (
+                    <button
+                      key={template.id}
+                      className={`w-full rounded-[7px] border px-2.5 py-2 text-left transition-colors ${
+                        isActive
+                          ? "border-[var(--color-list-active-border)] bg-[var(--color-list-active-bg)]"
+                          : "border-transparent hover:border-[var(--color-list-hover-border)] hover:bg-[var(--color-list-hover-bg)]"
+                      }`}
+                      onClick={() => onSelectTemplate(template.id)}
+                      type="button"
+                    >
+                      <div className="truncate text-[13px] font-medium text-[var(--color-text-strong)]">
+                        {template.name}
+                      </div>
+                      <div className="mt-1 truncate text-[11px] text-[var(--color-text-muted)]">
+                        {truncate(template.subject || "件名未設定")}
+                      </div>
+                      <div className="mt-1.5 text-[10px] text-[var(--color-text-subtle)]">
+                        {formatStoredTime(template.updatedAt)}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </Panel>
 

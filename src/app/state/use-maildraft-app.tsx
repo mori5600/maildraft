@@ -40,6 +40,7 @@ import {
 import { TemplateWorkspace } from "../../modules/templates/ui/TemplateWorkspace";
 import { maildraftApi } from "../../shared/api/maildraft-api";
 import { copyPlainText } from "../../shared/lib/clipboard";
+import { matchesSearchQuery } from "../../shared/lib/search";
 import {
   applyTheme,
   type AppTheme,
@@ -72,6 +73,9 @@ export function useMaildraftApp() {
   const [theme, setTheme] = useState<AppTheme>(() => resolveInitialTheme());
   const [showWhitespace, setShowWhitespace] = useState(false);
   const [draftAutoSaveState, setDraftAutoSaveState] = useState<DraftAutoSaveState>("idle");
+  const [draftSearchQuery, setDraftSearchQuery] = useState("");
+  const [templateSearchQuery, setTemplateSearchQuery] = useState("");
+  const [signatureSearchQuery, setSignatureSearchQuery] = useState("");
 
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -147,6 +151,29 @@ export function useMaildraftApp() {
   const draftVariableNames = collectDraftVariableNames(draftForm, selectedDraftSignature);
   const draftHistory = snapshot.draftHistory.filter((entry) => entry.draftId === draftForm.id);
   const templatePreviewText = renderTemplatePreview(templateForm, selectedTemplateSignature);
+  const filteredDrafts = snapshot.drafts.filter((draft) =>
+    matchesSearchQuery(draftSearchQuery, [
+      draft.title,
+      draft.subject,
+      draft.recipient,
+      draft.opening,
+      draft.body,
+      draft.closing,
+      ...Object.values(draft.variableValues),
+    ]),
+  );
+  const filteredTemplates = snapshot.templates.filter((template) =>
+    matchesSearchQuery(templateSearchQuery, [
+      template.name,
+      template.subject,
+      template.opening,
+      template.body,
+      template.closing,
+    ]),
+  );
+  const filteredSignatures = snapshot.signatures.filter((signature) =>
+    matchesSearchQuery(signatureSearchQuery, [signature.name, signature.body]),
+  );
 
   useEffect(() => {
     if (isLoading) {
@@ -307,6 +334,10 @@ export function useMaildraftApp() {
     }));
   }
 
+  function changeDraftSearchQuery(value: string) {
+    setDraftSearchQuery(value);
+  }
+
   async function saveDraft() {
     await persistDraft({
       input: draftForm,
@@ -396,6 +427,10 @@ export function useMaildraftApp() {
       ...current,
       [field]: value,
     }));
+  }
+
+  function changeTemplateSearchQuery(value: string) {
+    setTemplateSearchQuery(value);
   }
 
   async function saveTemplate() {
@@ -491,6 +526,10 @@ export function useMaildraftApp() {
       ...current,
       [field]: value,
     }));
+  }
+
+  function changeSignatureSearchQuery(value: string) {
+    setSignatureSearchQuery(value);
   }
 
   async function saveSignature() {
@@ -625,7 +664,9 @@ export function useMaildraftApp() {
         checks={draftChecks}
         draftForm={draftForm}
         draftHistory={draftHistory}
-        drafts={snapshot.drafts}
+        drafts={filteredDrafts}
+        searchQuery={draftSearchQuery}
+        totalDraftCount={snapshot.drafts.length}
         previewSubject={draftPreviewSubject}
         previewText={draftPreviewText}
         selectedDraftId={selectedDraftId}
@@ -635,6 +676,7 @@ export function useMaildraftApp() {
         variableNames={draftVariableNames}
         onApplyTemplate={applyTemplate}
         onChangeDraft={changeDraft}
+        onChangeSearchQuery={changeDraftSearchQuery}
         onChangeDraftVariable={changeDraftVariable}
         onCopyPreview={copyDraftPreview}
         onCreateDraft={createDraft}
@@ -646,7 +688,10 @@ export function useMaildraftApp() {
     ),
     templateWorkspace: (
       <TemplateWorkspace
+        searchQuery={templateSearchQuery}
+        totalTemplateCount={snapshot.templates.length}
         onChangeTemplate={changeTemplate}
+        onChangeSearchQuery={changeTemplateSearchQuery}
         onCreateTemplate={createTemplate}
         onDeleteTemplate={deleteTemplate}
         onSaveTemplate={saveTemplate}
@@ -657,12 +702,15 @@ export function useMaildraftApp() {
         signatures={snapshot.signatures}
         showWhitespace={showWhitespace}
         templateForm={templateForm}
-        templates={snapshot.templates}
+        templates={filteredTemplates}
       />
     ),
     signatureWorkspace: (
       <SignatureWorkspace
+        searchQuery={signatureSearchQuery}
+        totalSignatureCount={snapshot.signatures.length}
         onChangeSignature={changeSignature}
+        onChangeSearchQuery={changeSignatureSearchQuery}
         onCreateSignature={createSignature}
         onDeleteSignature={deleteSignature}
         onSaveSignature={saveSignature}
@@ -670,7 +718,7 @@ export function useMaildraftApp() {
         selectedSignatureId={selectedSignatureId}
         showWhitespace={showWhitespace}
         signatureForm={signatureForm}
-        signatures={snapshot.signatures}
+        signatures={filteredSignatures}
       />
     ),
     settingsWorkspace: (

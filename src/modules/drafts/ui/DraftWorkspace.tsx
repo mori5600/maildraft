@@ -13,6 +13,7 @@ import { DraftHistoryOverlay } from "./DraftHistoryOverlay";
 
 interface DraftWorkspaceProps {
   drafts: Draft[];
+  totalDraftCount: number;
   draftHistory: DraftHistoryEntry[];
   templates: Template[];
   signatures: Signature[];
@@ -24,8 +25,10 @@ interface DraftWorkspaceProps {
   variableNames: string[];
   showWhitespace: boolean;
   autoSaveLabel: string;
+  searchQuery: string;
   onSelectDraft: (id: string) => void;
   onCreateDraft: () => void;
+  onChangeSearchQuery: (value: string) => void;
   onChangeDraft: <K extends keyof DraftInput>(field: K, value: DraftInput[K]) => void;
   onChangeDraftVariable: (name: string, value: string) => void;
   onCopyPreview: () => Promise<void>;
@@ -37,6 +40,7 @@ interface DraftWorkspaceProps {
 
 export function DraftWorkspace({
   drafts,
+  totalDraftCount,
   draftHistory,
   templates,
   signatures,
@@ -48,8 +52,10 @@ export function DraftWorkspace({
   variableNames,
   showWhitespace,
   autoSaveLabel,
+  searchQuery,
   onSelectDraft,
   onCreateDraft,
+  onChangeSearchQuery,
   onChangeDraft,
   onChangeDraftVariable,
   onCopyPreview,
@@ -67,6 +73,9 @@ export function DraftWorkspace({
   const previewBodyText =
     (showWhitespace ? visualizeWhitespace(previewText) : previewText) ||
     "本文プレビューがここに表示されます。";
+  const draftCountLabel = searchQuery.trim()
+    ? `${drafts.length} / ${totalDraftCount} drafts`
+    : `${totalDraftCount} drafts`;
 
   return (
     <>
@@ -78,38 +87,64 @@ export function DraftWorkspace({
                 New
               </Button>
             }
-            description={`${drafts.length} drafts`}
+            description={draftCountLabel}
             title="Draft list"
           />
-          <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
-            <div className="space-y-1">
-              {drafts.map((draft) => {
-                const isActive = draft.id === selectedDraftId;
-
-                return (
-                  <button
-                    key={draft.id}
-                    className={`w-full rounded-[7px] border px-2.5 py-2 text-left transition-colors ${
-                      isActive
-                        ? "border-[var(--color-list-active-border)] bg-[var(--color-list-active-bg)]"
-                        : "border-transparent hover:border-[var(--color-list-hover-border)] hover:bg-[var(--color-list-hover-bg)]"
-                    }`}
-                    onClick={() => onSelectDraft(draft.id)}
-                    type="button"
-                  >
-                    <div className="truncate text-[13px] font-medium text-[var(--color-text-strong)]">
-                      {draftLabel(draft)}
-                    </div>
-                    <div className="mt-1 truncate text-[11px] text-[var(--color-text-muted)]">
-                      {truncate(draft.subject || "件名未設定")}
-                    </div>
-                    <div className="mt-1.5 text-[10px] text-[var(--color-text-subtle)]">
-                      {formatStoredTime(draft.updatedAt)}
-                    </div>
-                  </button>
-                );
-              })}
+          <div className="border-b border-[var(--color-panel-border-strong)] px-1.5 py-1.5">
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="下書きを検索"
+                type="search"
+                value={searchQuery}
+                onChange={(event) => onChangeSearchQuery(event.currentTarget.value)}
+              />
+              <Button
+                disabled={!searchQuery}
+                size="sm"
+                variant="ghost"
+                onClick={() => onChangeSearchQuery("")}
+              >
+                Clear
+              </Button>
             </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
+            {drafts.length === 0 ? (
+              <div className="rounded-[7px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3 py-2.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
+                {searchQuery.trim()
+                  ? "検索に一致する下書きはありません。"
+                  : "まだ下書きはありません。"}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {drafts.map((draft) => {
+                  const isActive = draft.id === selectedDraftId;
+
+                  return (
+                    <button
+                      key={draft.id}
+                      className={`w-full rounded-[7px] border px-2.5 py-2 text-left transition-colors ${
+                        isActive
+                          ? "border-[var(--color-list-active-border)] bg-[var(--color-list-active-bg)]"
+                          : "border-transparent hover:border-[var(--color-list-hover-border)] hover:bg-[var(--color-list-hover-bg)]"
+                      }`}
+                      onClick={() => onSelectDraft(draft.id)}
+                      type="button"
+                    >
+                      <div className="truncate text-[13px] font-medium text-[var(--color-text-strong)]">
+                        {draftLabel(draft)}
+                      </div>
+                      <div className="mt-1 truncate text-[11px] text-[var(--color-text-muted)]">
+                        {truncate(draft.subject || "件名未設定")}
+                      </div>
+                      <div className="mt-1.5 text-[10px] text-[var(--color-text-subtle)]">
+                        {formatStoredTime(draft.updatedAt)}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </Panel>
 

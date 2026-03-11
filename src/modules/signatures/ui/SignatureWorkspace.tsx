@@ -8,11 +8,14 @@ import type { Signature, SignatureInput } from "../model";
 
 interface SignatureWorkspaceProps {
   signatures: Signature[];
+  totalSignatureCount: number;
   selectedSignatureId: string | null;
   signatureForm: SignatureInput;
   showWhitespace: boolean;
+  searchQuery: string;
   onSelectSignature: (id: string) => void;
   onCreateSignature: () => void;
+  onChangeSearchQuery: (value: string) => void;
   onChangeSignature: <K extends keyof SignatureInput>(field: K, value: SignatureInput[K]) => void;
   onSaveSignature: () => Promise<void>;
   onDeleteSignature: () => Promise<void>;
@@ -20,11 +23,14 @@ interface SignatureWorkspaceProps {
 
 export function SignatureWorkspace({
   signatures,
+  totalSignatureCount,
   selectedSignatureId,
   signatureForm,
   showWhitespace,
+  searchQuery,
   onSelectSignature,
   onCreateSignature,
+  onChangeSearchQuery,
   onChangeSignature,
   onSaveSignature,
   onDeleteSignature,
@@ -34,6 +40,9 @@ export function SignatureWorkspace({
   const previewBodyText =
     (showWhitespace ? visualizeWhitespace(signatureForm.body) : signatureForm.body) ||
     "署名プレビューがここに表示されます。";
+  const signatureCountLabel = searchQuery.trim()
+    ? `${signatures.length} / ${totalSignatureCount} signatures`
+    : `${totalSignatureCount} signatures`;
 
   return (
     <>
@@ -45,42 +54,66 @@ export function SignatureWorkspace({
                 New
               </Button>
             }
-            description={`${signatures.length} signatures`}
+            description={signatureCountLabel}
             title="Signature list"
           />
-          <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
-            <div className="space-y-1">
-              {signatures.map((signature) => {
-                const isActive = signature.id === selectedSignatureId;
-
-                return (
-                  <button
-                    key={signature.id}
-                    className={`w-full rounded-[7px] border px-2.5 py-2 text-left transition-colors ${
-                      isActive
-                        ? "border-[var(--color-list-active-border)] bg-[var(--color-list-active-bg)]"
-                        : "border-transparent hover:border-[var(--color-list-hover-border)] hover:bg-[var(--color-list-hover-bg)]"
-                    }`}
-                    onClick={() => onSelectSignature(signature.id)}
-                    type="button"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="truncate text-[13px] font-medium text-[var(--color-text-strong)]">
-                        {signature.name}
-                      </div>
-                      {signature.isDefault ? (
-                        <span className="rounded-[6px] border border-[var(--color-default-badge-border)] bg-[var(--color-default-badge-bg)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.14em] text-[var(--color-default-badge-text)]">
-                          Default
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="mt-1.5 text-[10px] text-[var(--color-text-subtle)]">
-                      {formatStoredTime(signature.updatedAt)}
-                    </div>
-                  </button>
-                );
-              })}
+          <div className="border-b border-[var(--color-panel-border-strong)] px-1.5 py-1.5">
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="署名を検索"
+                type="search"
+                value={searchQuery}
+                onChange={(event) => onChangeSearchQuery(event.currentTarget.value)}
+              />
+              <Button
+                disabled={!searchQuery}
+                size="sm"
+                variant="ghost"
+                onClick={() => onChangeSearchQuery("")}
+              >
+                Clear
+              </Button>
             </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
+            {signatures.length === 0 ? (
+              <div className="rounded-[7px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3 py-2.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
+                {searchQuery.trim() ? "検索に一致する署名はありません。" : "まだ署名はありません。"}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {signatures.map((signature) => {
+                  const isActive = signature.id === selectedSignatureId;
+
+                  return (
+                    <button
+                      key={signature.id}
+                      className={`w-full rounded-[7px] border px-2.5 py-2 text-left transition-colors ${
+                        isActive
+                          ? "border-[var(--color-list-active-border)] bg-[var(--color-list-active-bg)]"
+                          : "border-transparent hover:border-[var(--color-list-hover-border)] hover:bg-[var(--color-list-hover-bg)]"
+                      }`}
+                      onClick={() => onSelectSignature(signature.id)}
+                      type="button"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="truncate text-[13px] font-medium text-[var(--color-text-strong)]">
+                          {signature.name}
+                        </div>
+                        {signature.isDefault ? (
+                          <span className="rounded-[6px] border border-[var(--color-default-badge-border)] bg-[var(--color-default-badge-bg)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.14em] text-[var(--color-default-badge-text)]">
+                            Default
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="mt-1.5 text-[10px] text-[var(--color-text-subtle)]">
+                        {formatStoredTime(signature.updatedAt)}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </Panel>
 
