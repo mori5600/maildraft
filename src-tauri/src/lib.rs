@@ -3,8 +3,11 @@ mod modules;
 
 use std::io::Error;
 
-use app::settings::{LoggingSettingsInput, LoggingSettingsSnapshot};
 use app::state::AppState;
+use app::{
+    logging::LogEntrySnapshot,
+    settings::{LoggingSettingsInput, LoggingSettingsSnapshot},
+};
 use modules::{
     drafts::DraftInput, signatures::SignatureInput, store::StoreSnapshot, templates::TemplateInput,
 };
@@ -73,6 +76,14 @@ fn load_logging_settings(
 }
 
 #[tauri::command]
+fn load_recent_logs(
+    state: tauri::State<'_, AppState>,
+    limit: Option<usize>,
+) -> Result<Vec<LogEntrySnapshot>, String> {
+    state.load_recent_logs(limit)
+}
+
+#[tauri::command]
 fn save_logging_settings(
     state: tauri::State<'_, AppState>,
     input: LoggingSettingsInput,
@@ -105,6 +116,7 @@ pub fn run() {
             save_signature,
             delete_signature,
             load_logging_settings,
+            load_recent_logs,
             save_logging_settings,
             clear_logs
         ])

@@ -19,8 +19,10 @@ import {
 } from "../../modules/renderer/render-draft";
 import {
   createDefaultLoggingSettingsSnapshot,
+  type LogEntrySnapshot,
   type LoggingSettingsInput,
   type LoggingSettingsSnapshot,
+  RECENT_LOG_LIMIT,
   toLoggingSettingsInput,
 } from "../../modules/settings/model";
 import { SettingsWorkspace } from "../../modules/settings/ui/SettingsWorkspace";
@@ -61,7 +63,9 @@ export function useMaildraftApp() {
   const [snapshot, setSnapshot] = useState<StoreSnapshot>(EMPTY_SNAPSHOT);
   const [loggingSettings, setLoggingSettings] =
     useState<LoggingSettingsSnapshot>(DEFAULT_LOGGING_SETTINGS);
+  const [recentLogs, setRecentLogs] = useState<LogEntrySnapshot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingRecentLogs, setIsLoadingRecentLogs] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState("ローカル保存の準備をしています。");
   const [view, setViewState] = useState<WorkspaceView>("drafts");
@@ -108,10 +112,8 @@ export function useMaildraftApp() {
       try {
         setIsLoading(true);
         setError(null);
-        const [nextSnapshot, nextLoggingSettings] = await Promise.all([
-          maildraftApi.loadSnapshot(),
-          maildraftApi.loadLoggingSettings(),
-        ]);
+        const nextSnapshot = await maildraftApi.loadSnapshot();
+        const nextLoggingSettings = await maildraftApi.loadLoggingSettings();
         hydrateAll(nextSnapshot);
         hydrateLoggingSettings(nextLoggingSettings);
         setDraftAutoSaveState("idle");
@@ -565,9 +567,30 @@ export function useMaildraftApp() {
       setError(null);
       const nextLoggingSettings = await maildraftApi.clearLogs();
       hydrateLoggingSettings(nextLoggingSettings);
+      setRecentLogs([]);
       setNotice("診断ログを削除しました。");
     } catch (clearError) {
       setError(asMessage(clearError));
+    }
+  }
+
+  async function refreshRecentLogs({ silent = false }: { silent?: boolean } = {}) {
+    try {
+      if (!silent) {
+        setError(null);
+      }
+
+      setIsLoadingRecentLogs(true);
+      const nextRecentLogs = await maildraftApi.loadRecentLogs(RECENT_LOG_LIMIT);
+      setRecentLogs(nextRecentLogs);
+
+      if (!silent) {
+        setNotice("最近のログを更新しました。");
+      }
+    } catch (loadError) {
+      setError(asMessage(loadError));
+    } finally {
+      setIsLoadingRecentLogs(false);
     }
   }
 
@@ -654,8 +677,11 @@ export function useMaildraftApp() {
       <SettingsWorkspace
         loggingForm={loggingForm}
         loggingSettings={loggingSettings}
+        recentLogs={recentLogs}
+        isLoadingRecentLogs={isLoadingRecentLogs}
         onChangeLogging={changeLogging}
         onClearLogs={clearLogs}
+        onRefreshRecentLogs={refreshRecentLogs}
         onSaveLoggingSettings={saveLoggingSettings}
       />
     ),

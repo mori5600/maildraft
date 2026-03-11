@@ -13,6 +13,20 @@ export interface LoggingSettingsSnapshot extends LoggingSettingsInput {
   maxRotatedFiles: number;
 }
 
+export interface LogEntrySnapshot {
+  timestampMs: number;
+  level: string;
+  eventName: string;
+  module: string;
+  result: string;
+  sessionId: string;
+  durationMs: number | null;
+  errorCode: string | null;
+  safeContext: Record<string, unknown>;
+}
+
+export const RECENT_LOG_LIMIT = 80;
+
 export const LOGGING_MODE_OPTIONS: Array<{
   value: LoggingMode;
   label: string;

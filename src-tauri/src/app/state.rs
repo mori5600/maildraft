@@ -4,7 +4,7 @@ use serde_json::{json, Map, Value};
 use tauri::{AppHandle, Manager};
 
 use crate::app::{
-    logging::{AppLogger, LogEntry, LogLevel},
+    logging::{AppLogger, LogEntry, LogEntrySnapshot, LogLevel},
     settings::{AppSettings, LoggingSettings, LoggingSettingsInput, LoggingSettingsSnapshot},
 };
 use crate::modules::{
@@ -315,6 +315,18 @@ impl AppState {
 
     pub fn load_logging_settings(&self) -> AppResult<LoggingSettingsSnapshot> {
         self.logging_settings_snapshot()
+    }
+
+    pub fn load_recent_logs(&self, limit: Option<usize>) -> AppResult<Vec<LogEntrySnapshot>> {
+        let logging_settings = {
+            let settings = self.settings.lock().map_err(|error| error.to_string())?;
+            settings.logging.clone()
+        };
+        let limit = limit.unwrap_or(80).clamp(1, 200);
+
+        self.logger
+            .load_recent(logging_settings.retention_days, limit)
+            .map_err(|error| error.to_string())
     }
 
     pub fn save_logging_settings(

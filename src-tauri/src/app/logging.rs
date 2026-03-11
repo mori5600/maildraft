@@ -1,11 +1,11 @@
 use std::{
     fs::{self, OpenOptions},
-    io::Write,
+    io::{BufRead, BufReader, Write},
     path::{Path, PathBuf},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::app::settings::{LoggingMode, LoggingSettings, LoggingSettingsSnapshot};
@@ -55,6 +55,20 @@ struct SerializedLogEntry<'a> {
     duration_ms: Option<u64>,
     error_code: Option<&'a str>,
     safe_context: &'a Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LogEntrySnapshot {
+    pub timestamp_ms: u128,
+    pub level: String,
+    pub event_name: String,
+    pub module: String,
+    pub result: String,
+    pub session_id: String,
+    pub duration_ms: Option<u64>,
+    pub error_code: Option<String>,
+    pub safe_context: Map<String, Value>,
 }
 
 impl AppLogger {
@@ -109,6 +123,51 @@ impl AppLogger {
             max_file_size_bytes: MAX_LOG_FILE_BYTES,
             max_rotated_files: MAX_LOG_ROTATED_FILES,
         })
+    }
+
+    pub fn load_recent(
+        &self,
+        retention_days: u16,
+        limit: usize,
+    ) -> Result<Vec<LogEntrySnapshot>, String> {
+        if limit == 0 {
+            return Ok(Vec::new());
+        }
+
+        self.prune_expired_logs(retention_days)?;
+
+        if !self.logs_dir.exists() {
+            return Ok(Vec::new());
+        }
+
+        let mut entries = Vec::new();
+
+        for path in collect_log_paths(&self.logs_dir)? {
+            let file = match fs::File::open(&path) {
+                Ok(file) => file,
+                Err(_) => continue,
+            };
+            let reader = BufReader::new(file);
+
+            for line in reader.lines() {
+                let Ok(line) = line else {
+                    continue;
+                };
+
+                if line.trim().is_empty() {
+                    continue;
+                }
+
+                if let Ok(entry) = serde_json::from_str::<LogEntrySnapshot>(&line) {
+                    entries.push(entry);
+                }
+            }
+        }
+
+        entries.sort_by(|left, right| right.timestamp_ms.cmp(&left.timestamp_ms));
+        entries.truncate(limit);
+
+        Ok(entries)
     }
 
     pub fn clear(&self) -> Result<(), String> {
@@ -253,4 +312,29 @@ fn collect_log_stats(logs_dir: &Path) -> Result<(usize, u64), String> {
     }
 
     Ok((file_count, total_bytes))
+}
+
+fn collect_log_paths(logs_dir: &Path) -> Result<Vec<PathBuf>, String> {
+    if !logs_dir.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut paths = Vec::new();
+
+    for entry in fs::read_dir(logs_dir).map_err(|error| error.to_string())? {
+        let entry = entry.map_err(|error| error.to_string())?;
+        let path = entry.path();
+
+        if !path.is_file() {
+            continue;
+        }
+
+        if path.extension().and_then(|extension| extension.to_str()) == Some("jsonl") {
+            paths.push(path);
+        }
+    }
+
+    paths.sort();
+
+    Ok(paths)
 }
