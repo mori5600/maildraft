@@ -16,6 +16,9 @@ export const maildraftApi = {
   deleteDraft(id: string) {
     return invoke<StoreSnapshot>("delete_draft", { id });
   },
+  restoreDraftHistory(draftId: string, historyId: string) {
+    return invoke<StoreSnapshot>("restore_draft_history", { draftId, historyId });
+  },
   saveTemplate(input: TemplateInput) {
     return invoke<StoreSnapshot>("save_template", { input });
   },

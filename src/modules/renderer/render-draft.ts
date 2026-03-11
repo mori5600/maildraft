@@ -1,14 +1,21 @@
+import {
+  collectMissingVariableNames,
+  extractVariableNames,
+  resolveVariableTokens,
+} from "../../shared/lib/template-variables";
 import type { DraftInput } from "../drafts/model";
 import type { Signature } from "../signatures/model";
 import type { TemplateInput } from "../templates/model";
 
 export function renderDraftPreview(draft: DraftInput, signature: Signature | undefined): string {
+  const variableValues = draft.variableValues;
+
   return joinSections([
-    draft.recipient,
-    draft.opening,
-    draft.body,
-    draft.closing,
-    signature?.body ?? "",
+    resolveVariableTokens(draft.recipient, variableValues),
+    resolveVariableTokens(draft.opening, variableValues),
+    resolveVariableTokens(draft.body, variableValues),
+    resolveVariableTokens(draft.closing, variableValues),
+    resolveVariableTokens(signature?.body ?? "", variableValues),
   ]);
 }
 
@@ -21,6 +28,8 @@ export function renderTemplatePreview(
 
 export function collectDraftChecks(draft: DraftInput, signature: Signature | undefined): string[] {
   const checks: string[] = [];
+  const variableNames = collectDraftVariableNames(draft, signature);
+  const missingVariables = collectMissingVariableNames(variableNames, draft.variableValues);
 
   if (!draft.subject.trim()) {
     checks.push("件名が未入力です。");
@@ -38,16 +47,8 @@ export function collectDraftChecks(draft: DraftInput, signature: Signature | und
     checks.push("署名が未設定です。");
   }
 
-  const unresolvedTokens = [
-    draft.subject,
-    draft.opening,
-    draft.body,
-    draft.closing,
-    signature?.body ?? "",
-  ].flatMap(findTokens);
-
-  if (unresolvedTokens.length > 0) {
-    checks.push(`未置換の変数があります: ${Array.from(new Set(unresolvedTokens)).join(", ")}`);
+  if (missingVariables.length > 0) {
+    checks.push(`未置換の変数があります: ${missingVariables.join(", ")}`);
   }
 
   if (checks.length === 0) {
@@ -57,13 +58,27 @@ export function collectDraftChecks(draft: DraftInput, signature: Signature | und
   return checks;
 }
 
+export function collectDraftVariableNames(
+  draft: DraftInput,
+  signature: Signature | undefined,
+): string[] {
+  return extractVariableNames([
+    draft.subject,
+    draft.recipient,
+    draft.opening,
+    draft.body,
+    draft.closing,
+    signature?.body ?? "",
+  ]);
+}
+
+export function renderDraftSubject(draft: DraftInput): string {
+  return resolveVariableTokens(draft.subject, draft.variableValues);
+}
+
 function joinSections(sections: string[]): string {
   return sections
     .map((section) => section.trim())
     .filter((section) => section.length > 0)
     .join("\n\n");
-}
-
-function findTokens(text: string): string[] {
-  return text.match(/{{\s*[^}]+\s*}}/g) ?? [];
 }

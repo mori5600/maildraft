@@ -141,6 +141,44 @@ impl AppState {
         }
     }
 
+    pub fn restore_draft_history(
+        &self,
+        draft_id: &str,
+        history_id: &str,
+    ) -> AppResult<StoreSnapshot> {
+        let started_at = Instant::now();
+        let mut store = self.store.lock().map_err(|error| error.to_string())?;
+        if !store.restore_draft_history(draft_id, history_id, &timestamp()) {
+            self.log_event(LogEntry {
+                level: LogLevel::Error,
+                event_name: "draft.restore_history",
+                module: "drafts",
+                result: "failure",
+                duration_ms: Some(elapsed_millis(started_at)),
+                error_code: Some("DRAFT_HISTORY_NOT_FOUND"),
+                safe_context: Map::new(),
+            });
+            return Err("指定した履歴が見つかりませんでした。".to_string());
+        }
+
+        store.ensure_consistency();
+        self.persist_locked_store(&store)?;
+        let snapshot = store.clone();
+        drop(store);
+
+        self.log_event(LogEntry {
+            level: LogLevel::Info,
+            event_name: "draft.restore_history",
+            module: "drafts",
+            result: "success",
+            duration_ms: Some(elapsed_millis(started_at)),
+            error_code: None,
+            safe_context: snapshot_counts_context(&snapshot),
+        });
+
+        Ok(snapshot)
+    }
+
     pub fn save_template(&self, input: TemplateInput) -> AppResult<StoreSnapshot> {
         let started_at = Instant::now();
         let safe_context = template_context(&input);
@@ -455,6 +493,10 @@ fn draft_context(input: &DraftInput) -> Map<String, Value> {
     context.insert(
         "closing_length".to_string(),
         json!(input.closing.chars().count()),
+    );
+    context.insert(
+        "variable_count".to_string(),
+        json!(input.variable_values.len()),
     );
     context
 }

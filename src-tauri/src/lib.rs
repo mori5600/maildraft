@@ -28,6 +28,15 @@ fn delete_draft(state: tauri::State<'_, AppState>, id: String) -> Result<StoreSn
 }
 
 #[tauri::command]
+fn restore_draft_history(
+    state: tauri::State<'_, AppState>,
+    draft_id: String,
+    history_id: String,
+) -> Result<StoreSnapshot, String> {
+    state.restore_draft_history(&draft_id, &history_id)
+}
+
+#[tauri::command]
 fn save_template(
     state: tauri::State<'_, AppState>,
     input: TemplateInput,
@@ -90,6 +99,7 @@ pub fn run() {
             load_snapshot,
             save_draft,
             delete_draft,
+            restore_draft_history,
             save_template,
             delete_template,
             save_signature,

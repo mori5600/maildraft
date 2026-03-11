@@ -7,45 +7,59 @@ import { PreviewOverlay } from "../../../shared/ui/PreviewOverlay";
 import { Button, Field, Input, Panel, Select, Textarea } from "../../../shared/ui/primitives";
 import type { Signature } from "../../signatures/model";
 import type { Template } from "../../templates/model";
-import type { Draft, DraftInput } from "../model";
+import type { Draft, DraftHistoryEntry, DraftInput } from "../model";
 import { draftLabel } from "../model";
+import { DraftHistoryOverlay } from "./DraftHistoryOverlay";
 
 interface DraftWorkspaceProps {
   drafts: Draft[];
+  draftHistory: DraftHistoryEntry[];
   templates: Template[];
   signatures: Signature[];
   selectedDraftId: string | null;
   draftForm: DraftInput;
+  previewSubject: string;
   previewText: string;
   checks: string[];
+  variableNames: string[];
   showWhitespace: boolean;
+  autoSaveLabel: string;
   onSelectDraft: (id: string) => void;
   onCreateDraft: () => void;
   onChangeDraft: <K extends keyof DraftInput>(field: K, value: DraftInput[K]) => void;
+  onChangeDraftVariable: (name: string, value: string) => void;
   onCopyPreview: () => Promise<void>;
   onSaveDraft: () => Promise<void>;
   onDeleteDraft: () => Promise<void>;
+  onRestoreDraftHistory: (historyId: string) => Promise<void>;
   onApplyTemplate: (templateId: string) => void;
 }
 
 export function DraftWorkspace({
   drafts,
+  draftHistory,
   templates,
   signatures,
   selectedDraftId,
   draftForm,
+  previewSubject,
   previewText,
   checks,
+  variableNames,
   showWhitespace,
+  autoSaveLabel,
   onSelectDraft,
   onCreateDraft,
   onChangeDraft,
+  onChangeDraftVariable,
   onCopyPreview,
   onSaveDraft,
   onDeleteDraft,
+  onRestoreDraftHistory,
   onApplyTemplate,
 }: DraftWorkspaceProps) {
   const [isWidePreviewOpen, setIsWidePreviewOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const selectedSignature = signatures.find((signature) => signature.id === draftForm.signatureId);
   const canCopyPreview = previewText.trim().length > 0;
   const canExpandPreview =
@@ -111,7 +125,7 @@ export function DraftWorkspace({
                 </Button>
               </div>
             }
-            description={draftLabel(draftForm)}
+            description={`${draftLabel(draftForm)} · ${autoSaveLabel}`}
             title="Editor"
           />
 
@@ -229,6 +243,14 @@ export function DraftWorkspace({
             action={
               <div className="flex gap-2">
                 <Button
+                  disabled={draftHistory.length === 0}
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setIsHistoryOpen(true)}
+                >
+                  History
+                </Button>
+                <Button
                   disabled={!canExpandPreview}
                   size="sm"
                   variant="ghost"
@@ -253,10 +275,42 @@ export function DraftWorkspace({
           <div className="min-h-0 flex-1 overflow-y-auto">
             <div className="border-b border-[var(--color-panel-border-strong)] px-4 py-3">
               <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+                Variables
+              </div>
+              <div className="mt-3 space-y-3">
+                {variableNames.length === 0 ? (
+                  <div className="rounded-md border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3 py-3 text-sm leading-6 text-[var(--color-text-muted)]">
+                    この下書きには差し込み変数がありません。
+                  </div>
+                ) : (
+                  <>
+                    {variableNames.map((name) => (
+                      <Field key={name} hint={`{{${name}}}`} label={name}>
+                        <Input
+                          placeholder={`{{${name}}} に入れる値`}
+                          showWhitespace={showWhitespace}
+                          value={draftForm.variableValues[name] ?? ""}
+                          onChange={(event) =>
+                            onChangeDraftVariable(name, event.currentTarget.value)
+                          }
+                        />
+                      </Field>
+                    ))}
+                    <div className="rounded-md border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3 py-3 text-sm leading-6 text-[var(--color-text-muted)]">
+                      本文中の <code>{`{{...}}`}</code>{" "}
+                      はそのまま保存し、プレビューとコピー時に差し込みます。
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="border-b border-[var(--color-panel-border-strong)] px-4 py-3">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
                 Subject
               </div>
               <div className="mt-2 text-sm text-[var(--color-text-strong)]">
-                {draftForm.subject || "件名未設定"}
+                {previewSubject || "件名未設定"}
               </div>
             </div>
 
@@ -324,7 +378,7 @@ export function DraftWorkspace({
                 Subject
               </div>
               <div className="mt-3 text-sm text-[var(--color-text-strong)]">
-                {draftForm.subject || "件名未設定"}
+                {previewSubject || "件名未設定"}
               </div>
             </section>
 
@@ -350,6 +404,18 @@ export function DraftWorkspace({
           </div>
         </div>
       </PreviewOverlay>
+
+      <DraftHistoryOverlay
+        historyEntries={draftHistory}
+        isOpen={isHistoryOpen}
+        showWhitespace={showWhitespace}
+        signatures={signatures}
+        onClose={() => setIsHistoryOpen(false)}
+        onRestore={async (historyId) => {
+          await onRestoreDraftHistory(historyId);
+          setIsHistoryOpen(false);
+        }}
+      />
     </>
   );
 }

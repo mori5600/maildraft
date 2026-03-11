@@ -1,16 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   applyTemplateToDraft,
   createDraftFromTemplate,
   createEmptyDraft,
+  draftHasMeaningfulContent,
   type DraftInput,
+  draftInputsEqual,
   toDraftInput,
 } from "../../modules/drafts/model";
 import { DraftWorkspace } from "../../modules/drafts/ui/DraftWorkspace";
 import {
   collectDraftChecks,
+  collectDraftVariableNames,
   renderDraftPreview,
+  renderDraftSubject,
   renderTemplatePreview,
 } from "../../modules/renderer/render-draft";
 import {
@@ -42,12 +46,16 @@ import {
 } from "../../shared/lib/theme";
 import type { StoreSnapshot, WorkspaceView } from "../../shared/types/store";
 
+type DraftAutoSaveState = "idle" | "dirty" | "saving" | "saved" | "error";
+
 const EMPTY_SNAPSHOT: StoreSnapshot = {
   drafts: [],
+  draftHistory: [],
   templates: [],
   signatures: [],
 };
 const DEFAULT_LOGGING_SETTINGS = createDefaultLoggingSettingsSnapshot();
+const AUTO_SAVE_DELAY_MS = 900;
 
 export function useMaildraftApp() {
   const [snapshot, setSnapshot] = useState<StoreSnapshot>(EMPTY_SNAPSHOT);
@@ -56,9 +64,10 @@ export function useMaildraftApp() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState("ローカル保存の準備をしています。");
-  const [view, setView] = useState<WorkspaceView>("drafts");
+  const [view, setViewState] = useState<WorkspaceView>("drafts");
   const [theme, setTheme] = useState<AppTheme>(() => resolveInitialTheme());
   const [showWhitespace, setShowWhitespace] = useState(false);
+  const [draftAutoSaveState, setDraftAutoSaveState] = useState<DraftAutoSaveState>("idle");
 
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -73,6 +82,27 @@ export function useMaildraftApp() {
     toLoggingSettingsInput(DEFAULT_LOGGING_SETTINGS),
   );
 
+  const draftFormRef = useRef(draftForm);
+  const selectedDraftIdRef = useRef(selectedDraftId);
+  const snapshotRef = useRef(snapshot);
+  const viewRef = useRef(view);
+
+  useEffect(() => {
+    draftFormRef.current = draftForm;
+  }, [draftForm]);
+
+  useEffect(() => {
+    selectedDraftIdRef.current = selectedDraftId;
+  }, [selectedDraftId]);
+
+  useEffect(() => {
+    snapshotRef.current = snapshot;
+  }, [snapshot]);
+
+  useEffect(() => {
+    viewRef.current = view;
+  }, [view]);
+
   useEffect(() => {
     void (async () => {
       try {
@@ -84,6 +114,7 @@ export function useMaildraftApp() {
         ]);
         hydrateAll(nextSnapshot);
         hydrateLoggingSettings(nextLoggingSettings);
+        setDraftAutoSaveState("idle");
         setNotice("ローカルデータと診断設定を読み込みました。");
       } catch (loadError) {
         setError(asMessage(loadError));
@@ -97,6 +128,52 @@ export function useMaildraftApp() {
     applyTheme(theme);
     persistTheme(theme);
   }, [theme]);
+
+  const selectedDraftSignature = snapshot.signatures.find(
+    (signature) => signature.id === draftForm.signatureId,
+  );
+  const selectedTemplateSignature = snapshot.signatures.find(
+    (signature) => signature.id === templateForm.signatureId,
+  );
+  const persistedDraft = snapshot.drafts.find((draft) => draft.id === draftForm.id) ?? null;
+  const persistedDraftInput = persistedDraft ? toDraftInput(persistedDraft) : null;
+  const draftShouldPersist = selectedDraftId !== null || draftHasMeaningfulContent(draftForm);
+  const draftIsDirty = draftShouldPersist && !draftInputsEqual(draftForm, persistedDraftInput);
+  const draftChecks = collectDraftChecks(draftForm, selectedDraftSignature);
+  const draftPreviewText = renderDraftPreview(draftForm, selectedDraftSignature);
+  const draftPreviewSubject = renderDraftSubject(draftForm);
+  const draftVariableNames = collectDraftVariableNames(draftForm, selectedDraftSignature);
+  const draftHistory = snapshot.draftHistory.filter((entry) => entry.draftId === draftForm.id);
+  const templatePreviewText = renderTemplatePreview(templateForm, selectedTemplateSignature);
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    if (!draftShouldPersist) {
+      setDraftAutoSaveState("idle");
+      return;
+    }
+
+    if (!draftIsDirty) {
+      setDraftAutoSaveState((current) => (current === "error" ? current : "saved"));
+      return;
+    }
+
+    setDraftAutoSaveState("dirty");
+
+    const timeout = window.setTimeout(() => {
+      void persistDraft({
+        input: draftForm,
+        mode: "auto",
+      });
+    }, AUTO_SAVE_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [draftForm, draftIsDirty, draftShouldPersist, isLoading]);
 
   function hydrateAll(nextSnapshot: StoreSnapshot) {
     setSnapshot(nextSnapshot);
@@ -129,7 +206,68 @@ export function useMaildraftApp() {
     setLoggingForm(toLoggingSettingsInput(nextLoggingSettings));
   }
 
+  async function persistDraft({ input, mode }: { input: DraftInput; mode: "manual" | "auto" }) {
+    const affectsCurrentDraft = draftFormRef.current.id === input.id;
+
+    if (mode === "auto" && !shouldAutoPersistDraft(input, snapshotRef.current)) {
+      return;
+    }
+
+    try {
+      if (mode === "auto" && affectsCurrentDraft) {
+        setDraftAutoSaveState("saving");
+      }
+
+      if (mode === "manual") {
+        setError(null);
+      }
+
+      const nextSnapshot = await maildraftApi.saveDraft(input);
+      setSnapshot(nextSnapshot);
+
+      if (draftFormRef.current.id === input.id) {
+        setSelectedDraftId(input.id);
+        setDraftForm(pickDraftInput(nextSnapshot, input.id));
+      }
+
+      if (mode === "manual") {
+        setDraftAutoSaveState("saved");
+        setNotice("下書きを保存しました。");
+      } else if (affectsCurrentDraft) {
+        setDraftAutoSaveState("saved");
+      }
+    } catch (saveError) {
+      if (affectsCurrentDraft) {
+        setDraftAutoSaveState("error");
+      }
+      setError(asMessage(saveError));
+    }
+  }
+
+  function flushPendingDraft() {
+    if (!shouldAutoPersistDraft(draftFormRef.current, snapshotRef.current)) {
+      return;
+    }
+
+    void persistDraft({
+      input: draftFormRef.current,
+      mode: "auto",
+    });
+  }
+
+  function changeView(nextView: WorkspaceView) {
+    if (viewRef.current === "drafts" && nextView !== "drafts") {
+      flushPendingDraft();
+    }
+
+    setViewState(nextView);
+  }
+
   function selectDraft(id: string) {
+    if (selectedDraftIdRef.current !== id) {
+      flushPendingDraft();
+    }
+
     const draft = snapshot.drafts.find((item) => item.id === id);
     if (!draft) {
       return;
@@ -137,13 +275,16 @@ export function useMaildraftApp() {
 
     setSelectedDraftId(id);
     setDraftForm(toDraftInput(draft));
-    setView("drafts");
+    setDraftAutoSaveState("saved");
+    setViewState("drafts");
   }
 
   function createDraft() {
+    flushPendingDraft();
     setSelectedDraftId(null);
     setDraftForm(createEmptyDraft(getDefaultSignatureId(snapshot)));
-    setView("drafts");
+    setDraftAutoSaveState("idle");
+    setViewState("drafts");
     setNotice("新しい下書きを作成しています。");
   }
 
@@ -154,17 +295,21 @@ export function useMaildraftApp() {
     }));
   }
 
+  function changeDraftVariable(name: string, value: string) {
+    setDraftForm((current) => ({
+      ...current,
+      variableValues: {
+        ...current.variableValues,
+        [name]: value,
+      },
+    }));
+  }
+
   async function saveDraft() {
-    try {
-      setError(null);
-      const nextSnapshot = await maildraftApi.saveDraft(draftForm);
-      setSnapshot(nextSnapshot);
-      setSelectedDraftId(draftForm.id);
-      setDraftForm(pickDraftInput(nextSnapshot, draftForm.id));
-      setNotice("下書きを保存しました。");
-    } catch (saveError) {
-      setError(asMessage(saveError));
-    }
+    await persistDraft({
+      input: draftForm,
+      mode: "manual",
+    });
   }
 
   async function deleteDraft() {
@@ -180,9 +325,26 @@ export function useMaildraftApp() {
       const nextSelectedId = nextSnapshot.drafts[0]?.id ?? null;
       setSelectedDraftId(nextSelectedId);
       setDraftForm(pickDraftInput(nextSnapshot, nextSelectedId));
+      setDraftAutoSaveState(nextSelectedId ? "saved" : "idle");
       setNotice("下書きを削除しました。");
     } catch (deleteError) {
       setError(asMessage(deleteError));
+    }
+  }
+
+  async function restoreDraftHistory(historyId: string) {
+    const draftId = selectedDraftId ?? draftForm.id;
+
+    try {
+      setError(null);
+      const nextSnapshot = await maildraftApi.restoreDraftHistory(draftId, historyId);
+      setSnapshot(nextSnapshot);
+      setSelectedDraftId(draftId);
+      setDraftForm(pickDraftInput(nextSnapshot, draftId));
+      setDraftAutoSaveState("saved");
+      setNotice("履歴から下書きを復元しました。");
+    } catch (restoreError) {
+      setError(asMessage(restoreError));
     }
   }
 
@@ -207,6 +369,8 @@ export function useMaildraftApp() {
   }
 
   function selectTemplate(id: string) {
+    flushPendingDraft();
+
     const template = snapshot.templates.find((item) => item.id === id);
     if (!template) {
       return;
@@ -214,13 +378,14 @@ export function useMaildraftApp() {
 
     setSelectedTemplateId(id);
     setTemplateForm(toTemplateInput(template));
-    setView("templates");
+    setViewState("templates");
   }
 
   function createTemplate() {
+    flushPendingDraft();
     setSelectedTemplateId(null);
     setTemplateForm(createEmptyTemplate(getDefaultSignatureId(snapshot)));
-    setView("templates");
+    setViewState("templates");
     setNotice("新しいテンプレートを作成しています。");
   }
 
@@ -274,9 +439,11 @@ export function useMaildraftApp() {
   function startDraftFromTemplate() {
     const template = snapshot.templates.find((item) => item.id === templateForm.id);
 
+    setViewState("drafts");
+    setSelectedDraftId(null);
+    setDraftAutoSaveState("idle");
+
     if (!template) {
-      setView("drafts");
-      setSelectedDraftId(null);
       setDraftForm({
         ...createDraftFromTemplate(
           {
@@ -292,13 +459,13 @@ export function useMaildraftApp() {
       return;
     }
 
-    setView("drafts");
-    setSelectedDraftId(null);
     setDraftForm(createDraftFromTemplate(template, getDefaultSignatureId(snapshot)));
     setNotice(`テンプレート「${template.name}」から新しい下書きを起こしました。`);
   }
 
   function selectSignature(id: string) {
+    flushPendingDraft();
+
     const signature = snapshot.signatures.find((item) => item.id === id);
     if (!signature) {
       return;
@@ -306,13 +473,14 @@ export function useMaildraftApp() {
 
     setSelectedSignatureId(id);
     setSignatureForm(toSignatureInput(signature));
-    setView("signatures");
+    setViewState("signatures");
   }
 
   function createSignature() {
+    flushPendingDraft();
     setSelectedSignatureId(null);
     setSignatureForm(createEmptySignature(snapshot.signatures.length === 0));
-    setView("signatures");
+    setViewState("signatures");
     setNotice("新しい署名を作成しています。");
   }
 
@@ -403,17 +571,6 @@ export function useMaildraftApp() {
     }
   }
 
-  const selectedDraftSignature = snapshot.signatures.find(
-    (signature) => signature.id === draftForm.signatureId,
-  );
-  const selectedTemplateSignature = snapshot.signatures.find(
-    (signature) => signature.id === templateForm.signatureId,
-  );
-
-  const draftChecks = collectDraftChecks(draftForm, selectedDraftSignature);
-  const draftPreviewText = renderDraftPreview(draftForm, selectedDraftSignature);
-  const templatePreviewText = renderTemplatePreview(templateForm, selectedTemplateSignature);
-
   return {
     views: [
       { id: "drafts" as const, label: "下書き", count: snapshot.drafts.length },
@@ -427,7 +584,7 @@ export function useMaildraftApp() {
     notice,
     theme,
     view,
-    setView,
+    setView: changeView,
     showWhitespace,
     toggleTheme() {
       const nextTheme = theme === "dark" ? "light" : "dark";
@@ -441,19 +598,25 @@ export function useMaildraftApp() {
     },
     draftWorkspace: (
       <DraftWorkspace
+        autoSaveLabel={formatDraftAutoSaveState(draftAutoSaveState)}
         checks={draftChecks}
         draftForm={draftForm}
+        draftHistory={draftHistory}
         drafts={snapshot.drafts}
+        previewSubject={draftPreviewSubject}
         previewText={draftPreviewText}
         selectedDraftId={selectedDraftId}
         signatures={snapshot.signatures}
         showWhitespace={showWhitespace}
         templates={snapshot.templates}
+        variableNames={draftVariableNames}
         onApplyTemplate={applyTemplate}
         onChangeDraft={changeDraft}
+        onChangeDraftVariable={changeDraftVariable}
         onCopyPreview={copyDraftPreview}
         onCreateDraft={createDraft}
         onDeleteDraft={deleteDraft}
+        onRestoreDraftHistory={restoreDraftHistory}
         onSaveDraft={saveDraft}
         onSelectDraft={selectDraft}
       />
@@ -497,6 +660,32 @@ export function useMaildraftApp() {
       />
     ),
   };
+}
+
+function shouldAutoPersistDraft(input: DraftInput, snapshot: StoreSnapshot): boolean {
+  const persistedDraft = snapshot.drafts.find((draft) => draft.id === input.id);
+  const persistedDraftInput = persistedDraft ? toDraftInput(persistedDraft) : null;
+
+  if (!persistedDraft && !draftHasMeaningfulContent(input)) {
+    return false;
+  }
+
+  return !draftInputsEqual(input, persistedDraftInput);
+}
+
+function formatDraftAutoSaveState(state: DraftAutoSaveState): string {
+  switch (state) {
+    case "idle":
+      return "自動保存待機中";
+    case "dirty":
+      return "未保存の変更があります";
+    case "saving":
+      return "自動保存しています";
+    case "saved":
+      return "自動保存済み";
+    case "error":
+      return "自動保存に失敗しました";
+  }
 }
 
 function asMessage(error: unknown): string {
