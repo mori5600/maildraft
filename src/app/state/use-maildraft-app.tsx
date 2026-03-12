@@ -228,6 +228,7 @@ export function useMaildraftApp() {
       matchesSearchQuery(templateSearchQuery, [
         template.name,
         template.subject,
+        template.recipient,
         template.opening,
         template.body,
         template.closing,

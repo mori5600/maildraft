@@ -23,7 +23,13 @@ export function renderTemplatePreview(
   template: TemplateInput,
   signature: Signature | undefined,
 ): string {
-  return joinSections([template.opening, template.body, template.closing, signature?.body ?? ""]);
+  return joinSections([
+    template.recipient,
+    template.opening,
+    template.body,
+    template.closing,
+    signature?.body ?? "",
+  ]);
 }
 
 export function collectDraftChecks(draft: DraftInput, signature: Signature | undefined): string[] {

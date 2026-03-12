@@ -3,6 +3,7 @@ export interface Template {
   name: string;
   isPinned: boolean;
   subject: string;
+  recipient: string;
   opening: string;
   body: string;
   closing: string;
@@ -16,6 +17,7 @@ export interface TemplateInput {
   name: string;
   isPinned: boolean;
   subject: string;
+  recipient: string;
   opening: string;
   body: string;
   closing: string;
@@ -28,6 +30,7 @@ export function createEmptyTemplate(defaultSignatureId: string | null): Template
     name: "新しいテンプレート",
     isPinned: false,
     subject: "",
+    recipient: "",
     opening: "",
     body: "",
     closing: "",
@@ -41,6 +44,7 @@ export function toTemplateInput(template: Template): TemplateInput {
     name: template.name,
     isPinned: template.isPinned,
     subject: template.subject,
+    recipient: template.recipient,
     opening: template.opening,
     body: template.body,
     closing: template.closing,

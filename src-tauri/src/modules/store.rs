@@ -44,6 +44,7 @@ impl StoreSnapshot {
             name: "お礼メール".to_string(),
             is_pinned: false,
             subject: "お打ち合わせのお礼".to_string(),
+            recipient: "株式会社サンプル\n営業部\n佐藤 様".to_string(),
             opening: "いつもお世話になっております。\nMailDraft の山田です。".to_string(),
             body: "先日は {{案件名}} のお打ち合わせのお時間をいただき、ありがとうございました。\nお話しした内容を踏まえて、次のご提案を整理してご連絡します。".to_string(),
             closing: "引き続きよろしくお願いいたします。".to_string(),
@@ -57,7 +58,7 @@ impl StoreSnapshot {
             title: "最初の下書き".to_string(),
             is_pinned: false,
             subject: template.subject.clone(),
-            recipient: "株式会社サンプル\n営業部\n佐藤 様".to_string(),
+            recipient: template.recipient.clone(),
             opening: "いつもお世話になっております。\nMailDraft の山田です。".to_string(),
             body: "本日はメール下書きエディタのご相談でお時間をいただき、ありがとうございました。\nご相談いただいた内容を社内で整理のうえ、改めてご連絡いたします。".to_string(),
             closing: "引き続きよろしくお願いいたします。".to_string(),
@@ -192,12 +193,18 @@ impl StoreSnapshot {
     }
 
     pub fn delete_signature(&mut self, id: &str, timestamp: &str) {
-        let Some(index) = self.signatures.iter().position(|signature| signature.id == id) else {
+        let Some(index) = self
+            .signatures
+            .iter()
+            .position(|signature| signature.id == id)
+        else {
             return;
         };
 
         let signature = self.signatures.remove(index);
-        self.trash.signatures.retain(|entry| entry.signature.id != id);
+        self.trash
+            .signatures
+            .retain(|entry| entry.signature.id != id);
         self.trash.signatures.push(TrashedSignature {
             signature,
             deleted_at: timestamp.to_string(),
@@ -209,7 +216,12 @@ impl StoreSnapshot {
             return false;
         }
 
-        let Some(index) = self.trash.drafts.iter().position(|entry| entry.draft.id == id) else {
+        let Some(index) = self
+            .trash
+            .drafts
+            .iter()
+            .position(|entry| entry.draft.id == id)
+        else {
             return false;
         };
 
@@ -374,14 +386,26 @@ impl StoreSnapshot {
     }
 
     fn sort_by_recent(&mut self) {
-        self.drafts
-            .sort_by(|left, right| right.is_pinned.cmp(&left.is_pinned).then(right.updated_at.cmp(&left.updated_at)));
+        self.drafts.sort_by(|left, right| {
+            right
+                .is_pinned
+                .cmp(&left.is_pinned)
+                .then(right.updated_at.cmp(&left.updated_at))
+        });
         self.draft_history
             .sort_by(|left, right| right.recorded_at.cmp(&left.recorded_at));
-        self.templates
-            .sort_by(|left, right| right.is_pinned.cmp(&left.is_pinned).then(right.updated_at.cmp(&left.updated_at)));
-        self.signatures
-            .sort_by(|left, right| right.is_pinned.cmp(&left.is_pinned).then(right.updated_at.cmp(&left.updated_at)));
+        self.templates.sort_by(|left, right| {
+            right
+                .is_pinned
+                .cmp(&left.is_pinned)
+                .then(right.updated_at.cmp(&left.updated_at))
+        });
+        self.signatures.sort_by(|left, right| {
+            right
+                .is_pinned
+                .cmp(&left.is_pinned)
+                .then(right.updated_at.cmp(&left.updated_at))
+        });
         self.trash
             .drafts
             .sort_by(|left, right| right.deleted_at.cmp(&left.deleted_at));

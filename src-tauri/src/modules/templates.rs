@@ -8,6 +8,8 @@ pub struct Template {
     #[serde(default)]
     pub is_pinned: bool,
     pub subject: String,
+    #[serde(default)]
+    pub recipient: String,
     pub opening: String,
     pub body: String,
     pub closing: String,
@@ -24,6 +26,8 @@ pub struct TemplateInput {
     #[serde(default)]
     pub is_pinned: bool,
     pub subject: String,
+    #[serde(default)]
+    pub recipient: String,
     pub opening: String,
     pub body: String,
     pub closing: String,
@@ -37,6 +41,7 @@ impl Template {
             name: input.name,
             is_pinned: input.is_pinned,
             subject: input.subject,
+            recipient: input.recipient,
             opening: input.opening,
             body: input.body,
             closing: input.closing,
@@ -50,6 +55,7 @@ impl Template {
         self.name = input.name;
         self.is_pinned = input.is_pinned;
         self.subject = input.subject;
+        self.recipient = input.recipient;
         self.opening = input.opening;
         self.body = input.body;
         self.closing = input.closing;

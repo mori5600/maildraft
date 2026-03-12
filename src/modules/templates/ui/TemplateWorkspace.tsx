@@ -250,6 +250,18 @@ export function TemplateWorkspace({
                 </div>
               </div>
 
+              <Field label="Recipient note" hint="社名や担当者など">
+                <Textarea
+                  className="min-h-[96px]"
+                  placeholder={"株式会社サンプル\n営業部\n佐藤 様"}
+                  rows={3}
+                  showWhitespace={showWhitespace}
+                  textClassName="mail-compose-text"
+                  value={templateForm.recipient}
+                  onChange={(event) => onChangeTemplate("recipient", event.currentTarget.value)}
+                />
+              </Field>
+
               <Field label="Opening">
                 <Textarea
                   className="min-h-[132px]"

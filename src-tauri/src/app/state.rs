@@ -619,7 +619,10 @@ impl AppState {
             result: "success",
             duration_ms: Some(elapsed_millis(started_at)),
             error_code: None,
-            safe_context: merge_context(trash_kind_context(kind), snapshot_counts_context(&snapshot)),
+            safe_context: merge_context(
+                trash_kind_context(kind),
+                snapshot_counts_context(&snapshot),
+            ),
         });
 
         Ok(snapshot)
@@ -661,7 +664,10 @@ impl AppState {
             result: "success",
             duration_ms: Some(elapsed_millis(started_at)),
             error_code: None,
-            safe_context: merge_context(trash_kind_context(kind), snapshot_counts_context(&snapshot)),
+            safe_context: merge_context(
+                trash_kind_context(kind),
+                snapshot_counts_context(&snapshot),
+            ),
         });
 
         Ok(snapshot)
@@ -704,7 +710,10 @@ fn snapshot_counts_context(snapshot: &StoreSnapshot) -> Map<String, Value> {
         "signature_count".to_string(),
         json!(snapshot.signatures.len()),
     );
-    context.insert("trash_count".to_string(), json!(snapshot.trash.item_count()));
+    context.insert(
+        "trash_count".to_string(),
+        json!(snapshot.trash.item_count()),
+    );
     context
 }
 
@@ -764,6 +773,10 @@ fn template_context(input: &TemplateInput) -> Map<String, Value> {
     context.insert(
         "subject_length".to_string(),
         json!(input.subject.chars().count()),
+    );
+    context.insert(
+        "recipient_length".to_string(),
+        json!(input.recipient.chars().count()),
     );
     context.insert(
         "opening_length".to_string(),
