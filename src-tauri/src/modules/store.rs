@@ -5,6 +5,7 @@ use crate::modules::{
     drafts::{Draft, DraftHistoryEntry, DraftInput},
     signatures::{Signature, SignatureInput},
     templates::{Template, TemplateInput},
+    trash::{TrashSnapshot, TrashedDraft, TrashedSignature, TrashedTemplate},
 };
 
 const MAX_DRAFT_HISTORY_ENTRIES_PER_DRAFT: usize = 20;
@@ -21,6 +22,8 @@ pub struct StoreSnapshot {
     pub templates: Vec<Template>,
     #[serde(default)]
     pub signatures: Vec<Signature>,
+    #[serde(default)]
+    pub trash: TrashSnapshot,
 }
 
 impl StoreSnapshot {
@@ -70,6 +73,7 @@ impl StoreSnapshot {
             draft_history: Vec::new(),
             templates: vec![template],
             signatures: vec![signature],
+            trash: TrashSnapshot::default(),
         }
     }
 
@@ -92,9 +96,26 @@ impl StoreSnapshot {
         self.drafts.push(Draft::new(input, timestamp));
     }
 
-    pub fn delete_draft(&mut self, id: &str) {
-        self.drafts.retain(|draft| draft.id != id);
+    pub fn delete_draft(&mut self, id: &str, timestamp: &str) {
+        let Some(index) = self.drafts.iter().position(|draft| draft.id == id) else {
+            return;
+        };
+
+        let draft = self.drafts.remove(index);
+        let history = self
+            .draft_history
+            .iter()
+            .filter(|entry| entry.draft_id == id)
+            .cloned()
+            .collect();
+
         self.draft_history.retain(|entry| entry.draft_id != id);
+        self.trash.drafts.retain(|entry| entry.draft.id != id);
+        self.trash.drafts.push(TrashedDraft {
+            draft,
+            history,
+            deleted_at: timestamp.to_string(),
+        });
     }
 
     pub fn restore_draft_history(
@@ -135,13 +156,17 @@ impl StoreSnapshot {
         self.templates.push(Template::new(input, timestamp));
     }
 
-    pub fn delete_template(&mut self, id: &str) {
-        self.templates.retain(|template| template.id != id);
-        for draft in &mut self.drafts {
-            if draft.template_id.as_deref() == Some(id) {
-                draft.template_id = None;
-            }
-        }
+    pub fn delete_template(&mut self, id: &str, timestamp: &str) {
+        let Some(index) = self.templates.iter().position(|template| template.id == id) else {
+            return;
+        };
+
+        let template = self.templates.remove(index);
+        self.trash.templates.retain(|entry| entry.template.id != id);
+        self.trash.templates.push(TrashedTemplate {
+            template,
+            deleted_at: timestamp.to_string(),
+        });
     }
 
     pub fn upsert_signature(&mut self, input: SignatureInput, timestamp: &str) {
@@ -163,20 +188,95 @@ impl StoreSnapshot {
         self.signatures.push(Signature::new(input, timestamp));
     }
 
-    pub fn delete_signature(&mut self, id: &str) {
-        self.signatures.retain(|signature| signature.id != id);
+    pub fn delete_signature(&mut self, id: &str, timestamp: &str) {
+        let Some(index) = self.signatures.iter().position(|signature| signature.id == id) else {
+            return;
+        };
 
-        for draft in &mut self.drafts {
-            if draft.signature_id.as_deref() == Some(id) {
-                draft.signature_id = None;
-            }
+        let signature = self.signatures.remove(index);
+        self.trash.signatures.retain(|entry| entry.signature.id != id);
+        self.trash.signatures.push(TrashedSignature {
+            signature,
+            deleted_at: timestamp.to_string(),
+        });
+    }
+
+    pub fn restore_draft_from_trash(&mut self, id: &str) -> bool {
+        if self.drafts.iter().any(|draft| draft.id == id) {
+            return false;
         }
 
-        for template in &mut self.templates {
-            if template.signature_id.as_deref() == Some(id) {
-                template.signature_id = None;
-            }
+        let Some(index) = self.trash.drafts.iter().position(|entry| entry.draft.id == id) else {
+            return false;
+        };
+
+        let entry = self.trash.drafts.remove(index);
+        self.draft_history.retain(|history| history.draft_id != id);
+        self.drafts.push(entry.draft);
+        self.draft_history.extend(entry.history);
+        true
+    }
+
+    pub fn restore_template_from_trash(&mut self, id: &str) -> bool {
+        if self.templates.iter().any(|template| template.id == id) {
+            return false;
         }
+
+        let Some(index) = self
+            .trash
+            .templates
+            .iter()
+            .position(|entry| entry.template.id == id)
+        else {
+            return false;
+        };
+
+        let entry = self.trash.templates.remove(index);
+        self.templates.push(entry.template);
+        true
+    }
+
+    pub fn restore_signature_from_trash(&mut self, id: &str) -> bool {
+        if self.signatures.iter().any(|signature| signature.id == id) {
+            return false;
+        }
+
+        let Some(index) = self
+            .trash
+            .signatures
+            .iter()
+            .position(|entry| entry.signature.id == id)
+        else {
+            return false;
+        };
+
+        let entry = self.trash.signatures.remove(index);
+        self.signatures.push(entry.signature);
+        true
+    }
+
+    pub fn permanently_delete_draft_from_trash(&mut self, id: &str) -> bool {
+        let initial_len = self.trash.drafts.len();
+        self.trash.drafts.retain(|entry| entry.draft.id != id);
+        initial_len != self.trash.drafts.len()
+    }
+
+    pub fn permanently_delete_template_from_trash(&mut self, id: &str) -> bool {
+        let initial_len = self.trash.templates.len();
+        self.trash.templates.retain(|entry| entry.template.id != id);
+        initial_len != self.trash.templates.len()
+    }
+
+    pub fn permanently_delete_signature_from_trash(&mut self, id: &str) -> bool {
+        let initial_len = self.trash.signatures.len();
+        self.trash
+            .signatures
+            .retain(|entry| entry.signature.id != id);
+        initial_len != self.trash.signatures.len()
+    }
+
+    pub fn empty_trash(&mut self) {
+        self.trash = TrashSnapshot::default();
     }
 
     fn ensure_default_signature(&mut self) {
@@ -214,11 +314,23 @@ impl StoreSnapshot {
             .templates
             .iter()
             .map(|template| template.id.as_str())
+            .chain(
+                self.trash
+                    .templates
+                    .iter()
+                    .map(|entry| entry.template.id.as_str()),
+            )
             .collect();
         let signature_ids: Vec<&str> = self
             .signatures
             .iter()
             .map(|signature| signature.id.as_str())
+            .chain(
+                self.trash
+                    .signatures
+                    .iter()
+                    .map(|entry| entry.signature.id.as_str()),
+            )
             .collect();
 
         for draft in &mut self.drafts {
@@ -267,6 +379,15 @@ impl StoreSnapshot {
             .sort_by(|left, right| right.updated_at.cmp(&left.updated_at));
         self.signatures
             .sort_by(|left, right| right.updated_at.cmp(&left.updated_at));
+        self.trash
+            .drafts
+            .sort_by(|left, right| right.deleted_at.cmp(&left.deleted_at));
+        self.trash
+            .templates
+            .sort_by(|left, right| right.deleted_at.cmp(&left.deleted_at));
+        self.trash
+            .signatures
+            .sort_by(|left, right| right.deleted_at.cmp(&left.deleted_at));
     }
 
     fn capture_draft_history(&mut self, draft: &Draft, timestamp: &str, force: bool) {

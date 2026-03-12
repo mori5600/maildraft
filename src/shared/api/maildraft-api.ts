@@ -21,6 +21,12 @@ export const maildraftApi = {
   deleteDraft(id: string) {
     return invoke<StoreSnapshot>("delete_draft", { id });
   },
+  restoreDraftFromTrash(id: string) {
+    return invoke<StoreSnapshot>("restore_draft_from_trash", { id });
+  },
+  permanentlyDeleteDraftFromTrash(id: string) {
+    return invoke<StoreSnapshot>("permanently_delete_draft_from_trash", { id });
+  },
   restoreDraftHistory(draftId: string, historyId: string) {
     return invoke<StoreSnapshot>("restore_draft_history", { draftId, historyId });
   },
@@ -30,11 +36,26 @@ export const maildraftApi = {
   deleteTemplate(id: string) {
     return invoke<StoreSnapshot>("delete_template", { id });
   },
+  restoreTemplateFromTrash(id: string) {
+    return invoke<StoreSnapshot>("restore_template_from_trash", { id });
+  },
+  permanentlyDeleteTemplateFromTrash(id: string) {
+    return invoke<StoreSnapshot>("permanently_delete_template_from_trash", { id });
+  },
   saveSignature(input: SignatureInput) {
     return invoke<StoreSnapshot>("save_signature", { input });
   },
   deleteSignature(id: string) {
     return invoke<StoreSnapshot>("delete_signature", { id });
+  },
+  restoreSignatureFromTrash(id: string) {
+    return invoke<StoreSnapshot>("restore_signature_from_trash", { id });
+  },
+  permanentlyDeleteSignatureFromTrash(id: string) {
+    return invoke<StoreSnapshot>("permanently_delete_signature_from_trash", { id });
+  },
+  emptyTrash() {
+    return invoke<StoreSnapshot>("empty_trash");
   },
   loadLoggingSettings() {
     return invoke<LoggingSettingsSnapshot>("load_logging_settings");

@@ -32,6 +32,22 @@ fn delete_draft(state: tauri::State<'_, AppState>, id: String) -> Result<StoreSn
 }
 
 #[tauri::command]
+fn restore_draft_from_trash(
+    state: tauri::State<'_, AppState>,
+    id: String,
+) -> Result<StoreSnapshot, String> {
+    state.restore_draft_from_trash(&id)
+}
+
+#[tauri::command]
+fn permanently_delete_draft_from_trash(
+    state: tauri::State<'_, AppState>,
+    id: String,
+) -> Result<StoreSnapshot, String> {
+    state.permanently_delete_draft_from_trash(&id)
+}
+
+#[tauri::command]
 fn restore_draft_history(
     state: tauri::State<'_, AppState>,
     draft_id: String,
@@ -54,6 +70,22 @@ fn delete_template(state: tauri::State<'_, AppState>, id: String) -> Result<Stor
 }
 
 #[tauri::command]
+fn restore_template_from_trash(
+    state: tauri::State<'_, AppState>,
+    id: String,
+) -> Result<StoreSnapshot, String> {
+    state.restore_template_from_trash(&id)
+}
+
+#[tauri::command]
+fn permanently_delete_template_from_trash(
+    state: tauri::State<'_, AppState>,
+    id: String,
+) -> Result<StoreSnapshot, String> {
+    state.permanently_delete_template_from_trash(&id)
+}
+
+#[tauri::command]
 fn save_signature(
     state: tauri::State<'_, AppState>,
     input: SignatureInput,
@@ -67,6 +99,27 @@ fn delete_signature(
     id: String,
 ) -> Result<StoreSnapshot, String> {
     state.delete_signature(&id)
+}
+
+#[tauri::command]
+fn restore_signature_from_trash(
+    state: tauri::State<'_, AppState>,
+    id: String,
+) -> Result<StoreSnapshot, String> {
+    state.restore_signature_from_trash(&id)
+}
+
+#[tauri::command]
+fn permanently_delete_signature_from_trash(
+    state: tauri::State<'_, AppState>,
+    id: String,
+) -> Result<StoreSnapshot, String> {
+    state.permanently_delete_signature_from_trash(&id)
+}
+
+#[tauri::command]
+fn empty_trash(state: tauri::State<'_, AppState>) -> Result<StoreSnapshot, String> {
+    state.empty_trash()
 }
 
 #[tauri::command]
@@ -125,11 +178,18 @@ pub fn run() {
             load_snapshot,
             save_draft,
             delete_draft,
+            restore_draft_from_trash,
+            permanently_delete_draft_from_trash,
             restore_draft_history,
             save_template,
             delete_template,
+            restore_template_from_trash,
+            permanently_delete_template_from_trash,
             save_signature,
             delete_signature,
+            restore_signature_from_trash,
+            permanently_delete_signature_from_trash,
+            empty_trash,
             load_logging_settings,
             export_backup,
             import_backup,

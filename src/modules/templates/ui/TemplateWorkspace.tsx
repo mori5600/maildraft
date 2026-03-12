@@ -48,6 +48,10 @@ export function TemplateWorkspace({
   onStartDraftFromTemplate,
 }: TemplateWorkspaceProps) {
   const [isWidePreviewOpen, setIsWidePreviewOpen] = useState(false);
+  const hasMissingSignature = Boolean(
+    templateForm.signatureId &&
+      !signatures.some((signature) => signature.id === templateForm.signatureId),
+  );
   const canExpandPreview = previewText.trim().length > 0 || templateForm.subject.trim().length > 0;
   const previewBodyText =
     (showWhitespace ? visualizeWhitespace(previewText) : previewText) ||
@@ -140,7 +144,7 @@ export function TemplateWorkspace({
                   Duplicate
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => void onDeleteTemplate()}>
-                  {selectedTemplateId ? "Delete" : "Reset"}
+                  {selectedTemplateId ? "Trash" : "Reset"}
                 </Button>
                 <Button size="sm" variant="primary" onClick={() => void onSaveTemplate()}>
                   Save
@@ -179,6 +183,9 @@ export function TemplateWorkspace({
                     }
                   >
                     <option value="">署名なし</option>
+                    {hasMissingSignature ? (
+                      <option value={templateForm.signatureId ?? ""}>ゴミ箱の署名</option>
+                    ) : null}
                     {signatures.map((signature) => (
                       <option key={signature.id} value={signature.id}>
                         {signature.name}

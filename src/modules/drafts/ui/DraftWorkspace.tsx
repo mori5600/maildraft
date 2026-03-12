@@ -71,6 +71,13 @@ export function DraftWorkspace({
   const [isWidePreviewOpen, setIsWidePreviewOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const selectedSignature = signatures.find((signature) => signature.id === draftForm.signatureId);
+  const hasMissingTemplate = Boolean(
+    draftForm.templateId && !templates.some((template) => template.id === draftForm.templateId),
+  );
+  const hasMissingSignature = Boolean(
+    draftForm.signatureId &&
+      !signatures.some((signature) => signature.id === draftForm.signatureId),
+  );
   const canCopyPreview = previewText.trim().length > 0;
   const canExpandPreview =
     previewText.trim().length > 0 || draftForm.subject.trim().length > 0 || checks.length > 0;
@@ -165,7 +172,7 @@ export function DraftWorkspace({
                   Duplicate
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => void onDeleteDraft()}>
-                  {selectedDraftId ? "Delete" : "Reset"}
+                  {selectedDraftId ? "Trash" : "Reset"}
                 </Button>
                 <Button size="sm" variant="primary" onClick={() => void onSaveDraft()}>
                   Save
@@ -212,6 +219,9 @@ export function DraftWorkspace({
                     }}
                   >
                     <option value="">テンプレートなし</option>
+                    {hasMissingTemplate ? (
+                      <option value={draftForm.templateId ?? ""}>ゴミ箱のテンプレート</option>
+                    ) : null}
                     {templates.map((template) => (
                       <option key={template.id} value={template.id}>
                         {template.name}
@@ -227,6 +237,9 @@ export function DraftWorkspace({
                     }
                   >
                     <option value="">署名なし</option>
+                    {hasMissingSignature ? (
+                      <option value={draftForm.signatureId ?? ""}>ゴミ箱の署名</option>
+                    ) : null}
                     {signatures.map((signature) => (
                       <option key={signature.id} value={signature.id}>
                         {signature.name}
@@ -318,7 +331,10 @@ export function DraftWorkspace({
                 </Button>
               </div>
             }
-            description={selectedSignature?.name ?? "署名なし"}
+            description={
+              selectedSignature?.name ??
+              (hasMissingSignature ? "ゴミ箱の署名を参照中" : "署名なし")
+            }
             title="Preview"
           />
 
@@ -407,7 +423,9 @@ export function DraftWorkspace({
             Copy
           </Button>
         }
-        description={selectedSignature?.name ?? "署名なし"}
+        description={
+          selectedSignature?.name ?? (hasMissingSignature ? "ゴミ箱の署名を参照中" : "署名なし")
+        }
         isOpen={isWidePreviewOpen}
         title="Draft preview"
         onClose={() => setIsWidePreviewOpen(false)}

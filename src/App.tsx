@@ -134,6 +134,7 @@ function App() {
             {app.view === "drafts" ? app.draftWorkspace : null}
             {app.view === "templates" ? app.templateWorkspace : null}
             {app.view === "signatures" ? app.signatureWorkspace : null}
+            {app.view === "trash" ? app.trashWorkspace : null}
             {app.view === "settings" ? app.settingsWorkspace : null}
           </div>
         </div>
@@ -152,6 +153,8 @@ function getViewTitle(view: WorkspaceView): string {
       return "Templates";
     case "signatures":
       return "Signatures";
+    case "trash":
+      return "Trash";
     case "settings":
       return "Settings";
   }
@@ -165,6 +168,8 @@ function getViewDescription(view: WorkspaceView): string {
       return "定型文と推奨署名を管理";
     case "signatures":
       return "差出人プロフィールを管理";
+    case "trash":
+      return "削除した項目を復元または完全削除";
     case "settings":
       return "ログとバックアップを管理";
   }

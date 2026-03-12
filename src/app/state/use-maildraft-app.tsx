@@ -42,8 +42,15 @@ import {
   toTemplateInput,
 } from "../../modules/templates/model";
 import { TemplateWorkspace } from "../../modules/templates/ui/TemplateWorkspace";
+import {
+  buildTrashItemKey,
+  collectTrashItems,
+  findTrashSignature,
+  type TrashItem,
+} from "../../modules/trash/model";
+import { TrashWorkspace } from "../../modules/trash/ui/TrashWorkspace";
 import { maildraftApi } from "../../shared/api/maildraft-api";
-import { BACKUP_FILE_FILTER,createBackupDefaultFileName } from "../../shared/lib/backup";
+import { BACKUP_FILE_FILTER, createBackupDefaultFileName } from "../../shared/lib/backup";
 import { copyPlainText } from "../../shared/lib/clipboard";
 import { matchesSearchQuery } from "../../shared/lib/search";
 import {
@@ -61,6 +68,11 @@ const EMPTY_SNAPSHOT: StoreSnapshot = {
   draftHistory: [],
   templates: [],
   signatures: [],
+  trash: {
+    drafts: [],
+    templates: [],
+    signatures: [],
+  },
 };
 const DEFAULT_LOGGING_SETTINGS = createDefaultLoggingSettingsSnapshot();
 const AUTO_SAVE_DELAY_MS = 900;
@@ -87,6 +99,7 @@ export function useMaildraftApp() {
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [selectedSignatureId, setSelectedSignatureId] = useState<string | null>(null);
+  const [selectedTrashItemKey, setSelectedTrashItemKey] = useState<string | null>(null);
 
   const [draftForm, setDraftForm] = useState<DraftInput>(() => createEmptyDraft(null));
   const [templateForm, setTemplateForm] = useState<TemplateInput>(() => createEmptyTemplate(null));
@@ -142,11 +155,15 @@ export function useMaildraftApp() {
     persistTheme(theme);
   }, [theme]);
 
-  const selectedDraftSignature = snapshot.signatures.find(
-    (signature) => signature.id === draftForm.signatureId,
+  const selectedDraftSignature = findTrashSignature(
+    snapshot.signatures,
+    snapshot.trash.signatures,
+    draftForm.signatureId,
   );
-  const selectedTemplateSignature = snapshot.signatures.find(
-    (signature) => signature.id === templateForm.signatureId,
+  const selectedTemplateSignature = findTrashSignature(
+    snapshot.signatures,
+    snapshot.trash.signatures,
+    templateForm.signatureId,
   );
   const persistedDraft = snapshot.drafts.find((draft) => draft.id === draftForm.id) ?? null;
   const persistedDraftInput = persistedDraft ? toDraftInput(persistedDraft) : null;
@@ -158,6 +175,7 @@ export function useMaildraftApp() {
   const draftVariableNames = collectDraftVariableNames(draftForm, selectedDraftSignature);
   const draftHistory = snapshot.draftHistory.filter((entry) => entry.draftId === draftForm.id);
   const templatePreviewText = renderTemplatePreview(templateForm, selectedTemplateSignature);
+  const trashItems = collectTrashItems(snapshot.trash);
   const filteredDrafts = snapshot.drafts.filter((draft) =>
     matchesSearchQuery(draftSearchQuery, [
       draft.title,
@@ -211,6 +229,19 @@ export function useMaildraftApp() {
     };
   }, [draftForm, draftIsDirty, draftShouldPersist, isLoading]);
 
+  useEffect(() => {
+    if (trashItems.length === 0) {
+      setSelectedTrashItemKey(null);
+      return;
+    }
+
+    if (selectedTrashItemKey && trashItems.some((item) => item.key === selectedTrashItemKey)) {
+      return;
+    }
+
+    setSelectedTrashItemKey(trashItems[0].key);
+  }, [selectedTrashItemKey, trashItems]);
+
   function hydrateAll(nextSnapshot: StoreSnapshot) {
     setSnapshot(nextSnapshot);
 
@@ -221,6 +252,7 @@ export function useMaildraftApp() {
     setSelectedDraftId(firstDraft?.id ?? null);
     setSelectedTemplateId(firstTemplate?.id ?? null);
     setSelectedSignatureId(firstSignature?.id ?? null);
+    setSelectedTrashItemKey(collectTrashItems(nextSnapshot.trash)[0]?.key ?? null);
 
     setDraftForm(
       firstDraft ? toDraftInput(firstDraft) : createEmptyDraft(getDefaultSignatureId(nextSnapshot)),
@@ -386,7 +418,8 @@ export function useMaildraftApp() {
       setSelectedDraftId(nextSelectedId);
       setDraftForm(pickDraftInput(nextSnapshot, nextSelectedId));
       setDraftAutoSaveState(nextSelectedId ? "saved" : "idle");
-      setNotice("下書きを削除しました。");
+      setSelectedTrashItemKey(buildTrashItemKey("draft", selectedDraftId));
+      setNotice("下書きをゴミ箱に移動しました。");
     } catch (deleteError) {
       setError(asMessage(deleteError));
     }
@@ -509,11 +542,8 @@ export function useMaildraftApp() {
       const nextSelectedId = nextSnapshot.templates[0]?.id ?? null;
       setSelectedTemplateId(nextSelectedId);
       setTemplateForm(pickTemplateInput(nextSnapshot, nextSelectedId));
-      setDraftForm((current) => ({
-        ...current,
-        templateId: templateExists(nextSnapshot, current.templateId) ? current.templateId : null,
-      }));
-      setNotice("テンプレートを削除しました。");
+      setSelectedTrashItemKey(buildTrashItemKey("template", selectedTemplateId));
+      setNotice("テンプレートをゴミ箱に移動しました。");
     } catch (deleteError) {
       setError(asMessage(deleteError));
     }
@@ -587,11 +617,11 @@ export function useMaildraftApp() {
       setSignatureForm(pickSignatureInput(nextSnapshot, signatureForm.id));
       setDraftForm((current) => ({
         ...current,
-        signatureId: pickExistingSignatureId(nextSnapshot, current.signatureId),
+        signatureId: pickKnownSignatureId(nextSnapshot, current.signatureId),
       }));
       setTemplateForm((current) => ({
         ...current,
-        signatureId: pickExistingSignatureId(nextSnapshot, current.signatureId),
+        signatureId: pickKnownSignatureId(nextSnapshot, current.signatureId),
       }));
       setNotice("署名を保存しました。");
     } catch (saveError) {
@@ -614,11 +644,11 @@ export function useMaildraftApp() {
       setSignatureForm(pickSignatureInput(nextSnapshot, duplicate.id));
       setDraftForm((current) => ({
         ...current,
-        signatureId: pickExistingSignatureId(nextSnapshot, current.signatureId),
+        signatureId: pickKnownSignatureId(nextSnapshot, current.signatureId),
       }));
       setTemplateForm((current) => ({
         ...current,
-        signatureId: pickExistingSignatureId(nextSnapshot, current.signatureId),
+        signatureId: pickKnownSignatureId(nextSnapshot, current.signatureId),
       }));
       setNotice("署名を複製しました。");
     } catch (duplicateError) {
@@ -641,15 +671,155 @@ export function useMaildraftApp() {
       setSignatureForm(pickSignatureInput(nextSnapshot, nextSelectedId));
       setDraftForm((current) => ({
         ...current,
-        signatureId: pickExistingSignatureId(nextSnapshot, current.signatureId),
+        signatureId: pickKnownSignatureId(nextSnapshot, current.signatureId),
       }));
       setTemplateForm((current) => ({
         ...current,
-        signatureId: pickExistingSignatureId(nextSnapshot, current.signatureId),
+        signatureId: pickKnownSignatureId(nextSnapshot, current.signatureId),
       }));
-      setNotice("署名を削除しました。");
+      setSelectedTrashItemKey(buildTrashItemKey("signature", selectedSignatureId));
+      setNotice("署名をゴミ箱に移動しました。");
     } catch (deleteError) {
       setError(asMessage(deleteError));
+    }
+  }
+
+  function selectTrashItem(key: string) {
+    setSelectedTrashItemKey(key);
+    setViewState("trash");
+  }
+
+  async function restoreTrashItem(item: TrashItem) {
+    try {
+      setError(null);
+
+      if (item.kind === "draft") {
+        const nextSnapshot = await maildraftApi.restoreDraftFromTrash(item.draft.id);
+        setSnapshot(nextSnapshot);
+        setSelectedDraftId(item.draft.id);
+        setDraftForm(pickDraftInput(nextSnapshot, item.draft.id));
+        setDraftAutoSaveState("saved");
+        setViewState("drafts");
+        setNotice("下書きをゴミ箱から復元しました。");
+        return;
+      }
+
+      if (item.kind === "template") {
+        const nextSnapshot = await maildraftApi.restoreTemplateFromTrash(item.template.id);
+        setSnapshot(nextSnapshot);
+        setSelectedTemplateId(item.template.id);
+        setTemplateForm(pickTemplateInput(nextSnapshot, item.template.id));
+        setViewState("templates");
+        setNotice("テンプレートをゴミ箱から復元しました。");
+        return;
+      }
+
+      const nextSnapshot = await maildraftApi.restoreSignatureFromTrash(item.signature.id);
+      setSnapshot(nextSnapshot);
+      setSelectedSignatureId(item.signature.id);
+      setSignatureForm(pickSignatureInput(nextSnapshot, item.signature.id));
+      setDraftForm((current) => ({
+        ...current,
+        signatureId: pickKnownSignatureId(nextSnapshot, current.signatureId),
+      }));
+      setTemplateForm((current) => ({
+        ...current,
+        signatureId: pickKnownSignatureId(nextSnapshot, current.signatureId),
+      }));
+      setViewState("signatures");
+      setNotice("署名をゴミ箱から復元しました。");
+    } catch (restoreError) {
+      setError(asMessage(restoreError));
+    }
+  }
+
+  async function permanentlyDeleteTrashItem(item: TrashItem) {
+    const confirmed = await confirm(
+      "この項目を完全に削除します。元に戻せません。続けますか？",
+      {
+        title: "MailDraft",
+        kind: "warning",
+        okLabel: "Delete forever",
+        cancelLabel: "Cancel",
+      },
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setError(null);
+
+      if (item.kind === "draft") {
+        const nextSnapshot = await maildraftApi.permanentlyDeleteDraftFromTrash(item.draft.id);
+        setSnapshot(nextSnapshot);
+        setNotice("下書きを完全に削除しました。");
+        return;
+      }
+
+      if (item.kind === "template") {
+        const nextSnapshot = await maildraftApi.permanentlyDeleteTemplateFromTrash(
+          item.template.id,
+        );
+        setSnapshot(nextSnapshot);
+        setDraftForm((current) => ({
+          ...current,
+          templateId: templateExists(nextSnapshot, current.templateId)
+            ? current.templateId
+            : null,
+        }));
+        setNotice("テンプレートを完全に削除しました。");
+        return;
+      }
+
+      const nextSnapshot = await maildraftApi.permanentlyDeleteSignatureFromTrash(
+        item.signature.id,
+      );
+      setSnapshot(nextSnapshot);
+      setDraftForm((current) => ({
+        ...current,
+        signatureId: pickKnownSignatureId(nextSnapshot, current.signatureId),
+      }));
+      setTemplateForm((current) => ({
+        ...current,
+        signatureId: pickKnownSignatureId(nextSnapshot, current.signatureId),
+      }));
+      setNotice("署名を完全に削除しました。");
+    } catch (deleteError) {
+      setError(asMessage(deleteError));
+    }
+  }
+
+  async function emptyTrash() {
+    const confirmed = await confirm("ゴミ箱を空にします。元に戻せません。続けますか？", {
+      title: "MailDraft",
+      kind: "warning",
+      okLabel: "Empty trash",
+      cancelLabel: "Cancel",
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setError(null);
+      const nextSnapshot = await maildraftApi.emptyTrash();
+      setSnapshot(nextSnapshot);
+      setSelectedTrashItemKey(null);
+      setDraftForm((current) => ({
+        ...current,
+        templateId: templateExists(nextSnapshot, current.templateId) ? current.templateId : null,
+        signatureId: pickKnownSignatureId(nextSnapshot, current.signatureId),
+      }));
+      setTemplateForm((current) => ({
+        ...current,
+        signatureId: pickKnownSignatureId(nextSnapshot, current.signatureId),
+      }));
+      setNotice("ゴミ箱を空にしました。");
+    } catch (emptyError) {
+      setError(asMessage(emptyError));
     }
   }
 
@@ -774,6 +944,7 @@ export function useMaildraftApp() {
       { id: "drafts" as const, label: "下書き", count: snapshot.drafts.length },
       { id: "templates" as const, label: "テンプレート", count: snapshot.templates.length },
       { id: "signatures" as const, label: "署名", count: snapshot.signatures.length },
+      { id: "trash" as const, label: "ゴミ箱", count: trashItems.length },
       { id: "settings" as const, label: "設定" },
     ],
     snapshot,
@@ -863,6 +1034,19 @@ export function useMaildraftApp() {
         signatures={filteredSignatures}
       />
     ),
+    trashWorkspace: (
+      <TrashWorkspace
+        items={trashItems}
+        selectedItemKey={selectedTrashItemKey}
+        showWhitespace={showWhitespace}
+        signatures={snapshot.signatures}
+        trashedSignatures={snapshot.trash.signatures}
+        onDeleteItemPermanently={permanentlyDeleteTrashItem}
+        onEmptyTrash={emptyTrash}
+        onRestoreItem={restoreTrashItem}
+        onSelectItem={selectTrashItem}
+      />
+    ),
     settingsWorkspace: (
       <SettingsWorkspace
         isExportingBackup={isExportingBackup}
@@ -928,11 +1112,15 @@ function getDefaultSignatureId(snapshot: StoreSnapshot): string | null {
   );
 }
 
-function pickExistingSignatureId(
+function pickKnownSignatureId(
   snapshot: StoreSnapshot,
   signatureId: string | null,
 ): string | null {
-  if (signatureId && snapshot.signatures.some((signature) => signature.id === signatureId)) {
+  if (
+    signatureId &&
+    (snapshot.signatures.some((signature) => signature.id === signatureId) ||
+      snapshot.trash.signatures.some((entry) => entry.signature.id === signatureId))
+  ) {
     return signatureId;
   }
 
@@ -972,5 +1160,9 @@ function pickSignatureInput(snapshot: StoreSnapshot, signatureId: string | null)
 }
 
 function templateExists(snapshot: StoreSnapshot, templateId: string | null): boolean {
-  return Boolean(templateId && snapshot.templates.some((template) => template.id === templateId));
+  return Boolean(
+    templateId &&
+      (snapshot.templates.some((template) => template.id === templateId) ||
+        snapshot.trash.templates.some((entry) => entry.template.id === templateId)),
+  );
 }

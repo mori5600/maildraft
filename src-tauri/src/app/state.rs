@@ -113,12 +113,12 @@ impl AppState {
         let started_at = Instant::now();
 
         match self.mutate_store(|store| {
-            store.delete_draft(id);
+            store.delete_draft(id, &timestamp());
         }) {
             Ok(snapshot) => {
                 self.log_event(LogEntry {
                     level: LogLevel::Info,
-                    event_name: "draft.delete",
+                    event_name: "draft.trash",
                     module: "drafts",
                     result: "success",
                     duration_ms: Some(elapsed_millis(started_at)),
@@ -130,7 +130,7 @@ impl AppState {
             Err(error) => {
                 self.log_event(LogEntry {
                     level: LogLevel::Error,
-                    event_name: "draft.delete",
+                    event_name: "draft.trash",
                     module: "drafts",
                     result: "failure",
                     duration_ms: Some(elapsed_millis(started_at)),
@@ -218,12 +218,12 @@ impl AppState {
         let started_at = Instant::now();
 
         match self.mutate_store(|store| {
-            store.delete_template(id);
+            store.delete_template(id, &timestamp());
         }) {
             Ok(snapshot) => {
                 self.log_event(LogEntry {
                     level: LogLevel::Info,
-                    event_name: "template.delete",
+                    event_name: "template.trash",
                     module: "templates",
                     result: "success",
                     duration_ms: Some(elapsed_millis(started_at)),
@@ -235,7 +235,7 @@ impl AppState {
             Err(error) => {
                 self.log_event(LogEntry {
                     level: LogLevel::Error,
-                    event_name: "template.delete",
+                    event_name: "template.trash",
                     module: "templates",
                     result: "failure",
                     duration_ms: Some(elapsed_millis(started_at)),
@@ -285,12 +285,12 @@ impl AppState {
         let started_at = Instant::now();
 
         match self.mutate_store(|store| {
-            store.delete_signature(id);
+            store.delete_signature(id, &timestamp());
         }) {
             Ok(snapshot) => {
                 self.log_event(LogEntry {
                     level: LogLevel::Info,
-                    event_name: "signature.delete",
+                    event_name: "signature.trash",
                     module: "signatures",
                     result: "success",
                     duration_ms: Some(elapsed_millis(started_at)),
@@ -302,8 +302,71 @@ impl AppState {
             Err(error) => {
                 self.log_event(LogEntry {
                     level: LogLevel::Error,
-                    event_name: "signature.delete",
+                    event_name: "signature.trash",
                     module: "signatures",
+                    result: "failure",
+                    duration_ms: Some(elapsed_millis(started_at)),
+                    error_code: Some("STORE_WRITE_FAILED"),
+                    safe_context: Map::new(),
+                });
+                Err(error)
+            }
+        }
+    }
+
+    pub fn restore_draft_from_trash(&self, id: &str) -> AppResult<StoreSnapshot> {
+        self.restore_item_from_trash("draft", |store| store.restore_draft_from_trash(id))
+    }
+
+    pub fn restore_template_from_trash(&self, id: &str) -> AppResult<StoreSnapshot> {
+        self.restore_item_from_trash("template", |store| store.restore_template_from_trash(id))
+    }
+
+    pub fn restore_signature_from_trash(&self, id: &str) -> AppResult<StoreSnapshot> {
+        self.restore_item_from_trash("signature", |store| store.restore_signature_from_trash(id))
+    }
+
+    pub fn permanently_delete_draft_from_trash(&self, id: &str) -> AppResult<StoreSnapshot> {
+        self.permanently_delete_item_from_trash("draft", |store| {
+            store.permanently_delete_draft_from_trash(id)
+        })
+    }
+
+    pub fn permanently_delete_template_from_trash(&self, id: &str) -> AppResult<StoreSnapshot> {
+        self.permanently_delete_item_from_trash("template", |store| {
+            store.permanently_delete_template_from_trash(id)
+        })
+    }
+
+    pub fn permanently_delete_signature_from_trash(&self, id: &str) -> AppResult<StoreSnapshot> {
+        self.permanently_delete_item_from_trash("signature", |store| {
+            store.permanently_delete_signature_from_trash(id)
+        })
+    }
+
+    pub fn empty_trash(&self) -> AppResult<StoreSnapshot> {
+        let started_at = Instant::now();
+
+        match self.mutate_store(|store| {
+            store.empty_trash();
+        }) {
+            Ok(snapshot) => {
+                self.log_event(LogEntry {
+                    level: LogLevel::Info,
+                    event_name: "trash.empty",
+                    module: "trash",
+                    result: "success",
+                    duration_ms: Some(elapsed_millis(started_at)),
+                    error_code: None,
+                    safe_context: snapshot_counts_context(&snapshot),
+                });
+                Ok(snapshot)
+            }
+            Err(error) => {
+                self.log_event(LogEntry {
+                    level: LogLevel::Error,
+                    event_name: "trash.empty",
+                    module: "trash",
                     result: "failure",
                     duration_ms: Some(elapsed_millis(started_at)),
                     error_code: Some("STORE_WRITE_FAILED"),
@@ -523,6 +586,86 @@ impl AppState {
     fn log_event_with_settings(&self, logging_settings: &LoggingSettings, entry: LogEntry) {
         let _ = self.logger.record(logging_settings, entry);
     }
+
+    fn restore_item_from_trash<F>(&self, kind: &str, mutator: F) -> AppResult<StoreSnapshot>
+    where
+        F: FnOnce(&mut StoreSnapshot) -> bool,
+    {
+        let started_at = Instant::now();
+        let mut store = self.store.lock().map_err(|error| error.to_string())?;
+
+        if !mutator(&mut store) {
+            self.log_event(LogEntry {
+                level: LogLevel::Error,
+                event_name: "trash.restore",
+                module: "trash",
+                result: "failure",
+                duration_ms: Some(elapsed_millis(started_at)),
+                error_code: Some("TRASH_ITEM_NOT_FOUND"),
+                safe_context: trash_kind_context(kind),
+            });
+            return Err("指定した項目がゴミ箱に見つかりませんでした。".to_string());
+        }
+
+        store.ensure_consistency();
+        self.persist_locked_store(&store)?;
+        let snapshot = store.clone();
+        drop(store);
+
+        self.log_event(LogEntry {
+            level: LogLevel::Info,
+            event_name: "trash.restore",
+            module: "trash",
+            result: "success",
+            duration_ms: Some(elapsed_millis(started_at)),
+            error_code: None,
+            safe_context: merge_context(trash_kind_context(kind), snapshot_counts_context(&snapshot)),
+        });
+
+        Ok(snapshot)
+    }
+
+    fn permanently_delete_item_from_trash<F>(
+        &self,
+        kind: &str,
+        mutator: F,
+    ) -> AppResult<StoreSnapshot>
+    where
+        F: FnOnce(&mut StoreSnapshot) -> bool,
+    {
+        let started_at = Instant::now();
+        let mut store = self.store.lock().map_err(|error| error.to_string())?;
+
+        if !mutator(&mut store) {
+            self.log_event(LogEntry {
+                level: LogLevel::Error,
+                event_name: "trash.delete_permanently",
+                module: "trash",
+                result: "failure",
+                duration_ms: Some(elapsed_millis(started_at)),
+                error_code: Some("TRASH_ITEM_NOT_FOUND"),
+                safe_context: trash_kind_context(kind),
+            });
+            return Err("指定した項目がゴミ箱に見つかりませんでした。".to_string());
+        }
+
+        store.ensure_consistency();
+        self.persist_locked_store(&store)?;
+        let snapshot = store.clone();
+        drop(store);
+
+        self.log_event(LogEntry {
+            level: LogLevel::Info,
+            event_name: "trash.delete_permanently",
+            module: "trash",
+            result: "success",
+            duration_ms: Some(elapsed_millis(started_at)),
+            error_code: None,
+            safe_context: merge_context(trash_kind_context(kind), snapshot_counts_context(&snapshot)),
+        });
+
+        Ok(snapshot)
+    }
 }
 
 fn timestamp() -> String {
@@ -561,6 +704,13 @@ fn snapshot_counts_context(snapshot: &StoreSnapshot) -> Map<String, Value> {
         "signature_count".to_string(),
         json!(snapshot.signatures.len()),
     );
+    context.insert("trash_count".to_string(), json!(snapshot.trash.item_count()));
+    context
+}
+
+fn trash_kind_context(kind: &str) -> Map<String, Value> {
+    let mut context = Map::new();
+    context.insert("kind".to_string(), json!(kind));
     context
 }
 

@@ -134,7 +134,7 @@ export function SignatureWorkspace({
                   Duplicate
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => void onDeleteSignature()}>
-                  {selectedSignatureId ? "Delete" : "Reset"}
+                  {selectedSignatureId ? "Trash" : "Reset"}
                 </Button>
                 <Button size="sm" variant="primary" onClick={() => void onSaveSignature()}>
                   Save
