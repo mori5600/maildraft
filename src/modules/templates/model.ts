@@ -1,6 +1,7 @@
 export interface Template {
   id: string;
   name: string;
+  isPinned: boolean;
   subject: string;
   opening: string;
   body: string;
@@ -13,6 +14,7 @@ export interface Template {
 export interface TemplateInput {
   id: string;
   name: string;
+  isPinned: boolean;
   subject: string;
   opening: string;
   body: string;
@@ -24,6 +26,7 @@ export function createEmptyTemplate(defaultSignatureId: string | null): Template
   return {
     id: crypto.randomUUID(),
     name: "新しいテンプレート",
+    isPinned: false,
     subject: "",
     opening: "",
     body: "",
@@ -36,6 +39,7 @@ export function toTemplateInput(template: Template): TemplateInput {
   return {
     id: template.id,
     name: template.name,
+    isPinned: template.isPinned,
     subject: template.subject,
     opening: template.opening,
     body: template.body,
@@ -48,6 +52,7 @@ export function duplicateTemplateInput(template: TemplateInput): TemplateInput {
   return {
     ...template,
     id: crypto.randomUUID(),
+    isPinned: false,
     name: withCopySuffix(template.name),
   };
 }

@@ -25,6 +25,8 @@ pub struct DraftHistoryEntry {
 pub struct Draft {
     pub id: String,
     pub title: String,
+    #[serde(default)]
+    pub is_pinned: bool,
     pub subject: String,
     pub recipient: String,
     pub opening: String,
@@ -43,6 +45,8 @@ pub struct Draft {
 pub struct DraftInput {
     pub id: String,
     pub title: String,
+    #[serde(default)]
+    pub is_pinned: bool,
     pub subject: String,
     pub recipient: String,
     pub opening: String,
@@ -59,6 +63,7 @@ impl Draft {
         Self {
             id: input.id,
             title: input.title,
+            is_pinned: input.is_pinned,
             subject: input.subject,
             recipient: input.recipient,
             opening: input.opening,
@@ -74,6 +79,7 @@ impl Draft {
 
     pub fn update(&mut self, input: DraftInput, timestamp: &str) {
         self.title = input.title;
+        self.is_pinned = input.is_pinned;
         self.subject = input.subject;
         self.recipient = input.recipient;
         self.opening = input.opening;
@@ -87,6 +93,7 @@ impl Draft {
 
     pub fn restore(&mut self, entry: &DraftHistoryEntry, timestamp: &str) {
         self.title = entry.title.clone();
+        self.is_pinned = false;
         self.subject = entry.subject.clone();
         self.recipient = entry.recipient.clone();
         self.opening = entry.opening.clone();
@@ -100,6 +107,7 @@ impl Draft {
 
     pub fn is_same_content(&self, input: &DraftInput) -> bool {
         self.title == input.title
+            && self.is_pinned == input.is_pinned
             && self.subject == input.subject
             && self.recipient == input.recipient
             && self.opening == input.opening

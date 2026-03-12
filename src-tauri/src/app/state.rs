@@ -728,6 +728,7 @@ fn draft_context(input: &DraftInput) -> Map<String, Value> {
         "title_length".to_string(),
         json!(input.title.chars().count()),
     );
+    context.insert("is_pinned".to_string(), json!(input.is_pinned));
     context.insert(
         "subject_length".to_string(),
         json!(input.subject.chars().count()),
@@ -758,6 +759,7 @@ fn template_context(input: &TemplateInput) -> Map<String, Value> {
         "has_signature".to_string(),
         json!(input.signature_id.is_some()),
     );
+    context.insert("is_pinned".to_string(), json!(input.is_pinned));
     context.insert("name_length".to_string(), json!(input.name.chars().count()));
     context.insert(
         "subject_length".to_string(),
@@ -779,6 +781,7 @@ fn signature_context(input: &SignatureInput) -> Map<String, Value> {
     let mut context = Map::new();
     context.insert("name_length".to_string(), json!(input.name.chars().count()));
     context.insert("body_length".to_string(), json!(input.body.chars().count()));
+    context.insert("is_pinned".to_string(), json!(input.is_pinned));
     context.insert("is_default".to_string(), json!(input.is_default));
     context
 }

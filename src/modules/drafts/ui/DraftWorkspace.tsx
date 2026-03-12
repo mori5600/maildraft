@@ -1,5 +1,9 @@
 import { type ReactNode, useState } from "react";
 
+import {
+  DRAFT_SORT_OPTIONS,
+  type DraftSortOption,
+} from "../../../shared/lib/list-sort";
 import { truncate } from "../../../shared/lib/text";
 import { formatStoredTime } from "../../../shared/lib/time";
 import { visualizeWhitespace } from "../../../shared/lib/whitespace";
@@ -26,16 +30,19 @@ interface DraftWorkspaceProps {
   showWhitespace: boolean;
   autoSaveLabel: string;
   searchQuery: string;
+  sort: DraftSortOption;
   canDuplicate: boolean;
   onSelectDraft: (id: string) => void;
   onCreateDraft: () => void;
   onChangeSearchQuery: (value: string) => void;
+  onChangeSort: (value: DraftSortOption) => void;
   onChangeDraft: <K extends keyof DraftInput>(field: K, value: DraftInput[K]) => void;
   onChangeDraftVariable: (name: string, value: string) => void;
   onCopyPreview: () => Promise<void>;
   onSaveDraft: () => Promise<void>;
   onDeleteDraft: () => Promise<void>;
   onDuplicateDraft: () => Promise<void>;
+  onTogglePinned: () => void;
   onRestoreDraftHistory: (historyId: string) => Promise<void>;
   onApplyTemplate: (templateId: string) => void;
 }
@@ -55,16 +62,19 @@ export function DraftWorkspace({
   showWhitespace,
   autoSaveLabel,
   searchQuery,
+  sort,
   canDuplicate,
   onSelectDraft,
   onCreateDraft,
   onChangeSearchQuery,
+  onChangeSort,
   onChangeDraft,
   onChangeDraftVariable,
   onCopyPreview,
   onSaveDraft,
   onDeleteDraft,
   onDuplicateDraft,
+  onTogglePinned,
   onRestoreDraftHistory,
   onApplyTemplate,
 }: DraftWorkspaceProps) {
@@ -102,21 +112,45 @@ export function DraftWorkspace({
             title="Draft list"
           />
           <div className="border-b border-[var(--color-panel-border-strong)] px-1.5 py-1.5">
-            <div className="flex items-center gap-2">
-              <Input
-                placeholder="下書きを検索"
-                type="search"
-                value={searchQuery}
-                onChange={(event) => onChangeSearchQuery(event.currentTarget.value)}
-              />
-              <Button
-                disabled={!searchQuery}
-                size="sm"
-                variant="ghost"
-                onClick={() => onChangeSearchQuery("")}
-              >
-                Clear
-              </Button>
+            <div className="grid gap-2 rounded-[7px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-2.5 py-2">
+              <div className="grid gap-1.5">
+                <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                  Search
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    className="flex-1"
+                    placeholder="下書きを検索"
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => onChangeSearchQuery(event.currentTarget.value)}
+                  />
+                  <Button
+                    disabled={!searchQuery}
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onChangeSearchQuery("")}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid gap-1.5">
+                <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                  Sort
+                </div>
+                <Select
+                  value={sort}
+                  onChange={(event) => onChangeSort(event.currentTarget.value as DraftSortOption)}
+                >
+                  {DRAFT_SORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
             </div>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
@@ -142,8 +176,15 @@ export function DraftWorkspace({
                       onClick={() => onSelectDraft(draft.id)}
                       type="button"
                     >
-                      <div className="truncate text-[13px] font-medium text-[var(--color-text-strong)]">
-                        {draftLabel(draft)}
+                      <div className="flex items-center gap-2">
+                        <div className="truncate text-[13px] font-medium text-[var(--color-text-strong)]">
+                          {draftLabel(draft)}
+                        </div>
+                        {draft.isPinned ? (
+                          <span className="rounded-[6px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                            Pinned
+                          </span>
+                        ) : null}
                       </div>
                       <div className="mt-1 truncate text-[11px] text-[var(--color-text-muted)]">
                         {truncate(draft.subject || "件名未設定")}
@@ -163,6 +204,9 @@ export function DraftWorkspace({
           <PaneHeader
             action={
               <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={onTogglePinned}>
+                  {draftForm.isPinned ? "Unpin" : "Pin"}
+                </Button>
                 <Button
                   disabled={!canDuplicate}
                   size="sm"
@@ -179,7 +223,7 @@ export function DraftWorkspace({
                 </Button>
               </div>
             }
-            description={`${draftLabel(draftForm)} · ${autoSaveLabel}`}
+            description={`${draftForm.isPinned ? "Pinned · " : ""}${draftLabel(draftForm)} · ${autoSaveLabel}`}
             title="Editor"
           />
 

@@ -1,9 +1,13 @@
 import { type ReactNode, useState } from "react";
 
+import {
+  SIGNATURE_SORT_OPTIONS,
+  type SignatureSortOption,
+} from "../../../shared/lib/list-sort";
 import { formatStoredTime } from "../../../shared/lib/time";
 import { visualizeWhitespace } from "../../../shared/lib/whitespace";
 import { PreviewOverlay } from "../../../shared/ui/PreviewOverlay";
-import { Button, Field, Input, Panel, Textarea } from "../../../shared/ui/primitives";
+import { Button, Field, Input, Panel, Select, Textarea } from "../../../shared/ui/primitives";
 import type { Signature, SignatureInput } from "../model";
 
 interface SignatureWorkspaceProps {
@@ -13,14 +17,17 @@ interface SignatureWorkspaceProps {
   signatureForm: SignatureInput;
   showWhitespace: boolean;
   searchQuery: string;
+  sort: SignatureSortOption;
   canDuplicate: boolean;
   onSelectSignature: (id: string) => void;
   onCreateSignature: () => void;
   onChangeSearchQuery: (value: string) => void;
+  onChangeSort: (value: SignatureSortOption) => void;
   onChangeSignature: <K extends keyof SignatureInput>(field: K, value: SignatureInput[K]) => void;
   onSaveSignature: () => Promise<void>;
   onDeleteSignature: () => Promise<void>;
   onDuplicateSignature: () => Promise<void>;
+  onTogglePinned: () => void;
 }
 
 export function SignatureWorkspace({
@@ -30,14 +37,17 @@ export function SignatureWorkspace({
   signatureForm,
   showWhitespace,
   searchQuery,
+  sort,
   canDuplicate,
   onSelectSignature,
   onCreateSignature,
   onChangeSearchQuery,
+  onChangeSort,
   onChangeSignature,
   onSaveSignature,
   onDeleteSignature,
   onDuplicateSignature,
+  onTogglePinned,
 }: SignatureWorkspaceProps) {
   const [isWidePreviewOpen, setIsWidePreviewOpen] = useState(false);
   const canExpandPreview = signatureForm.body.trim().length > 0;
@@ -62,21 +72,45 @@ export function SignatureWorkspace({
             title="Signature list"
           />
           <div className="border-b border-[var(--color-panel-border-strong)] px-1.5 py-1.5">
-            <div className="flex items-center gap-2">
-              <Input
-                placeholder="署名を検索"
-                type="search"
-                value={searchQuery}
-                onChange={(event) => onChangeSearchQuery(event.currentTarget.value)}
-              />
-              <Button
-                disabled={!searchQuery}
-                size="sm"
-                variant="ghost"
-                onClick={() => onChangeSearchQuery("")}
-              >
-                Clear
-              </Button>
+            <div className="grid gap-2 rounded-[7px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-2.5 py-2">
+              <div className="grid gap-1.5">
+                <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                  Search
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    className="flex-1"
+                    placeholder="署名を検索"
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => onChangeSearchQuery(event.currentTarget.value)}
+                  />
+                  <Button
+                    disabled={!searchQuery}
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onChangeSearchQuery("")}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid gap-1.5">
+                <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                  Sort
+                </div>
+                <Select
+                  value={sort}
+                  onChange={(event) => onChangeSort(event.currentTarget.value as SignatureSortOption)}
+                >
+                  {SIGNATURE_SORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
             </div>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
@@ -104,6 +138,11 @@ export function SignatureWorkspace({
                         <div className="truncate text-[13px] font-medium text-[var(--color-text-strong)]">
                           {signature.name}
                         </div>
+                        {signature.isPinned ? (
+                          <span className="rounded-[6px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                            Pinned
+                          </span>
+                        ) : null}
                         {signature.isDefault ? (
                           <span className="rounded-[6px] border border-[var(--color-default-badge-border)] bg-[var(--color-default-badge-bg)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.14em] text-[var(--color-default-badge-text)]">
                             Default
@@ -125,6 +164,9 @@ export function SignatureWorkspace({
           <PaneHeader
             action={
               <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={onTogglePinned}>
+                  {signatureForm.isPinned ? "Unpin" : "Pin"}
+                </Button>
                 <Button
                   disabled={!canDuplicate}
                   size="sm"
@@ -141,7 +183,7 @@ export function SignatureWorkspace({
                 </Button>
               </div>
             }
-            description={signatureForm.name}
+            description={`${signatureForm.isPinned ? "Pinned · " : ""}${signatureForm.name}`}
             title="Signature editor"
           />
 

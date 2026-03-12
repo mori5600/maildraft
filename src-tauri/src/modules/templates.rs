@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 pub struct Template {
     pub id: String,
     pub name: String,
+    #[serde(default)]
+    pub is_pinned: bool,
     pub subject: String,
     pub opening: String,
     pub body: String,
@@ -19,6 +21,8 @@ pub struct Template {
 pub struct TemplateInput {
     pub id: String,
     pub name: String,
+    #[serde(default)]
+    pub is_pinned: bool,
     pub subject: String,
     pub opening: String,
     pub body: String,
@@ -31,6 +35,7 @@ impl Template {
         Self {
             id: input.id,
             name: input.name,
+            is_pinned: input.is_pinned,
             subject: input.subject,
             opening: input.opening,
             body: input.body,
@@ -43,6 +48,7 @@ impl Template {
 
     pub fn update(&mut self, input: TemplateInput, timestamp: &str) {
         self.name = input.name;
+        self.is_pinned = input.is_pinned;
         self.subject = input.subject;
         self.opening = input.opening;
         self.body = input.body;

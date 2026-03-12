@@ -32,6 +32,7 @@ impl StoreSnapshot {
         let signature = Signature {
             id: "signature-default".to_string(),
             name: "標準署名".to_string(),
+            is_pinned: false,
             body: "MailDraft Inc.\n山田 太郎\nProduct Team".to_string(),
             is_default: true,
             created_at: timestamp.to_string(),
@@ -41,6 +42,7 @@ impl StoreSnapshot {
         let template = Template {
             id: "template-thanks".to_string(),
             name: "お礼メール".to_string(),
+            is_pinned: false,
             subject: "お打ち合わせのお礼".to_string(),
             opening: "いつもお世話になっております。\nMailDraft の山田です。".to_string(),
             body: "先日は {{案件名}} のお打ち合わせのお時間をいただき、ありがとうございました。\nお話しした内容を踏まえて、次のご提案を整理してご連絡します。".to_string(),
@@ -53,6 +55,7 @@ impl StoreSnapshot {
         let draft = Draft {
             id: "draft-welcome".to_string(),
             title: "最初の下書き".to_string(),
+            is_pinned: false,
             subject: template.subject.clone(),
             recipient: "株式会社サンプル\n営業部\n佐藤 様".to_string(),
             opening: "いつもお世話になっております。\nMailDraft の山田です。".to_string(),
@@ -372,13 +375,13 @@ impl StoreSnapshot {
 
     fn sort_by_recent(&mut self) {
         self.drafts
-            .sort_by(|left, right| right.updated_at.cmp(&left.updated_at));
+            .sort_by(|left, right| right.is_pinned.cmp(&left.is_pinned).then(right.updated_at.cmp(&left.updated_at)));
         self.draft_history
             .sort_by(|left, right| right.recorded_at.cmp(&left.recorded_at));
         self.templates
-            .sort_by(|left, right| right.updated_at.cmp(&left.updated_at));
+            .sort_by(|left, right| right.is_pinned.cmp(&left.is_pinned).then(right.updated_at.cmp(&left.updated_at)));
         self.signatures
-            .sort_by(|left, right| right.updated_at.cmp(&left.updated_at));
+            .sort_by(|left, right| right.is_pinned.cmp(&left.is_pinned).then(right.updated_at.cmp(&left.updated_at)));
         self.trash
             .drafts
             .sort_by(|left, right| right.deleted_at.cmp(&left.deleted_at));

@@ -52,6 +52,14 @@ import { TrashWorkspace } from "../../modules/trash/ui/TrashWorkspace";
 import { maildraftApi } from "../../shared/api/maildraft-api";
 import { BACKUP_FILE_FILTER, createBackupDefaultFileName } from "../../shared/lib/backup";
 import { copyPlainText } from "../../shared/lib/clipboard";
+import {
+  type DraftSortOption,
+  type SignatureSortOption,
+  sortDrafts,
+  sortSignatures,
+  sortTemplates,
+  type TemplateSortOption,
+} from "../../shared/lib/list-sort";
 import { matchesSearchQuery } from "../../shared/lib/search";
 import {
   applyTheme,
@@ -93,8 +101,11 @@ export function useMaildraftApp() {
   const [showWhitespace, setShowWhitespace] = useState(false);
   const [draftAutoSaveState, setDraftAutoSaveState] = useState<DraftAutoSaveState>("idle");
   const [draftSearchQuery, setDraftSearchQuery] = useState("");
+  const [draftSort, setDraftSort] = useState<DraftSortOption>("recent");
   const [templateSearchQuery, setTemplateSearchQuery] = useState("");
+  const [templateSort, setTemplateSort] = useState<TemplateSortOption>("recent");
   const [signatureSearchQuery, setSignatureSearchQuery] = useState("");
+  const [signatureSort, setSignatureSort] = useState<SignatureSortOption>("recent");
 
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -176,28 +187,37 @@ export function useMaildraftApp() {
   const draftHistory = snapshot.draftHistory.filter((entry) => entry.draftId === draftForm.id);
   const templatePreviewText = renderTemplatePreview(templateForm, selectedTemplateSignature);
   const trashItems = collectTrashItems(snapshot.trash);
-  const filteredDrafts = snapshot.drafts.filter((draft) =>
-    matchesSearchQuery(draftSearchQuery, [
-      draft.title,
-      draft.subject,
-      draft.recipient,
-      draft.opening,
-      draft.body,
-      draft.closing,
-      ...Object.values(draft.variableValues),
-    ]),
+  const filteredDrafts = sortDrafts(
+    snapshot.drafts.filter((draft) =>
+      matchesSearchQuery(draftSearchQuery, [
+        draft.title,
+        draft.subject,
+        draft.recipient,
+        draft.opening,
+        draft.body,
+        draft.closing,
+        ...Object.values(draft.variableValues),
+      ]),
+    ),
+    draftSort,
   );
-  const filteredTemplates = snapshot.templates.filter((template) =>
-    matchesSearchQuery(templateSearchQuery, [
-      template.name,
-      template.subject,
-      template.opening,
-      template.body,
-      template.closing,
-    ]),
+  const filteredTemplates = sortTemplates(
+    snapshot.templates.filter((template) =>
+      matchesSearchQuery(templateSearchQuery, [
+        template.name,
+        template.subject,
+        template.opening,
+        template.body,
+        template.closing,
+      ]),
+    ),
+    templateSort,
   );
-  const filteredSignatures = snapshot.signatures.filter((signature) =>
-    matchesSearchQuery(signatureSearchQuery, [signature.name, signature.body]),
+  const filteredSignatures = sortSignatures(
+    snapshot.signatures.filter((signature) =>
+      matchesSearchQuery(signatureSearchQuery, [signature.name, signature.body]),
+    ),
+    signatureSort,
   );
 
   useEffect(() => {
@@ -363,6 +383,13 @@ export function useMaildraftApp() {
     }));
   }
 
+  function toggleDraftPinned() {
+    setDraftForm((current) => ({
+      ...current,
+      isPinned: !current.isPinned,
+    }));
+  }
+
   function changeDraftVariable(name: string, value: string) {
     setDraftForm((current) => ({
       ...current,
@@ -375,6 +402,10 @@ export function useMaildraftApp() {
 
   function changeDraftSearchQuery(value: string) {
     setDraftSearchQuery(value);
+  }
+
+  function changeDraftSort(value: DraftSortOption) {
+    setDraftSort(value);
   }
 
   async function saveDraft() {
@@ -489,8 +520,19 @@ export function useMaildraftApp() {
     }));
   }
 
+  function toggleTemplatePinned() {
+    setTemplateForm((current) => ({
+      ...current,
+      isPinned: !current.isPinned,
+    }));
+  }
+
   function changeTemplateSearchQuery(value: string) {
     setTemplateSearchQuery(value);
+  }
+
+  function changeTemplateSort(value: TemplateSortOption) {
+    setTemplateSort(value);
   }
 
   async function saveTemplate() {
@@ -604,8 +646,19 @@ export function useMaildraftApp() {
     }));
   }
 
+  function toggleSignaturePinned() {
+    setSignatureForm((current) => ({
+      ...current,
+      isPinned: !current.isPinned,
+    }));
+  }
+
   function changeSignatureSearchQuery(value: string) {
     setSignatureSearchQuery(value);
+  }
+
+  function changeSignatureSort(value: SignatureSortOption) {
+    setSignatureSort(value);
   }
 
   async function saveSignature() {
@@ -974,6 +1027,7 @@ export function useMaildraftApp() {
         draftHistory={draftHistory}
         drafts={filteredDrafts}
         searchQuery={draftSearchQuery}
+        sort={draftSort}
         totalDraftCount={snapshot.drafts.length}
         previewSubject={draftPreviewSubject}
         previewText={draftPreviewText}
@@ -985,6 +1039,7 @@ export function useMaildraftApp() {
         onApplyTemplate={applyTemplate}
         onChangeDraft={changeDraft}
         onChangeSearchQuery={changeDraftSearchQuery}
+        onChangeSort={changeDraftSort}
         onChangeDraftVariable={changeDraftVariable}
         onCopyPreview={copyDraftPreview}
         onCreateDraft={createDraft}
@@ -993,21 +1048,25 @@ export function useMaildraftApp() {
         onRestoreDraftHistory={restoreDraftHistory}
         onSaveDraft={saveDraft}
         onSelectDraft={selectDraft}
+        onTogglePinned={toggleDraftPinned}
       />
     ),
     templateWorkspace: (
       <TemplateWorkspace
         canDuplicate={selectedTemplateId !== null}
         searchQuery={templateSearchQuery}
+        sort={templateSort}
         totalTemplateCount={snapshot.templates.length}
         onChangeTemplate={changeTemplate}
         onChangeSearchQuery={changeTemplateSearchQuery}
+        onChangeSort={changeTemplateSort}
         onCreateTemplate={createTemplate}
         onDeleteTemplate={deleteTemplate}
         onDuplicateTemplate={duplicateTemplate}
         onSaveTemplate={saveTemplate}
         onSelectTemplate={selectTemplate}
         onStartDraftFromTemplate={startDraftFromTemplate}
+        onTogglePinned={toggleTemplatePinned}
         previewText={templatePreviewText}
         selectedTemplateId={selectedTemplateId}
         signatures={snapshot.signatures}
@@ -1020,14 +1079,17 @@ export function useMaildraftApp() {
       <SignatureWorkspace
         canDuplicate={selectedSignatureId !== null}
         searchQuery={signatureSearchQuery}
+        sort={signatureSort}
         totalSignatureCount={snapshot.signatures.length}
         onChangeSignature={changeSignature}
         onChangeSearchQuery={changeSignatureSearchQuery}
+        onChangeSort={changeSignatureSort}
         onCreateSignature={createSignature}
         onDeleteSignature={deleteSignature}
         onDuplicateSignature={duplicateSignature}
         onSaveSignature={saveSignature}
         onSelectSignature={selectSignature}
+        onTogglePinned={toggleSignaturePinned}
         selectedSignatureId={selectedSignatureId}
         showWhitespace={showWhitespace}
         signatureForm={signatureForm}

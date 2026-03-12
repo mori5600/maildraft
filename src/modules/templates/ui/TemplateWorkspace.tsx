@@ -1,5 +1,9 @@
 import { type ReactNode, useState } from "react";
 
+import {
+  TEMPLATE_SORT_OPTIONS,
+  type TemplateSortOption,
+} from "../../../shared/lib/list-sort";
 import { truncate } from "../../../shared/lib/text";
 import { formatStoredTime } from "../../../shared/lib/time";
 import { visualizeWhitespace } from "../../../shared/lib/whitespace";
@@ -17,15 +21,18 @@ interface TemplateWorkspaceProps {
   previewText: string;
   showWhitespace: boolean;
   searchQuery: string;
+  sort: TemplateSortOption;
   canDuplicate: boolean;
   onSelectTemplate: (id: string) => void;
   onCreateTemplate: () => void;
   onChangeSearchQuery: (value: string) => void;
+  onChangeSort: (value: TemplateSortOption) => void;
   onChangeTemplate: <K extends keyof TemplateInput>(field: K, value: TemplateInput[K]) => void;
   onSaveTemplate: () => Promise<void>;
   onDeleteTemplate: () => Promise<void>;
   onDuplicateTemplate: () => Promise<void>;
   onStartDraftFromTemplate: () => void;
+  onTogglePinned: () => void;
 }
 
 export function TemplateWorkspace({
@@ -37,15 +44,18 @@ export function TemplateWorkspace({
   previewText,
   showWhitespace,
   searchQuery,
+  sort,
   canDuplicate,
   onSelectTemplate,
   onCreateTemplate,
   onChangeSearchQuery,
+  onChangeSort,
   onChangeTemplate,
   onSaveTemplate,
   onDeleteTemplate,
   onDuplicateTemplate,
   onStartDraftFromTemplate,
+  onTogglePinned,
 }: TemplateWorkspaceProps) {
   const [isWidePreviewOpen, setIsWidePreviewOpen] = useState(false);
   const hasMissingSignature = Boolean(
@@ -74,21 +84,45 @@ export function TemplateWorkspace({
             title="Template list"
           />
           <div className="border-b border-[var(--color-panel-border-strong)] px-1.5 py-1.5">
-            <div className="flex items-center gap-2">
-              <Input
-                placeholder="テンプレートを検索"
-                type="search"
-                value={searchQuery}
-                onChange={(event) => onChangeSearchQuery(event.currentTarget.value)}
-              />
-              <Button
-                disabled={!searchQuery}
-                size="sm"
-                variant="ghost"
-                onClick={() => onChangeSearchQuery("")}
-              >
-                Clear
-              </Button>
+            <div className="grid gap-2 rounded-[7px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-2.5 py-2">
+              <div className="grid gap-1.5">
+                <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                  Search
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    className="flex-1"
+                    placeholder="テンプレートを検索"
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => onChangeSearchQuery(event.currentTarget.value)}
+                  />
+                  <Button
+                    disabled={!searchQuery}
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onChangeSearchQuery("")}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid gap-1.5">
+                <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                  Sort
+                </div>
+                <Select
+                  value={sort}
+                  onChange={(event) => onChangeSort(event.currentTarget.value as TemplateSortOption)}
+                >
+                  {TEMPLATE_SORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
             </div>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
@@ -114,8 +148,15 @@ export function TemplateWorkspace({
                       onClick={() => onSelectTemplate(template.id)}
                       type="button"
                     >
-                      <div className="truncate text-[13px] font-medium text-[var(--color-text-strong)]">
-                        {template.name}
+                      <div className="flex items-center gap-2">
+                        <div className="truncate text-[13px] font-medium text-[var(--color-text-strong)]">
+                          {template.name}
+                        </div>
+                        {template.isPinned ? (
+                          <span className="rounded-[6px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                            Pinned
+                          </span>
+                        ) : null}
                       </div>
                       <div className="mt-1 truncate text-[11px] text-[var(--color-text-muted)]">
                         {truncate(template.subject || "件名未設定")}
@@ -135,6 +176,9 @@ export function TemplateWorkspace({
           <PaneHeader
             action={
               <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={onTogglePinned}>
+                  {templateForm.isPinned ? "Unpin" : "Pin"}
+                </Button>
                 <Button
                   disabled={!canDuplicate}
                   size="sm"
@@ -151,7 +195,7 @@ export function TemplateWorkspace({
                 </Button>
               </div>
             }
-            description={templateForm.name}
+            description={`${templateForm.isPinned ? "Pinned · " : ""}${templateForm.name}`}
             title="Template editor"
           />
 

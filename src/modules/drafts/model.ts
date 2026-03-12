@@ -18,6 +18,7 @@ export interface DraftHistoryEntry {
 export interface Draft {
   id: string;
   title: string;
+  isPinned: boolean;
   subject: string;
   recipient: string;
   opening: string;
@@ -33,6 +34,7 @@ export interface Draft {
 export interface DraftInput {
   id: string;
   title: string;
+  isPinned: boolean;
   subject: string;
   recipient: string;
   opening: string;
@@ -47,6 +49,7 @@ export function createEmptyDraft(defaultSignatureId: string | null): DraftInput 
   return {
     id: crypto.randomUUID(),
     title: "",
+    isPinned: false,
     subject: "",
     recipient: "",
     opening: "",
@@ -65,6 +68,7 @@ export function createDraftFromTemplate(
   return {
     id: crypto.randomUUID(),
     title: template.name,
+    isPinned: false,
     subject: template.subject,
     recipient: "",
     opening: template.opening,
@@ -94,6 +98,7 @@ export function duplicateDraftInput(draft: DraftInput): DraftInput {
   return {
     ...draft,
     id: crypto.randomUUID(),
+    isPinned: false,
     title: withCopySuffix(draft.title.trim() ? draft.title : draftLabel(draft)),
     variableValues: { ...draft.variableValues },
   };
@@ -103,6 +108,7 @@ export function toDraftInput(draft: Draft): DraftInput {
   return {
     id: draft.id,
     title: draft.title,
+    isPinned: draft.isPinned,
     subject: draft.subject,
     recipient: draft.recipient,
     opening: draft.opening,
@@ -122,6 +128,7 @@ export function toDraftInputFromHistory(entry: DraftHistoryEntry): DraftInput {
   return {
     id: entry.draftId,
     title: entry.title,
+    isPinned: false,
     subject: entry.subject,
     recipient: entry.recipient,
     opening: entry.opening,
@@ -155,6 +162,7 @@ export function draftInputsEqual(left: DraftInput, right: DraftInput | null): bo
   return (
     left.id === right.id &&
     left.title === right.title &&
+    left.isPinned === right.isPinned &&
     left.subject === right.subject &&
     left.recipient === right.recipient &&
     left.opening === right.opening &&
