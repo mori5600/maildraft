@@ -11,4 +11,10 @@ export interface StoreSnapshot {
   trash: TrashSnapshot;
 }
 
-export type WorkspaceView = "drafts" | "templates" | "signatures" | "trash" | "settings";
+export type WorkspaceView =
+  | "drafts"
+  | "templates"
+  | "signatures"
+  | "trash"
+  | "settings"
+  | "help";

@@ -1,9 +1,6 @@
 import { type ReactNode, useState } from "react";
 
-import {
-  TEMPLATE_SORT_OPTIONS,
-  type TemplateSortOption,
-} from "../../../shared/lib/list-sort";
+import { TEMPLATE_SORT_OPTIONS, type TemplateSortOption } from "../../../shared/lib/list-sort";
 import { truncate } from "../../../shared/lib/text";
 import { formatStoredTime } from "../../../shared/lib/time";
 import { visualizeWhitespace } from "../../../shared/lib/whitespace";
@@ -60,7 +57,7 @@ export function TemplateWorkspace({
   const [isWidePreviewOpen, setIsWidePreviewOpen] = useState(false);
   const hasMissingSignature = Boolean(
     templateForm.signatureId &&
-      !signatures.some((signature) => signature.id === templateForm.signatureId),
+    !signatures.some((signature) => signature.id === templateForm.signatureId),
   );
   const canExpandPreview = previewText.trim().length > 0 || templateForm.subject.trim().length > 0;
   const previewBodyText =
@@ -76,7 +73,7 @@ export function TemplateWorkspace({
         <Panel className="flex min-h-0 flex-col overflow-hidden">
           <PaneHeader
             action={
-              <Button size="sm" variant="ghost" onClick={onCreateTemplate}>
+              <Button size="sm" title="Ctrl/Cmd+N" variant="ghost" onClick={onCreateTemplate}>
                 New
               </Button>
             }
@@ -92,7 +89,9 @@ export function TemplateWorkspace({
                 <div className="flex items-center gap-2">
                   <Input
                     className="flex-1"
+                    data-maildraft-search="templates"
                     placeholder="テンプレートを検索"
+                    title="Ctrl/Cmd+K"
                     type="search"
                     value={searchQuery}
                     onChange={(event) => onChangeSearchQuery(event.currentTarget.value)}
@@ -114,7 +113,9 @@ export function TemplateWorkspace({
                 </div>
                 <Select
                   value={sort}
-                  onChange={(event) => onChangeSort(event.currentTarget.value as TemplateSortOption)}
+                  onChange={(event) =>
+                    onChangeSort(event.currentTarget.value as TemplateSortOption)
+                  }
                 >
                   {TEMPLATE_SORT_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -176,7 +177,7 @@ export function TemplateWorkspace({
           <PaneHeader
             action={
               <div className="flex gap-2">
-                <Button size="sm" variant="ghost" onClick={onTogglePinned}>
+                <Button size="sm" title="Ctrl/Cmd+Shift+P" variant="ghost" onClick={onTogglePinned}>
                   {templateForm.isPinned ? "Unpin" : "Pin"}
                 </Button>
                 <Button
@@ -190,7 +191,12 @@ export function TemplateWorkspace({
                 <Button size="sm" variant="ghost" onClick={() => void onDeleteTemplate()}>
                   {selectedTemplateId ? "Trash" : "Reset"}
                 </Button>
-                <Button size="sm" variant="primary" onClick={() => void onSaveTemplate()}>
+                <Button
+                  size="sm"
+                  title="Ctrl/Cmd+S"
+                  variant="primary"
+                  onClick={() => void onSaveTemplate()}
+                >
                   Save
                 </Button>
               </div>

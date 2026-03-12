@@ -1,12 +1,13 @@
 import "./App.css";
 
 import { useMaildraftApp } from "./app/state/use-maildraft-app";
+import { getViewShortcutHint } from "./modules/help/model";
 import type { WorkspaceView } from "./shared/types/store";
 import { Button, Panel } from "./shared/ui/primitives";
 
 function App() {
   const app = useMaildraftApp();
-  const supportsWhitespace = app.view !== "settings";
+  const supportsWhitespace = app.view !== "settings" && app.view !== "help";
   const viewTitle = getViewTitle(app.view);
   const viewDescription = getViewDescription(app.view);
 
@@ -56,6 +57,7 @@ function App() {
                       : "text-[var(--color-text-muted)] hover:bg-[var(--color-nav-hover-bg)] hover:text-[var(--color-text)]"
                   }`}
                   onClick={() => app.setView(item.id)}
+                  title={`${item.label} (${getViewShortcutHint(item.id)})`}
                   type="button"
                 >
                   <span className="text-[13px] font-medium">{item.label}</span>
@@ -136,6 +138,7 @@ function App() {
             {app.view === "signatures" ? app.signatureWorkspace : null}
             {app.view === "trash" ? app.trashWorkspace : null}
             {app.view === "settings" ? app.settingsWorkspace : null}
+            {app.view === "help" ? app.helpWorkspace : null}
           </div>
         </div>
       </div>
@@ -157,6 +160,8 @@ function getViewTitle(view: WorkspaceView): string {
       return "Trash";
     case "settings":
       return "Settings";
+    case "help":
+      return "Help";
   }
 }
 
@@ -172,5 +177,7 @@ function getViewDescription(view: WorkspaceView): string {
       return "削除した項目を復元または完全削除";
     case "settings":
       return "ログとバックアップを管理";
+    case "help":
+      return "ショートカットと基本操作を見る";
   }
 }

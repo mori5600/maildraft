@@ -1,9 +1,6 @@
 import { type ReactNode, useState } from "react";
 
-import {
-  SIGNATURE_SORT_OPTIONS,
-  type SignatureSortOption,
-} from "../../../shared/lib/list-sort";
+import { SIGNATURE_SORT_OPTIONS, type SignatureSortOption } from "../../../shared/lib/list-sort";
 import { formatStoredTime } from "../../../shared/lib/time";
 import { visualizeWhitespace } from "../../../shared/lib/whitespace";
 import { PreviewOverlay } from "../../../shared/ui/PreviewOverlay";
@@ -64,7 +61,7 @@ export function SignatureWorkspace({
         <Panel className="flex min-h-0 flex-col overflow-hidden">
           <PaneHeader
             action={
-              <Button size="sm" variant="ghost" onClick={onCreateSignature}>
+              <Button size="sm" title="Ctrl/Cmd+N" variant="ghost" onClick={onCreateSignature}>
                 New
               </Button>
             }
@@ -80,7 +77,9 @@ export function SignatureWorkspace({
                 <div className="flex items-center gap-2">
                   <Input
                     className="flex-1"
+                    data-maildraft-search="signatures"
                     placeholder="署名を検索"
+                    title="Ctrl/Cmd+K"
                     type="search"
                     value={searchQuery}
                     onChange={(event) => onChangeSearchQuery(event.currentTarget.value)}
@@ -102,7 +101,9 @@ export function SignatureWorkspace({
                 </div>
                 <Select
                   value={sort}
-                  onChange={(event) => onChangeSort(event.currentTarget.value as SignatureSortOption)}
+                  onChange={(event) =>
+                    onChangeSort(event.currentTarget.value as SignatureSortOption)
+                  }
                 >
                   {SIGNATURE_SORT_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -164,7 +165,7 @@ export function SignatureWorkspace({
           <PaneHeader
             action={
               <div className="flex gap-2">
-                <Button size="sm" variant="ghost" onClick={onTogglePinned}>
+                <Button size="sm" title="Ctrl/Cmd+Shift+P" variant="ghost" onClick={onTogglePinned}>
                   {signatureForm.isPinned ? "Unpin" : "Pin"}
                 </Button>
                 <Button
@@ -178,7 +179,12 @@ export function SignatureWorkspace({
                 <Button size="sm" variant="ghost" onClick={() => void onDeleteSignature()}>
                   {selectedSignatureId ? "Trash" : "Reset"}
                 </Button>
-                <Button size="sm" variant="primary" onClick={() => void onSaveSignature()}>
+                <Button
+                  size="sm"
+                  title="Ctrl/Cmd+S"
+                  variant="primary"
+                  onClick={() => void onSaveSignature()}
+                >
                   Save
                 </Button>
               </div>

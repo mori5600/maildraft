@@ -117,6 +117,7 @@ export function SettingsWorkspace({
                     <Button
                       disabled={!isDirty}
                       size="sm"
+                      title="Ctrl/Cmd+S"
                       variant="primary"
                       onClick={() => void onSaveLoggingSettings()}
                     >
@@ -134,7 +135,9 @@ export function SettingsWorkspace({
                         Privacy guarantees
                       </div>
                       <div className="mt-2.5 space-y-1.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
-                        <p>件名、本文、宛先、署名本文、クリップボードの内容はログへ保存しません。</p>
+                        <p>
+                          件名、本文、宛先、署名本文、クリップボードの内容はログへ保存しません。
+                        </p>
                         <p>
                           記録するのは、処理の成功・失敗、所要時間、件数や文字数のような要約情報だけです。
                         </p>
@@ -243,10 +246,7 @@ export function SettingsWorkspace({
           ) : (
             <div className="grid content-start gap-3">
               <Panel className="overflow-hidden">
-                <PaneHeader
-                  description="下書きデータの書き出しと復元"
-                  title="バックアップ"
-                />
+                <PaneHeader description="下書きデータの書き出しと復元" title="バックアップ" />
 
                 <div className="px-3.5 py-3.5">
                   <div className="grid gap-3">
@@ -265,8 +265,8 @@ export function SettingsWorkspace({
                         Actions
                       </div>
                       <div className="mt-2.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
-                        Import は現在のローカルデータを置き換えます。必要なら先に
-                        Export を実行してください。
+                        Import は現在のローカルデータを置き換えます。必要なら先に Export
+                        を実行してください。
                       </div>
                       <div className="mt-3 flex flex-wrap gap-2">
                         <Button

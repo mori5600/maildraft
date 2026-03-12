@@ -12,6 +12,7 @@ import {
   toDraftInput,
 } from "../../modules/drafts/model";
 import { DraftWorkspace } from "../../modules/drafts/ui/DraftWorkspace";
+import { HelpWorkspace } from "../../modules/help/ui/HelpWorkspace";
 import {
   collectDraftChecks,
   collectDraftVariableNames,
@@ -85,6 +86,21 @@ const EMPTY_SNAPSHOT: StoreSnapshot = {
 const DEFAULT_LOGGING_SETTINGS = createDefaultLoggingSettingsSnapshot();
 const AUTO_SAVE_DELAY_MS = 900;
 
+interface ShortcutActionSet {
+  changeView: (nextView: WorkspaceView) => void;
+  createDraft: () => void;
+  createTemplate: () => void;
+  createSignature: () => void;
+  saveDraft: () => Promise<void>;
+  saveTemplate: () => Promise<void>;
+  saveSignature: () => Promise<void>;
+  saveLoggingSettings: () => Promise<void>;
+  copyDraftPreview: () => Promise<void>;
+  toggleDraftPinned: () => void;
+  toggleTemplatePinned: () => void;
+  toggleSignaturePinned: () => void;
+}
+
 export function useMaildraftApp() {
   const [snapshot, setSnapshot] = useState<StoreSnapshot>(EMPTY_SNAPSHOT);
   const [loggingSettings, setLoggingSettings] =
@@ -125,6 +141,8 @@ export function useMaildraftApp() {
   const selectedDraftIdRef = useRef(selectedDraftId);
   const snapshotRef = useRef(snapshot);
   const viewRef = useRef(view);
+  const isLoadingRef = useRef(isLoading);
+  const shortcutActionsRef = useRef<ShortcutActionSet | null>(null);
 
   useEffect(() => {
     draftFormRef.current = draftForm;
@@ -141,6 +159,10 @@ export function useMaildraftApp() {
   useEffect(() => {
     viewRef.current = view;
   }, [view]);
+
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+  }, [isLoading]);
 
   useEffect(() => {
     void (async () => {
@@ -787,15 +809,12 @@ export function useMaildraftApp() {
   }
 
   async function permanentlyDeleteTrashItem(item: TrashItem) {
-    const confirmed = await confirm(
-      "この項目を完全に削除します。元に戻せません。続けますか？",
-      {
-        title: "MailDraft",
-        kind: "warning",
-        okLabel: "Delete forever",
-        cancelLabel: "Cancel",
-      },
-    );
+    const confirmed = await confirm("この項目を完全に削除します。元に戻せません。続けますか？", {
+      title: "MailDraft",
+      kind: "warning",
+      okLabel: "Delete forever",
+      cancelLabel: "Cancel",
+    });
 
     if (!confirmed) {
       return;
@@ -818,9 +837,7 @@ export function useMaildraftApp() {
         setSnapshot(nextSnapshot);
         setDraftForm((current) => ({
           ...current,
-          templateId: templateExists(nextSnapshot, current.templateId)
-            ? current.templateId
-            : null,
+          templateId: templateExists(nextSnapshot, current.templateId) ? current.templateId : null,
         }));
         setNotice("テンプレートを完全に削除しました。");
         return;
@@ -992,6 +1009,128 @@ export function useMaildraftApp() {
     }
   }
 
+  function toggleTheme() {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+    setNotice(
+      nextTheme === "dark" ? "ダークモードに切り替えました。" : "ライトモードに切り替えました。",
+    );
+  }
+
+  function toggleWhitespace() {
+    setShowWhitespace((current) => !current);
+  }
+
+  useEffect(() => {
+    shortcutActionsRef.current = {
+      changeView,
+      createDraft,
+      createTemplate,
+      createSignature,
+      saveDraft,
+      saveTemplate,
+      saveSignature,
+      saveLoggingSettings,
+      copyDraftPreview,
+      toggleDraftPinned,
+      toggleTemplatePinned,
+      toggleSignaturePinned,
+    };
+  });
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (
+        event.defaultPrevented ||
+        event.isComposing ||
+        event.repeat ||
+        !(event.ctrlKey || event.metaKey) ||
+        event.altKey
+      ) {
+        return;
+      }
+
+      const actions = shortcutActionsRef.current;
+      if (!actions || isLoadingRef.current) {
+        return;
+      }
+
+      const key = event.key.toLowerCase();
+      const currentView = viewRef.current;
+
+      if (!event.shiftKey && key === "k") {
+        event.preventDefault();
+        focusWorkspaceSearch(currentView);
+        return;
+      }
+
+      if (!event.shiftKey && key === "1") {
+        event.preventDefault();
+        actions.changeView("drafts");
+        return;
+      }
+
+      if (!event.shiftKey && key === "2") {
+        event.preventDefault();
+        actions.changeView("templates");
+        return;
+      }
+
+      if (!event.shiftKey && key === "3") {
+        event.preventDefault();
+        actions.changeView("signatures");
+        return;
+      }
+
+      if (!event.shiftKey && key === "4") {
+        event.preventDefault();
+        actions.changeView("trash");
+        return;
+      }
+
+      if (!event.shiftKey && key === "5") {
+        event.preventDefault();
+        actions.changeView("settings");
+        return;
+      }
+
+      if (!event.shiftKey && key === "6") {
+        event.preventDefault();
+        actions.changeView("help");
+        return;
+      }
+
+      if (!event.shiftKey && key === "n") {
+        event.preventDefault();
+        runCreateShortcut(actions, currentView);
+        return;
+      }
+
+      if (!event.shiftKey && key === "s") {
+        event.preventDefault();
+        void runSaveShortcut(actions, currentView);
+        return;
+      }
+
+      if (event.shiftKey && key === "p") {
+        event.preventDefault();
+        runPinShortcut(actions, currentView);
+        return;
+      }
+
+      if (event.shiftKey && key === "c" && currentView === "drafts") {
+        event.preventDefault();
+        void actions.copyDraftPreview();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
   return {
     views: [
       { id: "drafts" as const, label: "下書き", count: snapshot.drafts.length },
@@ -999,6 +1138,7 @@ export function useMaildraftApp() {
       { id: "signatures" as const, label: "署名", count: snapshot.signatures.length },
       { id: "trash" as const, label: "ゴミ箱", count: trashItems.length },
       { id: "settings" as const, label: "設定" },
+      { id: "help" as const, label: "ヘルプ" },
     ],
     snapshot,
     isLoading,
@@ -1008,16 +1148,8 @@ export function useMaildraftApp() {
     view,
     setView: changeView,
     showWhitespace,
-    toggleTheme() {
-      const nextTheme = theme === "dark" ? "light" : "dark";
-      setTheme(nextTheme);
-      setNotice(
-        nextTheme === "dark" ? "ダークモードに切り替えました。" : "ライトモードに切り替えました。",
-      );
-    },
-    toggleWhitespace() {
-      setShowWhitespace((current) => !current);
-    },
+    toggleTheme,
+    toggleWhitespace,
     draftWorkspace: (
       <DraftWorkspace
         autoSaveLabel={formatDraftAutoSaveState(draftAutoSaveState)}
@@ -1125,6 +1257,7 @@ export function useMaildraftApp() {
         onSaveLoggingSettings={saveLoggingSettings}
       />
     ),
+    helpWorkspace: <HelpWorkspace />,
   };
 }
 
@@ -1154,6 +1287,74 @@ function formatDraftAutoSaveState(state: DraftAutoSaveState): string {
   }
 }
 
+function focusWorkspaceSearch(view: WorkspaceView) {
+  const searchInput = document.querySelector<HTMLInputElement>(`[data-maildraft-search="${view}"]`);
+
+  if (!searchInput) {
+    return;
+  }
+
+  searchInput.focus();
+  searchInput.select();
+}
+
+function runCreateShortcut(actions: ShortcutActionSet, view: WorkspaceView) {
+  switch (view) {
+    case "drafts":
+      actions.createDraft();
+      return;
+    case "templates":
+      actions.createTemplate();
+      return;
+    case "signatures":
+      actions.createSignature();
+      return;
+    case "trash":
+    case "settings":
+    case "help":
+      actions.createDraft();
+      return;
+  }
+}
+
+async function runSaveShortcut(actions: ShortcutActionSet, view: WorkspaceView) {
+  switch (view) {
+    case "drafts":
+      await actions.saveDraft();
+      return;
+    case "templates":
+      await actions.saveTemplate();
+      return;
+    case "signatures":
+      await actions.saveSignature();
+      return;
+    case "settings":
+      await actions.saveLoggingSettings();
+      return;
+    case "trash":
+    case "help":
+      return;
+  }
+}
+
+function runPinShortcut(actions: ShortcutActionSet, view: WorkspaceView) {
+  switch (view) {
+    case "drafts":
+      actions.toggleDraftPinned();
+      return;
+    case "templates":
+      actions.toggleTemplatePinned();
+      return;
+    case "signatures":
+      actions.toggleSignaturePinned();
+      return;
+    case "trash":
+    case "settings":
+    case "help":
+      return;
+  }
+}
+
 function asMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
@@ -1174,10 +1375,7 @@ function getDefaultSignatureId(snapshot: StoreSnapshot): string | null {
   );
 }
 
-function pickKnownSignatureId(
-  snapshot: StoreSnapshot,
-  signatureId: string | null,
-): string | null {
+function pickKnownSignatureId(snapshot: StoreSnapshot, signatureId: string | null): string | null {
   if (
     signatureId &&
     (snapshot.signatures.some((signature) => signature.id === signatureId) ||
@@ -1224,7 +1422,7 @@ function pickSignatureInput(snapshot: StoreSnapshot, signatureId: string | null)
 function templateExists(snapshot: StoreSnapshot, templateId: string | null): boolean {
   return Boolean(
     templateId &&
-      (snapshot.templates.some((template) => template.id === templateId) ||
-        snapshot.trash.templates.some((entry) => entry.template.id === templateId)),
+    (snapshot.templates.some((template) => template.id === templateId) ||
+      snapshot.trash.templates.some((entry) => entry.template.id === templateId)),
   );
 }

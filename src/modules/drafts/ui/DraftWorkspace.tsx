@@ -1,9 +1,6 @@
 import { type ReactNode, useState } from "react";
 
-import {
-  DRAFT_SORT_OPTIONS,
-  type DraftSortOption,
-} from "../../../shared/lib/list-sort";
+import { DRAFT_SORT_OPTIONS, type DraftSortOption } from "../../../shared/lib/list-sort";
 import { truncate } from "../../../shared/lib/text";
 import { formatStoredTime } from "../../../shared/lib/time";
 import { visualizeWhitespace } from "../../../shared/lib/whitespace";
@@ -86,7 +83,7 @@ export function DraftWorkspace({
   );
   const hasMissingSignature = Boolean(
     draftForm.signatureId &&
-      !signatures.some((signature) => signature.id === draftForm.signatureId),
+    !signatures.some((signature) => signature.id === draftForm.signatureId),
   );
   const canCopyPreview = previewText.trim().length > 0;
   const canExpandPreview =
@@ -104,7 +101,7 @@ export function DraftWorkspace({
         <Panel className="flex min-h-0 flex-col overflow-hidden">
           <PaneHeader
             action={
-              <Button size="sm" variant="ghost" onClick={onCreateDraft}>
+              <Button size="sm" title="Ctrl/Cmd+N" variant="ghost" onClick={onCreateDraft}>
                 New
               </Button>
             }
@@ -120,7 +117,9 @@ export function DraftWorkspace({
                 <div className="flex items-center gap-2">
                   <Input
                     className="flex-1"
+                    data-maildraft-search="drafts"
                     placeholder="下書きを検索"
+                    title="Ctrl/Cmd+K"
                     type="search"
                     value={searchQuery}
                     onChange={(event) => onChangeSearchQuery(event.currentTarget.value)}
@@ -204,7 +203,7 @@ export function DraftWorkspace({
           <PaneHeader
             action={
               <div className="flex gap-2">
-                <Button size="sm" variant="ghost" onClick={onTogglePinned}>
+                <Button size="sm" title="Ctrl/Cmd+Shift+P" variant="ghost" onClick={onTogglePinned}>
                   {draftForm.isPinned ? "Unpin" : "Pin"}
                 </Button>
                 <Button
@@ -218,7 +217,12 @@ export function DraftWorkspace({
                 <Button size="sm" variant="ghost" onClick={() => void onDeleteDraft()}>
                   {selectedDraftId ? "Trash" : "Reset"}
                 </Button>
-                <Button size="sm" variant="primary" onClick={() => void onSaveDraft()}>
+                <Button
+                  size="sm"
+                  title="Ctrl/Cmd+S"
+                  variant="primary"
+                  onClick={() => void onSaveDraft()}
+                >
                   Save
                 </Button>
               </div>
@@ -368,6 +372,7 @@ export function DraftWorkspace({
                 <Button
                   disabled={!canCopyPreview}
                   size="sm"
+                  title="Ctrl/Cmd+Shift+C"
                   variant="ghost"
                   onClick={() => void onCopyPreview()}
                 >
@@ -376,8 +381,7 @@ export function DraftWorkspace({
               </div>
             }
             description={
-              selectedSignature?.name ??
-              (hasMissingSignature ? "ゴミ箱の署名を参照中" : "署名なし")
+              selectedSignature?.name ?? (hasMissingSignature ? "ゴミ箱の署名を参照中" : "署名なし")
             }
             title="Preview"
           />
@@ -461,6 +465,7 @@ export function DraftWorkspace({
           <Button
             disabled={!canCopyPreview}
             size="sm"
+            title="Ctrl/Cmd+Shift+C"
             variant="ghost"
             onClick={() => void onCopyPreview()}
           >
