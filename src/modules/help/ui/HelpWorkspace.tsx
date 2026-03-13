@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { FALLBACK_APP_INFO, loadAppInfo } from "../../../shared/lib/app-info";
 import { Panel, Pill } from "../../../shared/ui/primitives";
 import {
   HELP_SECTIONS,
@@ -10,13 +11,28 @@ import {
 
 export function HelpWorkspace() {
   const [activeSection, setActiveSection] = useState<HelpSection>("usage");
+  const [appInfo, setAppInfo] = useState(FALLBACK_APP_INFO);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void loadAppInfo().then((nextAppInfo) => {
+      if (isMounted) {
+        setAppInfo(nextAppInfo);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="grid h-full min-h-0 gap-3 overflow-y-auto pr-1 lg:grid-cols-[188px_minmax(0,1fr)] lg:overflow-hidden lg:pr-0">
-      <Panel className="overflow-hidden lg:h-full">
+      <Panel className="flex flex-col overflow-hidden lg:h-full">
         <PaneHeader description="ヘルプカテゴリ" title="Help" />
 
-        <div className="grid gap-1.5 px-2.5 py-2.5">
+        <div className="grid flex-1 content-start gap-1.5 px-2.5 py-2.5">
           {HELP_SECTIONS.map((section) => {
             const active = activeSection === section.id;
 
@@ -40,6 +56,15 @@ export function HelpWorkspace() {
               </button>
             );
           })}
+        </div>
+
+        <div className="border-t border-[var(--color-panel-border-strong)] px-3.5 py-2.5">
+          <div className="text-[11px] font-medium text-[var(--color-text-subtle)]">
+            {appInfo.name}
+          </div>
+          <div className="mt-0.5 text-[11px] text-[var(--color-text-faint)]">
+            バージョン {appInfo.version}
+          </div>
         </div>
       </Panel>
 
