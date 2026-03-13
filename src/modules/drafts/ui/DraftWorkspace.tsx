@@ -324,7 +324,7 @@ export function DraftWorkspace({
               <Field label="Recipient note" hint="社名や担当者など">
                 <Textarea
                   className="min-h-24"
-                  placeholder={"株式会社サンプル\n営業部\n佐藤 様"}
+                  placeholder={"株式会社〇〇\n営業部\n佐藤 様"}
                   rows={3}
                   showWhitespace={showWhitespace}
                   textClassName="mail-compose-text"
@@ -336,7 +336,7 @@ export function DraftWorkspace({
               <Field label="Opening">
                 <Textarea
                   className="min-h-33"
-                  placeholder={"いつもお世話になっております。\n株式会社サンプルの田中です。"}
+                  placeholder={"いつもお世話になっております。\n株式会社△△の田中です。"}
                   rows={5}
                   showWhitespace={showWhitespace}
                   textClassName="mail-compose-text"
