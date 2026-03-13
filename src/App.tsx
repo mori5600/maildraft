@@ -83,7 +83,7 @@ function App() {
         </aside>
 
         <div className="flex min-h-screen flex-col">
-          <header className="flex min-h-11 items-center justify-between gap-3 border-b border-[var(--color-sidebar-border)] px-4">
+          <header className="grid min-h-11 grid-cols-[minmax(0,1fr)_280px_auto] items-center gap-3 border-b border-[var(--color-sidebar-border)] px-4">
             <div>
               <div className="text-[13px] font-medium text-[var(--color-text-strong)]">
                 {viewTitle}
@@ -93,7 +93,15 @@ function App() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5">
+            <div
+              className={`w-[280px] truncate text-[11px] ${
+                app.error ? "text-[var(--color-error)]" : "text-[var(--color-notice)]"
+              }`}
+            >
+              {app.error ?? app.notice}
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2.5">
               <Button
                 className="w-[104px] justify-center"
                 size="sm"
@@ -102,32 +110,33 @@ function App() {
               >
                 {app.theme === "dark" ? "Dark mode" : "Light mode"}
               </Button>
-              {supportsWhitespace ? (
-                <>
-                  <Button
-                    className="w-[96px] justify-center"
-                    size="sm"
-                    variant={app.showWhitespace ? "primary" : "secondary"}
-                    onClick={app.toggleWhitespace}
-                  >
-                    Spaces
-                  </Button>
-                  <div
-                    aria-hidden={!app.showWhitespace}
-                    className={`w-[88px] text-[10px] text-[var(--color-notice)] transition-opacity ${
-                      app.showWhitespace ? "opacity-100" : "opacity-0"
-                    }`}
-                  >
-                    · 半角 / □ 全角
-                  </div>
-                </>
-              ) : null}
-              <div
-                className={`max-w-[280px] truncate text-[11px] ${
-                  app.error ? "text-[var(--color-error)]" : "text-[var(--color-notice)]"
-                }`}
-              >
-                {app.error ?? app.notice}
+
+              <div className="flex w-[194px] items-center gap-2.5">
+                {supportsWhitespace ? (
+                  <>
+                    <Button
+                      className="w-[96px] justify-center"
+                      size="sm"
+                      variant={app.showWhitespace ? "primary" : "secondary"}
+                      onClick={app.toggleWhitespace}
+                    >
+                      Spaces
+                    </Button>
+                    <div
+                      aria-hidden={!app.showWhitespace}
+                      className={`w-[88px] text-[10px] text-[var(--color-notice)] transition-opacity ${
+                        app.showWhitespace ? "opacity-100" : "opacity-0"
+                      }`}
+                    >
+                      · 半角 / □ 全角
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div aria-hidden="true" className="h-[31px] w-[96px] shrink-0" />
+                    <div aria-hidden="true" className="w-[88px] shrink-0" />
+                  </>
+                )}
               </div>
             </div>
           </header>
