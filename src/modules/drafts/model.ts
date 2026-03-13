@@ -1,4 +1,5 @@
 import type { Template } from "../templates/model";
+import type { TemplateInput } from "../templates/model";
 
 export interface DraftHistoryEntry {
   id: string;
@@ -63,6 +64,16 @@ export function createEmptyDraft(defaultSignatureId: string | null): DraftInput 
 
 export function createDraftFromTemplate(
   template: Template,
+  defaultSignatureId: string | null,
+): DraftInput {
+  return createDraftFromTemplateInput(template, defaultSignatureId);
+}
+
+export function createDraftFromTemplateInput(
+  template: Pick<
+    Template | TemplateInput,
+    "id" | "name" | "subject" | "recipient" | "opening" | "body" | "closing" | "signatureId"
+  >,
   defaultSignatureId: string | null,
 ): DraftInput {
   return {

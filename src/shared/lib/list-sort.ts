@@ -1,4 +1,4 @@
-import { type Draft,draftLabel } from "../../modules/drafts/model";
+import { type Draft, draftLabel } from "../../modules/drafts/model";
 import type { Signature } from "../../modules/signatures/model";
 import type { Template } from "../../modules/templates/model";
 
@@ -25,24 +25,23 @@ export const SIGNATURE_SORT_OPTIONS: Array<{ value: SignatureSortOption; label: 
 ];
 
 export function sortDrafts(drafts: Draft[], sort: DraftSortOption): Draft[] {
-  return [...drafts].sort((left, right) => comparePinned(left.isPinned, right.isPinned) || compareDraft(left, right, sort));
-}
-
-export function sortTemplates(
-  templates: Template[],
-  sort: TemplateSortOption,
-): Template[] {
-  return [...templates].sort(
-    (left, right) => comparePinned(left.isPinned, right.isPinned) || compareTemplate(left, right, sort),
+  return [...drafts].sort(
+    (left, right) =>
+      comparePinned(left.isPinned, right.isPinned) || compareDraft(left, right, sort),
   );
 }
 
-export function sortSignatures(
-  signatures: Signature[],
-  sort: SignatureSortOption,
-): Signature[] {
+export function sortTemplates(templates: Template[], sort: TemplateSortOption): Template[] {
+  return [...templates].sort(
+    (left, right) =>
+      comparePinned(left.isPinned, right.isPinned) || compareTemplate(left, right, sort),
+  );
+}
+
+export function sortSignatures(signatures: Signature[], sort: SignatureSortOption): Signature[] {
   return [...signatures].sort(
-    (left, right) => comparePinned(left.isPinned, right.isPinned) || compareSignature(left, right, sort),
+    (left, right) =>
+      comparePinned(left.isPinned, right.isPinned) || compareSignature(left, right, sort),
   );
 }
 
@@ -70,23 +69,23 @@ function compareTemplate(left: Template, right: Template, sort: TemplateSortOpti
     case "oldest":
       return compareTimestamp(left.updatedAt, right.updatedAt);
     case "name":
-      return compareText(left.name, right.name) || compareTimestamp(right.updatedAt, left.updatedAt);
+      return (
+        compareText(left.name, right.name) || compareTimestamp(right.updatedAt, left.updatedAt)
+      );
     case "recent":
     default:
       return compareTimestamp(right.updatedAt, left.updatedAt);
   }
 }
 
-function compareSignature(
-  left: Signature,
-  right: Signature,
-  sort: SignatureSortOption,
-): number {
+function compareSignature(left: Signature, right: Signature, sort: SignatureSortOption): number {
   switch (sort) {
     case "oldest":
       return compareTimestamp(left.updatedAt, right.updatedAt);
     case "name":
-      return compareText(left.name, right.name) || compareTimestamp(right.updatedAt, left.updatedAt);
+      return (
+        compareText(left.name, right.name) || compareTimestamp(right.updatedAt, left.updatedAt)
+      );
     case "recent":
     default:
       return compareTimestamp(right.updatedAt, left.updatedAt);

@@ -1,4 +1,4 @@
-import { type Draft, type DraftHistoryEntry,draftLabel } from "../drafts/model";
+import { type Draft, type DraftHistoryEntry, draftLabel } from "../drafts/model";
 import type { Signature } from "../signatures/model";
 import type { Template } from "../templates/model";
 
@@ -75,10 +75,7 @@ export function collectTrashItems(trash: TrashSnapshot): TrashItem[] {
   ].sort((left, right) => Number(right.deletedAt) - Number(left.deletedAt));
 }
 
-export function buildTrashItemKey(
-  kind: TrashItem["kind"],
-  itemId: string,
-): string {
+export function buildTrashItemKey(kind: TrashItem["kind"], itemId: string): string {
   return `${kind}:${itemId}`;
 }
 

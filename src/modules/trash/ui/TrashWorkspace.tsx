@@ -63,7 +63,7 @@ export function TrashWorkspace({
 
         <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
           {items.length === 0 ? (
-            <div className="rounded-[7px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3 py-2.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
+            <div className="rounded-[7px] border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3 py-2.5 text-[13px] leading-6 text-(--color-text-muted)">
               ゴミ箱は空です。
             </div>
           ) : (
@@ -76,19 +76,19 @@ export function TrashWorkspace({
                     key={item.key}
                     className={`w-full rounded-[7px] border px-2.5 py-2 text-left transition-colors ${
                       active
-                        ? "border-[var(--color-list-active-border)] bg-[var(--color-list-active-bg)]"
-                        : "border-transparent hover:border-[var(--color-list-hover-border)] hover:bg-[var(--color-list-hover-bg)]"
+                        ? "border-(--color-list-active-border) bg-(--color-list-active-bg)"
+                        : "border-transparent hover:border-(--color-list-hover-border) hover:bg-(--color-list-hover-bg)"
                     }`}
                     type="button"
                     onClick={() => onSelectItem(item.key)}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <div className="truncate text-[13px] font-medium text-[var(--color-text-strong)]">
+                      <div className="truncate text-[13px] font-medium text-(--color-text-strong)">
                         {item.label}
                       </div>
                       <Pill tone="neutral">{trashItemTypeLabel(item.kind)}</Pill>
                     </div>
-                    <div className="mt-1.5 text-[10px] text-[var(--color-text-subtle)]">
+                    <div className="mt-1.5 text-[10px] text-(--color-text-subtle)">
                       {formatStoredTime(item.deletedAt)}
                     </div>
                   </button>
@@ -104,11 +104,7 @@ export function TrashWorkspace({
           action={
             selectedItem ? (
               <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => void onRestoreItem(selectedItem)}
-                >
+                <Button size="sm" variant="ghost" onClick={() => void onRestoreItem(selectedItem)}>
                   Restore
                 </Button>
                 <Button
@@ -121,7 +117,11 @@ export function TrashWorkspace({
               </div>
             ) : null
           }
-          description={selectedItem ? "削除済みの項目を復元または完全削除できます。" : "削除済みの項目はありません。"}
+          description={
+            selectedItem
+              ? "削除済みの項目を復元または完全削除できます。"
+              : "削除済みの項目はありません。"
+          }
           title="Details"
         />
 
@@ -134,7 +134,7 @@ export function TrashWorkspace({
               trashedSignatures={trashedSignatures}
             />
           ) : (
-            <div className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-4 py-3 text-[13px] leading-6 text-[var(--color-text-muted)]">
+            <div className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) px-4 py-3 text-[13px] leading-6 text-(--color-text-muted)">
               ゴミ箱に移動した下書き、テンプレート、署名がここに表示されます。
             </div>
           )}
@@ -160,37 +160,35 @@ function TrashItemDetail({
 
   return (
     <div className="grid gap-3">
-      <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-4 py-3">
+      <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) px-4 py-3">
         <div className="flex flex-wrap items-center gap-2">
           <Pill tone="neutral">{trashItemTypeLabel(item.kind)}</Pill>
-          <div className="text-[11px] text-[var(--color-text-subtle)]">
+          <div className="text-[11px] text-(--color-text-subtle)">
             {formatStoredTime(item.deletedAt)} にゴミ箱へ移動
           </div>
         </div>
-        <div className="mt-2.5 text-[15px] font-medium text-[var(--color-text-strong)]">
+        <div className="mt-2.5 text-[15px] font-medium text-(--color-text-strong)">
           {item.label}
         </div>
         {detail.meta ? (
-          <div className="mt-1.5 text-[13px] text-[var(--color-text-muted)]">{detail.meta}</div>
+          <div className="mt-1.5 text-[13px] text-(--color-text-muted)">{detail.meta}</div>
         ) : null}
       </section>
 
       {detail.subject ? (
-        <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-4 py-3">
-          <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+        <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) px-4 py-3">
+          <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
             Subject
           </div>
-          <div className="mt-2.5 text-[13px] text-[var(--color-text-strong)]">
-            {detail.subject}
-          </div>
+          <div className="mt-2.5 text-[13px] text-(--color-text-strong)">{detail.subject}</div>
         </section>
       ) : null}
 
-      <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-preview-bg)] px-4 py-3">
-        <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+      <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-preview-bg) px-4 py-3">
+        <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
           Body
         </div>
-        <pre className="mail-preview-text mt-2.5 min-h-[380px] overflow-x-auto whitespace-pre-wrap text-[var(--color-preview-text)]">
+        <pre className="mail-preview-text mt-2.5 min-h-95 overflow-x-auto whitespace-pre-wrap text-(--color-preview-text)">
           {bodyText || "表示できる本文はありません。"}
         </pre>
       </section>
@@ -209,11 +207,7 @@ function buildDetail(
 } {
   switch (item.kind) {
     case "draft": {
-      const signature = findTrashSignature(
-        signatures,
-        trashedSignatures,
-        item.draft.signatureId,
-      );
+      const signature = findTrashSignature(signatures, trashedSignatures, item.draft.signatureId);
       return {
         subject: renderDraftSubject(toDraftInput(item.draft)),
         body: renderDraftPreview(toDraftInput(item.draft), signature),
@@ -251,10 +245,10 @@ function PaneHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-11 items-center justify-between gap-3 border-b border-[var(--color-panel-border-strong)] px-3.5">
+    <div className="flex min-h-11 items-center justify-between gap-3 border-b border-(--color-panel-border-strong) px-3.5">
       <div className="min-w-0">
-        <div className="text-[13px] font-medium text-[var(--color-text-strong)]">{title}</div>
-        <div className="truncate text-[11px] text-[var(--color-text-subtle)]">{description}</div>
+        <div className="text-[13px] font-medium text-(--color-text-strong)">{title}</div>
+        <div className="truncate text-[11px] text-(--color-text-subtle)">{description}</div>
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>

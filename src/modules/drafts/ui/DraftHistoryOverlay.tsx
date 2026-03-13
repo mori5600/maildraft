@@ -62,13 +62,13 @@ export function DraftHistoryOverlay({
       onClose={onClose}
     >
       <div className="grid gap-3 xl:grid-cols-[260px_minmax(0,1fr)]">
-        <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] p-3">
-          <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+        <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) p-3">
+          <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
             Revisions
           </div>
           <div className="mt-2.5 space-y-1.5">
             {historyEntries.length === 0 ? (
-              <div className="rounded-[7px] border border-[var(--color-panel-border-strong)] px-3 py-2.5 text-[13px] text-[var(--color-text-muted)]">
+              <div className="rounded-[7px] border border-(--color-panel-border-strong) px-3 py-2.5 text-[13px] text-(--color-text-muted)">
                 まだ復元できる履歴はありません。
               </div>
             ) : (
@@ -80,19 +80,19 @@ export function DraftHistoryOverlay({
                     key={entry.id}
                     className={`w-full rounded-[7px] border px-3 py-2.5 text-left transition-colors ${
                       active
-                        ? "border-[var(--color-list-active-border)] bg-[var(--color-list-active-bg)]"
-                        : "border-transparent hover:border-[var(--color-list-hover-border)] hover:bg-[var(--color-list-hover-bg)]"
+                        ? "border-(--color-list-active-border) bg-(--color-list-active-bg)"
+                        : "border-transparent hover:border-(--color-list-hover-border) hover:bg-(--color-list-hover-bg)"
                     }`}
                     onClick={() => setSelectedHistoryId(entry.id)}
                     type="button"
                   >
-                    <div className="truncate text-[13px] font-medium text-[var(--color-text-strong)]">
+                    <div className="truncate text-[13px] font-medium text-(--color-text-strong)">
                       {draftLabel(entry)}
                     </div>
-                    <div className="mt-1 truncate text-[11px] text-[var(--color-text-muted)]">
+                    <div className="mt-1 truncate text-[11px] text-(--color-text-muted)">
                       {previewLine(entry.subject)}
                     </div>
-                    <div className="mt-1.5 text-[10px] text-[var(--color-text-subtle)]">
+                    <div className="mt-1.5 text-[10px] text-(--color-text-subtle)">
                       {formatStoredTime(entry.recordedAt)}
                     </div>
                   </button>
@@ -103,20 +103,20 @@ export function DraftHistoryOverlay({
         </section>
 
         <div className="grid gap-3">
-          <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] p-4">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+          <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) p-4">
+            <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
               Subject
             </div>
-            <div className="mt-2.5 text-[13px] text-[var(--color-text-strong)]">
+            <div className="mt-2.5 text-[13px] text-(--color-text-strong)">
               {previewSubject || "件名未設定"}
             </div>
           </section>
 
-          <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-preview-bg)] p-4">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+          <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-preview-bg) p-4">
+            <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
               Body
             </div>
-            <pre className="mail-preview-text mt-2.5 min-h-[460px] overflow-x-auto whitespace-pre-wrap text-[var(--color-preview-text)]">
+            <pre className="mail-preview-text mt-2.5 min-h-115 overflow-x-auto whitespace-pre-wrap text-(--color-preview-text)">
               {previewBodyText}
             </pre>
           </section>

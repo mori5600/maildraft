@@ -5,6 +5,7 @@ import {
   type PropsWithChildren,
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
+  useDeferredValue,
   useState,
 } from "react";
 
@@ -34,7 +35,7 @@ export function Panel({
   return (
     <section
       className={cn(
-        "rounded-[8px] border border-[var(--color-panel-border)] bg-[var(--color-panel-bg)] text-[var(--color-text)] shadow-[0_1px_0_rgba(255,255,255,0.02)]",
+        "rounded-lg border border-(--color-panel-border) bg-(--color-panel-bg) text-(--color-text) shadow-[0_1px_0_rgba(255,255,255,0.02)]",
         className,
       )}
       {...props}
@@ -58,12 +59,12 @@ export function Button({
 }) {
   const variantClassName =
     variant === "primary"
-      ? "border border-[var(--color-button-primary-border)] bg-[var(--color-button-primary-bg)] text-[var(--color-button-primary-text)] hover:border-[var(--color-button-primary-border-hover)] hover:bg-[var(--color-button-primary-bg-hover)]"
+      ? "border border-(--color-button-primary-border) bg-(--color-button-primary-bg) text-(--color-button-primary-text) hover:border-(--color-button-primary-border-hover) hover:bg-(--color-button-primary-bg-hover)"
       : variant === "danger"
-        ? "border border-[var(--color-button-danger-border)] bg-[var(--color-button-danger-bg)] text-[var(--color-button-danger-text)] hover:border-[var(--color-button-danger-border-hover)] hover:bg-[var(--color-button-danger-bg-hover)]"
+        ? "border border-(--color-button-danger-border) bg-(--color-button-danger-bg) text-(--color-button-danger-text) hover:border-(--color-button-danger-border-hover) hover:bg-(--color-button-danger-bg-hover)"
         : variant === "ghost"
-          ? "border border-transparent bg-transparent text-[var(--color-button-ghost-text)] hover:border-[var(--color-button-ghost-border-hover)] hover:bg-[var(--color-button-ghost-bg-hover)] hover:text-[var(--color-button-ghost-text-hover)]"
-          : "border border-[var(--color-button-secondary-border)] bg-[var(--color-button-secondary-bg)] text-[var(--color-button-secondary-text)] hover:border-[var(--color-button-secondary-border-hover)] hover:bg-[var(--color-button-secondary-bg-hover)]";
+          ? "border border-transparent bg-transparent text-(--color-button-ghost-text) hover:border-(--color-button-ghost-border-hover) hover:bg-(--color-button-ghost-bg-hover) hover:text-(--color-button-ghost-text-hover)"
+          : "border border-(--color-button-secondary-border) bg-(--color-button-secondary-bg) text-(--color-button-secondary-text) hover:border-(--color-button-secondary-border-hover) hover:bg-(--color-button-secondary-bg-hover)";
 
   const sizeClassName =
     size === "sm"
@@ -91,10 +92,10 @@ export function Field({
   return (
     <label className="flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between gap-2">
-        <div className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+        <div className="text-[10px] font-medium tracking-[0.14em] text-(--color-text-subtle) uppercase">
           {label}
         </div>
-        {hint ? <div className="text-[11px] text-[var(--color-text-hint)]">{hint}</div> : null}
+        {hint ? <div className="text-[11px] text-(--color-text-hint)">{hint}</div> : null}
       </div>
       {children}
     </label>
@@ -113,7 +114,8 @@ export function Input({
   textClassName?: string;
 }) {
   const displayValue = toDisplayText(value);
-  const overlayText = displayValue || (typeof placeholder === "string" ? placeholder : "");
+  const deferredDisplayValue = useDeferredValue(displayValue);
+  const overlayText = deferredDisplayValue || (typeof placeholder === "string" ? placeholder : "");
 
   return (
     <div className="relative">
@@ -121,7 +123,7 @@ export function Input({
         <div
           aria-hidden="true"
           className={cn(
-            "pointer-events-none absolute inset-0 flex items-center overflow-hidden rounded-[7px] px-3 text-[13px] text-[var(--color-text-overlay)]",
+            "pointer-events-none absolute inset-0 flex items-center overflow-hidden rounded-[7px] px-3 text-[13px] text-(--color-text-overlay)",
             textClassName,
           )}
         >
@@ -130,9 +132,9 @@ export function Input({
       ) : null}
       <input
         className={cn(
-          "w-full rounded-[7px] border border-[var(--color-field-border)] bg-[var(--color-field-bg)] px-3 py-2 text-[13px] text-[var(--color-text-strong)] outline-none transition-colors placeholder:text-[var(--color-text-placeholder)] focus:border-[var(--color-field-focus)]",
+          "w-full rounded-[7px] border border-(--color-field-border) bg-(--color-field-bg) px-3 py-2 text-[13px] text-(--color-text-strong) transition-colors outline-none placeholder:text-(--color-text-placeholder) focus:border-(--color-field-focus)",
           textClassName,
-          showWhitespace && "text-transparent caret-[var(--color-text-strong)]",
+          showWhitespace && "text-transparent caret-(--color-text-strong)",
           className,
         )}
         placeholder={showWhitespace ? "" : placeholder}
@@ -158,7 +160,8 @@ export function Textarea({
   const [scrollTop, setScrollTop] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const displayValue = toDisplayText(value);
-  const overlayText = displayValue || (typeof placeholder === "string" ? placeholder : "");
+  const deferredDisplayValue = useDeferredValue(displayValue);
+  const overlayText = deferredDisplayValue || (typeof placeholder === "string" ? placeholder : "");
 
   return (
     <div className="relative">
@@ -166,12 +169,12 @@ export function Textarea({
         <div
           aria-hidden="true"
           className={cn(
-            "pointer-events-none absolute inset-0 overflow-hidden rounded-[7px] px-3 py-2 text-[13px] leading-6 text-[var(--color-text-overlay)]",
+            "pointer-events-none absolute inset-0 overflow-hidden rounded-[7px] px-3 py-2 text-[13px] leading-6 text-(--color-text-overlay)",
             textClassName,
           )}
         >
           <pre
-            className="min-h-full whitespace-pre-wrap break-words"
+            className="min-h-full wrap-break-word whitespace-pre-wrap"
             style={{
               transform: `translate(${-scrollLeft}px, ${-scrollTop}px)`,
             }}
@@ -182,9 +185,9 @@ export function Textarea({
       ) : null}
       <textarea
         className={cn(
-          "min-h-28 w-full rounded-[7px] border border-[var(--color-field-border)] bg-[var(--color-field-bg)] px-3 py-2 text-[13px] leading-6 text-[var(--color-text-strong)] outline-none transition-colors placeholder:text-[var(--color-text-placeholder)] focus:border-[var(--color-field-focus)]",
+          "min-h-28 w-full rounded-[7px] border border-(--color-field-border) bg-(--color-field-bg) px-3 py-2 text-[13px] leading-6 text-(--color-text-strong) transition-colors outline-none placeholder:text-(--color-text-placeholder) focus:border-(--color-field-focus)",
           textClassName,
-          showWhitespace && "text-transparent caret-[var(--color-text-strong)]",
+          showWhitespace && "text-transparent caret-(--color-text-strong)",
           className,
         )}
         placeholder={showWhitespace ? "" : placeholder}
@@ -204,7 +207,7 @@ export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectE
   return (
     <select
       className={cn(
-        "w-full rounded-[7px] border border-[var(--color-field-border)] bg-[var(--color-field-bg)] px-3 py-2 text-[13px] text-[var(--color-text-strong)] outline-none transition-colors focus:border-[var(--color-field-focus)]",
+        "w-full rounded-[7px] border border-(--color-field-border) bg-(--color-field-bg) px-3 py-2 text-[13px] text-(--color-text-strong) transition-colors outline-none focus:border-(--color-field-focus)",
         className,
       )}
       {...props}
@@ -219,10 +222,10 @@ export function Pill({
   return (
     <span
       className={cn(
-        "inline-flex rounded-[7px] border px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em]",
+        "inline-flex rounded-[7px] border px-2 py-1 text-[10px] font-medium tracking-[0.14em] uppercase",
         tone === "accent"
-          ? "border-[var(--color-pill-accent-border)] bg-[var(--color-pill-accent-bg)] text-[var(--color-pill-accent-text)]"
-          : "border-[var(--color-pill-neutral-border)] bg-[var(--color-pill-neutral-bg)] text-[var(--color-pill-neutral-text)]",
+          ? "border-(--color-pill-accent-border) bg-(--color-pill-accent-bg) text-(--color-pill-accent-text)"
+          : "border-(--color-pill-neutral-border) bg-(--color-pill-neutral-bg) text-(--color-pill-neutral-text)",
       )}
     >
       {children}

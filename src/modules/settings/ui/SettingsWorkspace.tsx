@@ -88,18 +88,18 @@ export function SettingsWorkspace({
               return (
                 <button
                   key={section.id}
-                  className={`rounded-[8px] border px-3 py-2 text-left transition-colors ${
+                  className={`rounded-lg border px-3 py-2 text-left transition-colors ${
                     active
-                      ? "border-[var(--color-panel-border-strong)] bg-[var(--color-nav-active-bg)]"
-                      : "border-transparent bg-transparent hover:border-[var(--color-panel-border)] hover:bg-[var(--color-nav-hover-bg)]"
+                      ? "border-(--color-panel-border-strong) bg-(--color-nav-active-bg)"
+                      : "border-transparent bg-transparent hover:border-(--color-panel-border) hover:bg-(--color-nav-hover-bg)"
                   }`}
                   type="button"
                   onClick={() => setActiveSection(section.id)}
                 >
-                  <div className="text-[13px] font-medium text-[var(--color-text-strong)]">
+                  <div className="text-[13px] font-medium text-(--color-text-strong)">
                     {section.label}
                   </div>
-                  <div className="mt-1 text-[11px] text-[var(--color-text-subtle)]">
+                  <div className="mt-1 text-[11px] text-(--color-text-subtle)">
                     {section.description}
                   </div>
                 </button>
@@ -130,11 +130,11 @@ export function SettingsWorkspace({
 
                 <div className="px-3.5 py-3.5">
                   <div className="grid gap-3">
-                    <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3.5 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                    <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3.5 py-3">
+                      <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
                         Privacy guarantees
                       </div>
-                      <div className="mt-2.5 space-y-1.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
+                      <div className="mt-2.5 space-y-1.5 text-[13px] leading-6 text-(--color-text-muted)">
                         <p>
                           件名、本文、宛先、署名本文、クリップボードの内容はログへ保存しません。
                         </p>
@@ -184,11 +184,11 @@ export function SettingsWorkspace({
                       </Field>
                     </div>
 
-                    <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3.5 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                    <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3.5 py-3">
+                      <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
                         Current behavior
                       </div>
-                      <div className="mt-2.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
+                      <div className="mt-2.5 text-[13px] leading-6 text-(--color-text-muted)">
                         {loggingModeDescription(loggingSettings.mode)} 保持期間は{" "}
                         {loggingSettings.retentionDays}
                         日です。
@@ -232,11 +232,11 @@ export function SettingsWorkspace({
                       note="JSONL 形式で保存"
                     />
                   </div>
-                  <section className="mt-3 rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3.5 py-3">
-                    <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                  <section className="mt-3 rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3.5 py-3">
+                    <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
                       Log directory
                     </div>
-                    <pre className="mt-2.5 overflow-x-auto whitespace-pre-wrap break-all text-[13px] leading-6 text-[var(--color-text-strong)]">
+                    <pre className="mt-2.5 overflow-x-auto text-[13px] leading-6 break-all whitespace-pre-wrap text-(--color-text-strong)">
                       {loggingSettings.directoryPath || "初回書き込み時に作成されます。"}
                     </pre>
                   </section>
@@ -250,21 +250,21 @@ export function SettingsWorkspace({
 
                 <div className="px-3.5 py-3.5">
                   <div className="grid gap-3">
-                    <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3.5 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                    <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3.5 py-3">
+                      <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
                         What is included
                       </div>
-                      <div className="mt-2.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
-                        下書き、テンプレート、署名、差し込み値セット、履歴、ログ設定を
-                        JSON として保存します。診断ログ本体は含めません。
+                      <div className="mt-2.5 text-[13px] leading-6 text-(--color-text-muted)">
+                        下書き、テンプレート、署名、差し込み値セット、履歴、ログ設定を JSON
+                        として保存します。診断ログ本体は含めません。
                       </div>
                     </section>
 
-                    <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3.5 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                    <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3.5 py-3">
+                      <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
                         Actions
                       </div>
-                      <div className="mt-2.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
+                      <div className="mt-2.5 text-[13px] leading-6 text-(--color-text-muted)">
                         Import は現在のローカルデータを置き換えます。必要なら先に Export
                         を実行してください。
                       </div>
@@ -313,7 +313,7 @@ export function SettingsWorkspace({
       >
         <div className="grid gap-2.5">
           {recentLogs.length === 0 ? (
-            <div className="rounded-[8px] border border-[var(--color-panel-border)] bg-[var(--color-panel-bg)] px-3.5 py-3 text-[13px] leading-6 text-[var(--color-text-muted)]">
+            <div className="rounded-lg border border-(--color-panel-border) bg-(--color-panel-bg) px-3.5 py-3 text-[13px] leading-6 text-(--color-text-muted)">
               {isLoadingRecentLogs
                 ? "安全なログを読み込んでいます。"
                 : "まだ表示できる診断ログはありません。"}
@@ -337,10 +337,10 @@ function PaneHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-11 items-center justify-between gap-3 border-b border-[var(--color-panel-border-strong)] px-3.5">
+    <div className="flex min-h-11 items-center justify-between gap-3 border-b border-(--color-panel-border-strong) px-3.5">
       <div className="min-w-0">
-        <div className="text-[13px] font-medium text-[var(--color-text-strong)]">{title}</div>
-        <div className="truncate text-[11px] text-[var(--color-text-subtle)]">{description}</div>
+        <div className="text-[13px] font-medium text-(--color-text-strong)">{title}</div>
+        <div className="truncate text-[11px] text-(--color-text-subtle)">{description}</div>
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>
@@ -349,12 +349,12 @@ function PaneHeader({
 
 function StatCard({ label, value, note }: { label: string; value: string; note: string }) {
   return (
-    <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3.5 py-3">
-      <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+    <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3.5 py-3">
+      <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
         {label}
       </div>
-      <div className="mt-2.5 text-[17px] font-medium text-[var(--color-text-strong)]">{value}</div>
-      <div className="mt-1.5 text-[13px] leading-6 text-[var(--color-text-muted)]">{note}</div>
+      <div className="mt-2.5 text-[17px] font-medium text-(--color-text-strong)">{value}</div>
+      <div className="mt-1.5 text-[13px] leading-6 text-(--color-text-muted)">{note}</div>
     </section>
   );
 }
@@ -365,13 +365,13 @@ function LogEntryCard({ entry }: { entry: LogEntrySnapshot }) {
   );
 
   return (
-    <article className="rounded-[8px] border border-[var(--color-panel-border)] bg-[var(--color-panel-bg)] px-3.5 py-3">
+    <article className="rounded-lg border border-(--color-panel-border) bg-(--color-panel-bg) px-3.5 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[13px] font-medium text-[var(--color-text-strong)]">
+          <div className="text-[13px] font-medium text-(--color-text-strong)">
             {entry.eventName}
           </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-[var(--color-text-subtle)]">
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-(--color-text-subtle)">
             <span>{formatLogTimestamp(entry.timestampMs)}</span>
             <span>{entry.module}</span>
             <span>{entry.result}</span>
@@ -389,14 +389,14 @@ function LogEntryCard({ entry }: { entry: LogEntrySnapshot }) {
           {contextEntries.map(([key, value]) => (
             <span
               key={key}
-              className="rounded-[7px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-2.5 py-1 text-[11px] text-[var(--color-text-muted)]"
+              className="rounded-[7px] border border-(--color-panel-border-strong) bg-(--color-field-bg) px-2.5 py-1 text-[11px] text-(--color-text-muted)"
             >
               {key}: {formatLogValue(value)}
             </span>
           ))}
         </div>
       ) : (
-        <div className="mt-2.5 text-[11px] text-[var(--color-text-subtle)]">
+        <div className="mt-2.5 text-[11px] text-(--color-text-subtle)">
           追加の要約情報はありません。
         </div>
       )}

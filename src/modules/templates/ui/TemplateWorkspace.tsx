@@ -80,10 +80,10 @@ export function TemplateWorkspace({
             description={templateCountLabel}
             title="Template list"
           />
-          <div className="border-b border-[var(--color-panel-border-strong)] px-1.5 py-1.5">
-            <div className="grid gap-2 rounded-[7px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-2.5 py-2">
+          <div className="border-b border-(--color-panel-border-strong) px-1.5 py-1.5">
+            <div className="grid gap-2 rounded-[7px] border border-(--color-panel-border-strong) bg-(--color-field-bg) px-2.5 py-2">
               <div className="grid gap-1.5">
-                <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
                   Search
                 </div>
                 <div className="flex items-center gap-2">
@@ -108,7 +108,7 @@ export function TemplateWorkspace({
               </div>
 
               <div className="grid gap-1.5">
-                <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
                   Sort
                 </div>
                 <Select
@@ -128,7 +128,7 @@ export function TemplateWorkspace({
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
             {templates.length === 0 ? (
-              <div className="rounded-[7px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3 py-2.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
+              <div className="rounded-[7px] border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3 py-2.5 text-[13px] leading-6 text-(--color-text-muted)">
                 {searchQuery.trim()
                   ? "検索に一致するテンプレートはありません。"
                   : "まだテンプレートはありません。"}
@@ -143,26 +143,26 @@ export function TemplateWorkspace({
                       key={template.id}
                       className={`w-full rounded-[7px] border px-2.5 py-2 text-left transition-colors ${
                         isActive
-                          ? "border-[var(--color-list-active-border)] bg-[var(--color-list-active-bg)]"
-                          : "border-transparent hover:border-[var(--color-list-hover-border)] hover:bg-[var(--color-list-hover-bg)]"
+                          ? "border-(--color-list-active-border) bg-(--color-list-active-bg)"
+                          : "border-transparent hover:border-(--color-list-hover-border) hover:bg-(--color-list-hover-bg)"
                       }`}
                       onClick={() => onSelectTemplate(template.id)}
                       type="button"
                     >
                       <div className="flex items-center gap-2">
-                        <div className="truncate text-[13px] font-medium text-[var(--color-text-strong)]">
+                        <div className="truncate text-[13px] font-medium text-(--color-text-strong)">
                           {template.name}
                         </div>
                         {template.isPinned ? (
-                          <span className="rounded-[6px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+                          <span className="rounded-md border border-(--color-panel-border-strong) bg-(--color-field-bg) px-1.5 py-0.5 text-[9px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
                             Pinned
                           </span>
                         ) : null}
                       </div>
-                      <div className="mt-1 truncate text-[11px] text-[var(--color-text-muted)]">
+                      <div className="mt-1 truncate text-[11px] text-(--color-text-muted)">
                         {truncate(template.subject || "件名未設定")}
                       </div>
-                      <div className="mt-1.5 text-[10px] text-[var(--color-text-subtle)]">
+                      <div className="mt-1.5 text-[10px] text-(--color-text-subtle)">
                         {formatStoredTime(template.updatedAt)}
                       </div>
                     </button>
@@ -245,14 +245,14 @@ export function TemplateWorkspace({
                   </Select>
                 </Field>
 
-                <div className="rounded-[7px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3 py-2.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
+                <div className="rounded-[7px] border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3 py-2.5 text-[13px] leading-6 text-(--color-text-muted)">
                   {"`{{相手名}}` や `{{日付}}` をそのまま保存できます。"}
                 </div>
               </div>
 
               <Field label="Recipient note" hint="社名や担当者など">
                 <Textarea
-                  className="min-h-[96px]"
+                  className="min-h-24"
                   placeholder={"株式会社サンプル\n営業部\n佐藤 様"}
                   rows={3}
                   showWhitespace={showWhitespace}
@@ -264,7 +264,7 @@ export function TemplateWorkspace({
 
               <Field label="Opening">
                 <Textarea
-                  className="min-h-[132px]"
+                  className="min-h-33"
                   rows={5}
                   showWhitespace={showWhitespace}
                   textClassName="mail-compose-text"
@@ -275,7 +275,7 @@ export function TemplateWorkspace({
 
               <Field label="Body">
                 <Textarea
-                  className="min-h-[280px]"
+                  className="min-h-70"
                   rows={12}
                   showWhitespace={showWhitespace}
                   textClassName="mail-compose-text"
@@ -286,7 +286,7 @@ export function TemplateWorkspace({
 
               <Field label="Closing">
                 <Textarea
-                  className="min-h-[132px]"
+                  className="min-h-33"
                   rows={5}
                   showWhitespace={showWhitespace}
                   textClassName="mail-compose-text"
@@ -320,19 +320,19 @@ export function TemplateWorkspace({
           />
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="border-b border-[var(--color-panel-border-strong)] px-3.5 py-3">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+            <div className="border-b border-(--color-panel-border-strong) px-3.5 py-3">
+              <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
                 Subject
               </div>
-              <div className="mt-1.5 text-[13px] text-[var(--color-text-strong)]">
+              <div className="mt-1.5 text-[13px] text-(--color-text-strong)">
                 {templateForm.subject || "件名未設定"}
               </div>
             </div>
             <div className="px-3.5 py-3">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+              <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
                 Body
               </div>
-              <pre className="mail-preview-text mt-2 overflow-x-auto rounded-[7px] border border-[var(--color-panel-border-strong)] bg-[var(--color-preview-bg)] px-3.5 py-3 whitespace-pre-wrap text-[var(--color-preview-text)]">
+              <pre className="mail-preview-text mt-2 overflow-x-auto rounded-[7px] border border-(--color-panel-border-strong) bg-(--color-preview-bg) px-3.5 py-3 whitespace-pre-wrap text-(--color-preview-text)">
                 {previewBodyText}
               </pre>
             </div>
@@ -352,20 +352,20 @@ export function TemplateWorkspace({
         onClose={() => setIsWidePreviewOpen(false)}
       >
         <div className="grid gap-3 xl:grid-cols-[260px_minmax(0,1fr)]">
-          <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] p-4">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+          <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) p-4">
+            <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
               Subject
             </div>
-            <div className="mt-2.5 text-[13px] text-[var(--color-text-strong)]">
+            <div className="mt-2.5 text-[13px] text-(--color-text-strong)">
               {templateForm.subject || "件名未設定"}
             </div>
           </section>
 
-          <section className="rounded-[8px] border border-[var(--color-panel-border-strong)] bg-[var(--color-preview-bg)] p-4">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">
+          <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-preview-bg) p-4">
+            <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
               Body
             </div>
-            <pre className="mail-preview-text mt-2.5 min-h-[480px] overflow-x-auto whitespace-pre-wrap text-[var(--color-preview-text)]">
+            <pre className="mail-preview-text mt-2.5 min-h-120 overflow-x-auto whitespace-pre-wrap text-(--color-preview-text)">
               {previewBodyText}
             </pre>
           </section>
@@ -385,10 +385,10 @@ function PaneHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-11 items-center justify-between gap-3 border-b border-[var(--color-panel-border-strong)] px-3.5">
+    <div className="flex min-h-11 items-center justify-between gap-3 border-b border-(--color-panel-border-strong) px-3.5">
       <div className="min-w-0">
-        <div className="text-[13px] font-medium text-[var(--color-text-strong)]">{title}</div>
-        <div className="truncate text-[11px] text-[var(--color-text-subtle)]">{description}</div>
+        <div className="text-[13px] font-medium text-(--color-text-strong)">{title}</div>
+        <div className="truncate text-[11px] text-(--color-text-subtle)">{description}</div>
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>

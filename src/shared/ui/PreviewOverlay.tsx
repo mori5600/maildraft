@@ -50,18 +50,16 @@ export function PreviewOverlay({
       style={{ backgroundColor: "var(--color-overlay-backdrop)" }}
       onMouseDown={onClose}
     >
-      <div className="mx-auto flex h-full w-full max-w-[1320px] items-stretch px-3 py-3 md:px-4 md:py-4">
+      <div className="mx-auto flex h-full w-full max-w-330 items-stretch px-3 py-3 md:px-4 md:py-4">
         <Panel
           className="flex h-full min-h-0 w-full flex-col overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,0.24)]"
           onMouseDown={(event) => event.stopPropagation()}
         >
-          <div className="flex min-h-12 items-center justify-between gap-3 border-b border-[var(--color-panel-border-strong)] px-4">
+          <div className="flex min-h-12 items-center justify-between gap-3 border-b border-(--color-panel-border-strong) px-4">
             <div className="min-w-0">
-              <div className="text-[13px] font-medium text-[var(--color-text-strong)]">{title}</div>
+              <div className="text-[13px] font-medium text-(--color-text-strong)">{title}</div>
               {description ? (
-                <div className="truncate text-[11px] text-[var(--color-text-subtle)]">
-                  {description}
-                </div>
+                <div className="truncate text-[11px] text-(--color-text-subtle)">{description}</div>
               ) : null}
             </div>
             <div className="flex shrink-0 items-center gap-2">
