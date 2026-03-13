@@ -10,7 +10,11 @@ use app::{
     settings::{LoggingSettingsInput, LoggingSettingsSnapshot},
 };
 use modules::{
-    drafts::DraftInput, signatures::SignatureInput, store::StoreSnapshot, templates::TemplateInput,
+    drafts::DraftInput,
+    signatures::SignatureInput,
+    store::StoreSnapshot,
+    templates::TemplateInput,
+    variable_presets::VariablePresetInput,
 };
 
 #[tauri::command]
@@ -62,6 +66,22 @@ fn save_template(
     input: TemplateInput,
 ) -> Result<StoreSnapshot, String> {
     state.save_template(input)
+}
+
+#[tauri::command]
+fn save_variable_preset(
+    state: tauri::State<'_, AppState>,
+    input: VariablePresetInput,
+) -> Result<StoreSnapshot, String> {
+    state.save_variable_preset(input)
+}
+
+#[tauri::command]
+fn delete_variable_preset(
+    state: tauri::State<'_, AppState>,
+    id: String,
+) -> Result<StoreSnapshot, String> {
+    state.delete_variable_preset(&id)
 }
 
 #[tauri::command]
@@ -182,6 +202,8 @@ pub fn run() {
             permanently_delete_draft_from_trash,
             restore_draft_history,
             save_template,
+            save_variable_preset,
+            delete_variable_preset,
             delete_template,
             restore_template_from_trash,
             permanently_delete_template_from_trash,

@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
 import type { DraftInput } from "../../modules/drafts/model";
+import type { VariablePresetInput } from "../../modules/drafts/variable-presets";
 import type {
   ImportedBackupSnapshot,
   LogEntrySnapshot,
@@ -29,6 +30,12 @@ export const maildraftApi = {
   },
   restoreDraftHistory(draftId: string, historyId: string) {
     return invoke<StoreSnapshot>("restore_draft_history", { draftId, historyId });
+  },
+  saveVariablePreset(input: VariablePresetInput) {
+    return invoke<StoreSnapshot>("save_variable_preset", { input });
+  },
+  deleteVariablePreset(id: string) {
+    return invoke<StoreSnapshot>("delete_variable_preset", { id });
   },
   saveTemplate(input: TemplateInput) {
     return invoke<StoreSnapshot>("save_template", { input });

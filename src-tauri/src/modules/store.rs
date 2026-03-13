@@ -6,6 +6,7 @@ use crate::modules::{
     signatures::{Signature, SignatureInput},
     templates::{Template, TemplateInput},
     trash::{TrashSnapshot, TrashedDraft, TrashedSignature, TrashedTemplate},
+    variable_presets::{VariablePreset, VariablePresetInput},
 };
 
 const MAX_DRAFT_HISTORY_ENTRIES_PER_DRAFT: usize = 20;
@@ -18,6 +19,8 @@ pub struct StoreSnapshot {
     pub drafts: Vec<Draft>,
     #[serde(default)]
     pub draft_history: Vec<DraftHistoryEntry>,
+    #[serde(default)]
+    pub variable_presets: Vec<VariablePreset>,
     #[serde(default)]
     pub templates: Vec<Template>,
     #[serde(default)]
@@ -75,6 +78,7 @@ impl StoreSnapshot {
         Self {
             drafts: vec![draft],
             draft_history: Vec::new(),
+            variable_presets: Vec::new(),
             templates: vec![template],
             signatures: vec![signature],
             trash: TrashSnapshot::default(),
@@ -158,6 +162,26 @@ impl StoreSnapshot {
         }
 
         self.templates.push(Template::new(input, timestamp));
+    }
+
+    pub fn upsert_variable_preset(&mut self, input: VariablePresetInput, timestamp: &str) {
+        if let Some(existing) = self
+            .variable_presets
+            .iter_mut()
+            .find(|preset| preset.id == input.id)
+        {
+            existing.update(input, timestamp);
+            return;
+        }
+
+        self.variable_presets
+            .push(VariablePreset::new(input, timestamp));
+    }
+
+    pub fn delete_variable_preset(&mut self, id: &str) -> bool {
+        let initial_len = self.variable_presets.len();
+        self.variable_presets.retain(|preset| preset.id != id);
+        initial_len != self.variable_presets.len()
     }
 
     pub fn delete_template(&mut self, id: &str, timestamp: &str) {
@@ -400,6 +424,8 @@ impl StoreSnapshot {
                 .cmp(&left.is_pinned)
                 .then(right.updated_at.cmp(&left.updated_at))
         });
+        self.variable_presets
+            .sort_by(|left, right| right.updated_at.cmp(&left.updated_at));
         self.signatures.sort_by(|left, right| {
             right
                 .is_pinned

@@ -10,6 +10,7 @@ import type { Signature } from "../../signatures/model";
 import type { Template } from "../../templates/model";
 import type { Draft, DraftHistoryEntry, DraftInput } from "../model";
 import { draftLabel } from "../model";
+import type { VariablePreset } from "../variable-presets";
 import { DraftHistoryOverlay } from "./DraftHistoryOverlay";
 
 interface DraftWorkspaceProps {
@@ -24,17 +25,28 @@ interface DraftWorkspaceProps {
   previewText: string;
   checks: string[];
   variableNames: string[];
+  variablePresets: VariablePreset[];
+  selectedVariablePresetId: string | null;
+  variablePresetName: string;
   showWhitespace: boolean;
   autoSaveLabel: string;
   searchQuery: string;
   sort: DraftSortOption;
   canDuplicate: boolean;
+  canSaveVariablePreset: boolean;
+  canApplyVariablePreset: boolean;
   onSelectDraft: (id: string) => void;
   onCreateDraft: () => void;
   onChangeSearchQuery: (value: string) => void;
   onChangeSort: (value: DraftSortOption) => void;
   onChangeDraft: <K extends keyof DraftInput>(field: K, value: DraftInput[K]) => void;
   onChangeDraftVariable: (name: string, value: string) => void;
+  onSelectVariablePreset: (id: string | null) => void;
+  onChangeVariablePresetName: (value: string) => void;
+  onCreateVariablePreset: () => void;
+  onApplyVariablePreset: () => void;
+  onSaveVariablePreset: () => Promise<void>;
+  onDeleteVariablePreset: () => Promise<void>;
   onCopyPreview: () => Promise<void>;
   onSaveDraft: () => Promise<void>;
   onDeleteDraft: () => Promise<void>;
@@ -56,17 +68,28 @@ export function DraftWorkspace({
   previewText,
   checks,
   variableNames,
+  variablePresets,
+  selectedVariablePresetId,
+  variablePresetName,
   showWhitespace,
   autoSaveLabel,
   searchQuery,
   sort,
   canDuplicate,
+  canSaveVariablePreset,
+  canApplyVariablePreset,
   onSelectDraft,
   onCreateDraft,
   onChangeSearchQuery,
   onChangeSort,
   onChangeDraft,
   onChangeDraftVariable,
+  onSelectVariablePreset,
+  onChangeVariablePresetName,
+  onCreateVariablePreset,
+  onApplyVariablePreset,
+  onSaveVariablePreset,
+  onDeleteVariablePreset,
   onCopyPreview,
   onSaveDraft,
   onDeleteDraft,
@@ -398,6 +421,73 @@ export function DraftWorkspace({
                   </div>
                 ) : (
                   <>
+                    <div className="rounded-[7px] border border-[var(--color-panel-border-strong)] bg-[var(--color-field-bg)] px-3 py-3">
+                      <div className="grid gap-3">
+                        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                          <Field label="Value set">
+                            <Select
+                              value={selectedVariablePresetId ?? ""}
+                              onChange={(event) =>
+                                onSelectVariablePreset(event.currentTarget.value || null)
+                              }
+                            >
+                              <option value="">保存済みセットを選択</option>
+                              {variablePresets.map((preset) => (
+                                <option key={preset.id} value={preset.id}>
+                                  {preset.name}
+                                </option>
+                              ))}
+                            </Select>
+                          </Field>
+
+                          <Field label="Name">
+                            <Input
+                              placeholder="A社向け"
+                              showWhitespace={showWhitespace}
+                              value={variablePresetName}
+                              onChange={(event) =>
+                                onChangeVariablePresetName(event.currentTarget.value)
+                              }
+                            />
+                          </Field>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            disabled={!canApplyVariablePreset}
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => void onApplyVariablePreset()}
+                          >
+                            Apply
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={onCreateVariablePreset}
+                          >
+                            New set
+                          </Button>
+                          <Button
+                            disabled={!canSaveVariablePreset}
+                            size="sm"
+                            variant="primary"
+                            onClick={() => void onSaveVariablePreset()}
+                          >
+                            Save values
+                          </Button>
+                          <Button
+                            disabled={!selectedVariablePresetId}
+                            size="sm"
+                            variant="danger"
+                            onClick={() => void onDeleteVariablePreset()}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
                     {variableNames.map((name) => (
                       <Field key={name} hint={`{{${name}}}`} label={name}>
                         <Input

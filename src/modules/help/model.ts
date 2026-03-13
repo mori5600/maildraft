@@ -48,6 +48,10 @@ export const HELP_USAGE_GROUPS: HelpGuideGroup[] = [
         body: "必要なら Template と Signature を選びます。テンプレートを使うと定型文をすぐ下書きへ反映できます。",
       },
       {
+        title: "差し込み値を保存する",
+        body: "Variables に保存済みセットを作っておくと、会社名や担当者名などの差し込み値を次回以降まとめて再利用できます。",
+      },
+      {
         title: "プレビューで確認してコピーする",
         body: "右側の Preview で完成形を確認して、問題なければ `Copy` でプレーンテキストの本文をコピーします。",
       },
@@ -87,7 +91,7 @@ export const HELP_USAGE_GROUPS: HelpGuideGroup[] = [
       },
       {
         title: "必要に応じてバックアップする",
-        body: "設定のバックアップ画面から JSON を Export / Import できます。別 PC への移行や、作業前の控えに使えます。",
+        body: "設定のバックアップ画面から JSON を Export / Import できます。下書き、テンプレート、署名、差し込み値セットごと別 PC へ移行できます。",
       },
     ],
   },

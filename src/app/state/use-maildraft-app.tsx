@@ -12,6 +12,12 @@ import {
   toDraftInput,
 } from "../../modules/drafts/model";
 import { DraftWorkspace } from "../../modules/drafts/ui/DraftWorkspace";
+import {
+  applyVariablePresetValues,
+  collectMeaningfulVariableValues,
+  hasMeaningfulVariableValues,
+  type VariablePresetInput,
+} from "../../modules/drafts/variable-presets";
 import { HelpWorkspace } from "../../modules/help/ui/HelpWorkspace";
 import {
   collectDraftChecks,
@@ -75,6 +81,7 @@ type DraftAutoSaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 const EMPTY_SNAPSHOT: StoreSnapshot = {
   drafts: [],
   draftHistory: [],
+  variablePresets: [],
   templates: [],
   signatures: [],
   trash: {
@@ -126,7 +133,9 @@ export function useMaildraftApp() {
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [selectedSignatureId, setSelectedSignatureId] = useState<string | null>(null);
+  const [selectedVariablePresetId, setSelectedVariablePresetId] = useState<string | null>(null);
   const [selectedTrashItemKey, setSelectedTrashItemKey] = useState<string | null>(null);
+  const [variablePresetName, setVariablePresetName] = useState("");
 
   const [draftForm, setDraftForm] = useState<DraftInput>(() => createEmptyDraft(null));
   const [templateForm, setTemplateForm] = useState<TemplateInput>(() => createEmptyTemplate(null));
@@ -206,6 +215,14 @@ export function useMaildraftApp() {
   const draftPreviewText = renderDraftPreview(draftForm, selectedDraftSignature);
   const draftPreviewSubject = renderDraftSubject(draftForm);
   const draftVariableNames = collectDraftVariableNames(draftForm, selectedDraftSignature);
+  const selectedVariablePreset =
+    snapshot.variablePresets.find((preset) => preset.id === selectedVariablePresetId) ?? null;
+  const canSaveVariablePreset =
+    variablePresetName.trim().length > 0 &&
+    hasMeaningfulVariableValues(draftVariableNames, draftForm.variableValues);
+  const canApplyVariablePreset =
+    selectedVariablePreset !== null &&
+    draftVariableNames.some((name) => typeof selectedVariablePreset.values[name] === "string");
   const draftHistory = snapshot.draftHistory.filter((entry) => entry.draftId === draftForm.id);
   const templatePreviewText = renderTemplatePreview(templateForm, selectedTemplateSignature);
   const trashItems = collectTrashItems(snapshot.trash);
@@ -285,6 +302,16 @@ export function useMaildraftApp() {
     setSelectedTrashItemKey(trashItems[0].key);
   }, [selectedTrashItemKey, trashItems]);
 
+  useEffect(() => {
+    if (
+      selectedVariablePresetId !== null &&
+      !snapshot.variablePresets.some((preset) => preset.id === selectedVariablePresetId)
+    ) {
+      setSelectedVariablePresetId(null);
+      setVariablePresetName("");
+    }
+  }, [selectedVariablePresetId, snapshot.variablePresets]);
+
   function hydrateAll(nextSnapshot: StoreSnapshot) {
     setSnapshot(nextSnapshot);
 
@@ -295,7 +322,9 @@ export function useMaildraftApp() {
     setSelectedDraftId(firstDraft?.id ?? null);
     setSelectedTemplateId(firstTemplate?.id ?? null);
     setSelectedSignatureId(firstSignature?.id ?? null);
+    setSelectedVariablePresetId(null);
     setSelectedTrashItemKey(collectTrashItems(nextSnapshot.trash)[0]?.key ?? null);
+    setVariablePresetName("");
 
     setDraftForm(
       firstDraft ? toDraftInput(firstDraft) : createEmptyDraft(getDefaultSignatureId(nextSnapshot)),
@@ -421,6 +450,105 @@ export function useMaildraftApp() {
         [name]: value,
       },
     }));
+  }
+
+  function selectVariablePreset(id: string | null) {
+    if (!id) {
+      setSelectedVariablePresetId(null);
+      setVariablePresetName("");
+      return;
+    }
+
+    const preset = snapshot.variablePresets.find((item) => item.id === id);
+    if (!preset) {
+      return;
+    }
+
+    setSelectedVariablePresetId(preset.id);
+    setVariablePresetName(preset.name);
+  }
+
+  function createVariablePreset() {
+    setSelectedVariablePresetId(null);
+    setVariablePresetName("");
+  }
+
+  function changeVariablePresetName(value: string) {
+    setVariablePresetName(value);
+  }
+
+  function applyVariablePreset() {
+    if (!selectedVariablePreset) {
+      return;
+    }
+
+    setDraftForm((current) => ({
+      ...current,
+      variableValues: applyVariablePresetValues(
+        current.variableValues,
+        selectedVariablePreset.values,
+        draftVariableNames,
+      ),
+    }));
+    setNotice(`変数値セット「${selectedVariablePreset.name}」を適用しました。`);
+  }
+
+  async function saveVariablePreset() {
+    if (!canSaveVariablePreset) {
+      return;
+    }
+
+    const input: VariablePresetInput = {
+      id: selectedVariablePresetId ?? crypto.randomUUID(),
+      name: variablePresetName.trim(),
+      values: collectMeaningfulVariableValues(draftVariableNames, draftForm.variableValues),
+    };
+
+    try {
+      setError(null);
+      const nextSnapshot = await maildraftApi.saveVariablePreset(input);
+      setSnapshot(nextSnapshot);
+      setSelectedVariablePresetId(input.id);
+      setVariablePresetName(input.name);
+      setNotice(
+        selectedVariablePresetId
+          ? "変数値セットを更新しました。"
+          : "変数値セットを保存しました。",
+      );
+    } catch (saveError) {
+      setError(asMessage(saveError));
+    }
+  }
+
+  async function deleteVariablePreset() {
+    if (!selectedVariablePreset) {
+      return;
+    }
+
+    const confirmed = await confirm(
+      `変数値セット「${selectedVariablePreset.name}」を削除します。続けますか？`,
+      {
+        title: "MailDraft",
+        kind: "warning",
+        okLabel: "Delete",
+        cancelLabel: "Cancel",
+      },
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setError(null);
+      const nextSnapshot = await maildraftApi.deleteVariablePreset(selectedVariablePreset.id);
+      setSnapshot(nextSnapshot);
+      setSelectedVariablePresetId(null);
+      setVariablePresetName("");
+      setNotice("変数値セットを削除しました。");
+    } catch (deleteError) {
+      setError(asMessage(deleteError));
+    }
   }
 
   function changeDraftSearchQuery(value: string) {
@@ -1154,7 +1282,9 @@ export function useMaildraftApp() {
     draftWorkspace: (
       <DraftWorkspace
         autoSaveLabel={formatDraftAutoSaveState(draftAutoSaveState)}
+        canApplyVariablePreset={canApplyVariablePreset}
         canDuplicate={selectedDraftId !== null}
+        canSaveVariablePreset={canSaveVariablePreset}
         checks={draftChecks}
         draftForm={draftForm}
         draftHistory={draftHistory}
@@ -1165,22 +1295,31 @@ export function useMaildraftApp() {
         previewSubject={draftPreviewSubject}
         previewText={draftPreviewText}
         selectedDraftId={selectedDraftId}
+        selectedVariablePresetId={selectedVariablePresetId}
         signatures={snapshot.signatures}
         showWhitespace={showWhitespace}
         templates={snapshot.templates}
         variableNames={draftVariableNames}
+        variablePresetName={variablePresetName}
+        variablePresets={snapshot.variablePresets}
         onApplyTemplate={applyTemplate}
+        onApplyVariablePreset={applyVariablePreset}
         onChangeDraft={changeDraft}
         onChangeSearchQuery={changeDraftSearchQuery}
         onChangeSort={changeDraftSort}
         onChangeDraftVariable={changeDraftVariable}
+        onChangeVariablePresetName={changeVariablePresetName}
         onCopyPreview={copyDraftPreview}
         onCreateDraft={createDraft}
+        onCreateVariablePreset={createVariablePreset}
         onDeleteDraft={deleteDraft}
+        onDeleteVariablePreset={deleteVariablePreset}
         onDuplicateDraft={duplicateDraft}
         onRestoreDraftHistory={restoreDraftHistory}
         onSaveDraft={saveDraft}
+        onSaveVariablePreset={saveVariablePreset}
         onSelectDraft={selectDraft}
+        onSelectVariablePreset={selectVariablePreset}
         onTogglePinned={toggleDraftPinned}
       />
     ),

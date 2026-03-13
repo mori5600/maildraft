@@ -255,8 +255,8 @@ export function SettingsWorkspace({
                         What is included
                       </div>
                       <div className="mt-2.5 text-[13px] leading-6 text-[var(--color-text-muted)]">
-                        下書き、テンプレート、署名、履歴、ログ設定を JSON
-                        として保存します。診断ログ本体は含めません。
+                        下書き、テンプレート、署名、差し込み値セット、履歴、ログ設定を
+                        JSON として保存します。診断ログ本体は含めません。
                       </div>
                     </section>
 
