@@ -338,3 +338,125 @@ fn collect_log_paths(logs_dir: &Path) -> Result<Vec<PathBuf>, String> {
 
     Ok(paths)
 }
+
+#[cfg(test)]
+mod tests {
+    use std::{thread, time::Duration};
+
+    use pretty_assertions::assert_eq;
+    use serde_json::Map;
+    use tempfile::tempdir;
+
+    use super::{AppLogger, LogEntry, LogLevel};
+    use crate::app::settings::{LoggingMode, LoggingSettings};
+
+    #[test]
+    fn record_skips_info_entries_when_mode_is_errors_only() {
+        let temp_dir = tempdir().unwrap();
+        let logger = AppLogger::new(temp_dir.path().join("logs"));
+
+        logger
+            .record(
+                &LoggingSettings {
+                    mode: LoggingMode::ErrorsOnly,
+                    retention_days: 14,
+                },
+                LogEntry {
+                    level: LogLevel::Info,
+                    event_name: "draft.save",
+                    module: "drafts",
+                    result: "success",
+                    duration_ms: Some(12),
+                    error_code: None,
+                    safe_context: Map::new(),
+                },
+            )
+            .unwrap();
+
+        let snapshot = logger
+            .snapshot(&LoggingSettings {
+                mode: LoggingMode::ErrorsOnly,
+                retention_days: 14,
+            })
+            .unwrap();
+
+        assert_eq!(snapshot.file_count, 0);
+        assert_eq!(snapshot.total_bytes, 0);
+    }
+
+    #[test]
+    fn record_and_load_recent_returns_latest_entries_first() {
+        let temp_dir = tempdir().unwrap();
+        let logger = AppLogger::new(temp_dir.path().join("logs"));
+        let settings = LoggingSettings {
+            mode: LoggingMode::Standard,
+            retention_days: 14,
+        };
+
+        logger
+            .record(
+                &settings,
+                LogEntry {
+                    level: LogLevel::Info,
+                    event_name: "draft.save",
+                    module: "drafts",
+                    result: "success",
+                    duration_ms: Some(10),
+                    error_code: None,
+                    safe_context: Map::new(),
+                },
+            )
+            .unwrap();
+        thread::sleep(Duration::from_millis(2));
+        logger
+            .record(
+                &settings,
+                LogEntry {
+                    level: LogLevel::Error,
+                    event_name: "draft.restore_history",
+                    module: "drafts",
+                    result: "failure",
+                    duration_ms: Some(22),
+                    error_code: Some("DRAFT_HISTORY_NOT_FOUND"),
+                    safe_context: Map::new(),
+                },
+            )
+            .unwrap();
+
+        let entries = logger.load_recent(14, 10).unwrap();
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].event_name, "draft.restore_history");
+        assert_eq!(entries[1].event_name, "draft.save");
+    }
+
+    #[test]
+    fn clear_removes_existing_log_files() {
+        let temp_dir = tempdir().unwrap();
+        let logger = AppLogger::new(temp_dir.path().join("logs"));
+        let settings = LoggingSettings {
+            mode: LoggingMode::Standard,
+            retention_days: 14,
+        };
+
+        logger
+            .record(
+                &settings,
+                LogEntry {
+                    level: LogLevel::Info,
+                    event_name: "template.save",
+                    module: "templates",
+                    result: "success",
+                    duration_ms: Some(8),
+                    error_code: None,
+                    safe_context: Map::new(),
+                },
+            )
+            .unwrap();
+
+        logger.clear().unwrap();
+        let snapshot = logger.snapshot(&settings).unwrap();
+
+        assert_eq!(snapshot.file_count, 0);
+        assert_eq!(snapshot.total_bytes, 0);
+    }
+}

@@ -137,3 +137,66 @@ impl DraftHistoryEntry {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use pretty_assertions::assert_eq;
+
+    use super::{Draft, DraftHistoryEntry, DraftInput};
+
+    fn sample_input() -> DraftInput {
+        DraftInput {
+            id: "draft-1".to_string(),
+            title: "下書き".to_string(),
+            is_pinned: true,
+            subject: "件名".to_string(),
+            recipient: "株式会社〇〇".to_string(),
+            opening: "お世話になっております。".to_string(),
+            body: "本文".to_string(),
+            closing: "よろしくお願いいたします。".to_string(),
+            template_id: Some("template-1".to_string()),
+            signature_id: Some("signature-1".to_string()),
+            variable_values: BTreeMap::from([("会社名".to_string(), "株式会社〇〇".to_string())]),
+        }
+    }
+
+    #[test]
+    fn draft_new_and_update_copy_values_from_input() {
+        let mut draft = Draft::new(sample_input(), "10");
+        assert_eq!(draft.updated_at, "10");
+        assert_eq!(draft.title, "下書き");
+        assert_eq!(draft.variable_values["会社名"], "株式会社〇〇");
+
+        let mut next_input = sample_input();
+        next_input.title = "更新後".to_string();
+        next_input.is_pinned = false;
+        next_input.body = "更新本文".to_string();
+        draft.update(next_input, "20");
+
+        assert_eq!(draft.title, "更新後");
+        assert_eq!(draft.is_pinned, false);
+        assert_eq!(draft.body, "更新本文");
+        assert_eq!(draft.updated_at, "20");
+    }
+
+    #[test]
+    fn draft_restore_and_is_same_content_behave_as_expected() {
+        let mut draft = Draft::new(sample_input(), "10");
+        let history = DraftHistoryEntry::from_draft(&draft, "15");
+
+        draft.title = "変更後".to_string();
+        draft.is_pinned = true;
+        draft.restore(&history, "30");
+
+        assert_eq!(draft.title, "下書き");
+        assert_eq!(draft.is_pinned, false);
+        assert_eq!(draft.updated_at, "30");
+
+        let matching_input = sample_input();
+        assert_eq!(draft.is_same_content(&matching_input), false);
+        draft.is_pinned = true;
+        assert_eq!(draft.is_same_content(&matching_input), true);
+    }
+}

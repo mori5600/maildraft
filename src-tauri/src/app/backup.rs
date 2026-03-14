@@ -58,3 +58,57 @@ fn now_unix_millis() -> u128 {
         .unwrap_or_default()
         .as_millis()
 }
+
+#[cfg(test)]
+mod tests {
+    use pretty_assertions::assert_eq;
+
+    use super::{BackupDocument, BACKUP_DOCUMENT_APP, BACKUP_DOCUMENT_VERSION};
+    use crate::app::settings::{AppSettings, LoggingMode, LoggingSettings};
+    use crate::modules::store::StoreSnapshot;
+
+    #[test]
+    fn backup_document_round_trips_and_normalizes_settings() {
+        let snapshot = StoreSnapshot::seeded();
+        let document = BackupDocument::from_state(
+            snapshot.clone(),
+            AppSettings {
+                logging: LoggingSettings {
+                    mode: LoggingMode::Standard,
+                    retention_days: 99,
+                },
+            },
+        );
+
+        let (restored_snapshot, restored_settings) = document.into_state().unwrap();
+
+        assert_eq!(restored_snapshot.drafts.len(), snapshot.drafts.len());
+        assert_eq!(restored_settings.logging.mode, LoggingMode::Standard);
+        assert_eq!(restored_settings.logging.retention_days, 14);
+    }
+
+    #[test]
+    fn backup_document_rejects_other_apps_and_versions() {
+        let err = BackupDocument {
+            app: "other-app".to_string(),
+            version: BACKUP_DOCUMENT_VERSION,
+            exported_at_ms: 0,
+            snapshot: StoreSnapshot::seeded(),
+            settings: AppSettings::default(),
+        }
+        .into_state()
+        .unwrap_err();
+        assert_eq!(err, "MailDraft のバックアップファイルではありません。");
+
+        let err = BackupDocument {
+            app: BACKUP_DOCUMENT_APP.to_string(),
+            version: BACKUP_DOCUMENT_VERSION + 1,
+            exported_at_ms: 0,
+            snapshot: StoreSnapshot::seeded(),
+            settings: AppSettings::default(),
+        }
+        .into_state()
+        .unwrap_err();
+        assert_eq!(err, "このバックアップ形式には対応していません。");
+    }
+}

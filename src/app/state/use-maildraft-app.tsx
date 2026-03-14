@@ -52,6 +52,16 @@ import {
   resolveInitialTheme,
 } from "../../shared/lib/theme";
 import type { StoreSnapshot, WorkspaceView } from "../../shared/types/store";
+import {
+  buildHydratedWorkspaceState,
+  buildWorkspaceSummaries,
+  resolveCreateShortcutAction,
+  resolvePinShortcutAction,
+  resolveSaveShortcutAction,
+  resolveSelectedTrashItemKey,
+  resolveShortcutIntent,
+  toErrorMessage,
+} from "./maildraft-app-helpers";
 
 const EMPTY_SNAPSHOT: StoreSnapshot = {
   drafts: [],
@@ -80,18 +90,6 @@ interface ShortcutActionSet {
   toggleDraftPinned: () => void;
   toggleSignaturePinned: () => void;
   toggleTemplatePinned: () => void;
-}
-
-function asMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (typeof error === "string") {
-    return error;
-  }
-
-  return "処理に失敗しました。";
 }
 
 export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandle | null>) {
@@ -148,7 +146,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
         hydrateLoggingSettings(nextLoggingSettings);
         setNotice("ローカルデータと診断設定を読み込みました。");
       } catch (loadError) {
-        setError(asMessage(loadError));
+        setError(toErrorMessage(loadError));
       } finally {
         setIsLoading(false);
       }
@@ -198,14 +196,13 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     [signatureSearchQuery, signatureSort, snapshot.signatures],
   );
   const views = useMemo(
-    () => [
-      { id: "drafts" as const, label: "下書き", count: snapshot.drafts.length },
-      { id: "templates" as const, label: "テンプレート", count: snapshot.templates.length },
-      { id: "signatures" as const, label: "署名", count: snapshot.signatures.length },
-      { id: "trash" as const, label: "ゴミ箱", count: trashItems.length },
-      { id: "settings" as const, label: "設定" },
-      { id: "help" as const, label: "ヘルプ" },
-    ],
+    () =>
+      buildWorkspaceSummaries({
+        draftCount: snapshot.drafts.length,
+        signatureCount: snapshot.signatures.length,
+        templateCount: snapshot.templates.length,
+        trashItemCount: trashItems.length,
+      }),
     [
       snapshot.drafts.length,
       snapshot.signatures.length,
@@ -215,38 +212,24 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
   );
 
   useEffect(() => {
-    if (trashItems.length === 0) {
-      setSelectedTrashItemKey(null);
-      return;
+    const nextSelectedTrashItemKey = resolveSelectedTrashItemKey(
+      trashItems,
+      selectedTrashItemKey,
+    );
+    if (nextSelectedTrashItemKey !== selectedTrashItemKey) {
+      setSelectedTrashItemKey(nextSelectedTrashItemKey);
     }
-
-    if (selectedTrashItemKey && trashItems.some((item) => item.key === selectedTrashItemKey)) {
-      return;
-    }
-
-    setSelectedTrashItemKey(trashItems[0].key);
   }, [selectedTrashItemKey, trashItems]);
 
   function hydrateAll(nextSnapshot: StoreSnapshot) {
     setSnapshot(nextSnapshot);
+    const hydrated = buildHydratedWorkspaceState(nextSnapshot);
 
-    const firstTemplate = nextSnapshot.templates[0];
-    const firstSignature = nextSnapshot.signatures[0];
-
-    setSelectedTemplateId(firstTemplate?.id ?? null);
-    setSelectedSignatureId(firstSignature?.id ?? null);
-    setSelectedTrashItemKey(collectTrashItems(nextSnapshot.trash)[0]?.key ?? null);
-
-    setTemplateForm(
-      firstTemplate
-        ? toTemplateInput(firstTemplate)
-        : createEmptyTemplate(getDefaultSignatureId(nextSnapshot)),
-    );
-    setSignatureForm(
-      firstSignature
-        ? toSignatureInput(firstSignature)
-        : createEmptySignature(nextSnapshot.signatures.length === 0),
-    );
+    setSelectedTemplateId(hydrated.selectedTemplateId);
+    setSelectedSignatureId(hydrated.selectedSignatureId);
+    setSelectedTrashItemKey(hydrated.selectedTrashItemKey);
+    setTemplateForm(hydrated.templateForm);
+    setSignatureForm(hydrated.signatureForm);
   }
 
   function hydrateLoggingSettings(nextLoggingSettings: LoggingSettingsSnapshot) {
@@ -331,7 +314,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       setTemplateForm(pickTemplateInput(nextSnapshot, templateForm.id));
       setNotice("テンプレートを保存しました。");
     } catch (saveError) {
-      setError(asMessage(saveError));
+      setError(toErrorMessage(saveError));
     }
   }
 
@@ -350,7 +333,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       setTemplateForm(pickTemplateInput(nextSnapshot, duplicate.id));
       setNotice("テンプレートを複製しました。");
     } catch (duplicateError) {
-      setError(asMessage(duplicateError));
+      setError(toErrorMessage(duplicateError));
     }
   }
 
@@ -370,7 +353,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       setSelectedTrashItemKey(buildTrashItemKey("template", selectedTemplateId));
       setNotice("テンプレートをゴミ箱に移動しました。");
     } catch (deleteError) {
-      setError(asMessage(deleteError));
+      setError(toErrorMessage(deleteError));
     }
   }
 
@@ -445,7 +428,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       }));
       setNotice("署名を保存しました。");
     } catch (saveError) {
-      setError(asMessage(saveError));
+      setError(toErrorMessage(saveError));
     }
   }
 
@@ -468,7 +451,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       }));
       setNotice("署名を複製しました。");
     } catch (duplicateError) {
-      setError(asMessage(duplicateError));
+      setError(toErrorMessage(duplicateError));
     }
   }
 
@@ -492,7 +475,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       setSelectedTrashItemKey(buildTrashItemKey("signature", selectedSignatureId));
       setNotice("署名をゴミ箱に移動しました。");
     } catch (deleteError) {
-      setError(asMessage(deleteError));
+      setError(toErrorMessage(deleteError));
     }
   }
 
@@ -535,7 +518,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       setViewState("signatures");
       setNotice("署名をゴミ箱から復元しました。");
     } catch (restoreError) {
-      setError(asMessage(restoreError));
+      setError(toErrorMessage(restoreError));
     }
   }
 
@@ -580,7 +563,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       }));
       setNotice("署名を完全に削除しました。");
     } catch (deleteError) {
-      setError(asMessage(deleteError));
+      setError(toErrorMessage(deleteError));
     }
   }
 
@@ -607,7 +590,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       }));
       setNotice("ゴミ箱を空にしました。");
     } catch (emptyError) {
-      setError(asMessage(emptyError));
+      setError(toErrorMessage(emptyError));
     }
   }
 
@@ -628,7 +611,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       hydrateLoggingSettings(nextLoggingSettings);
       setNotice("ログ設定を保存しました。");
     } catch (saveError) {
-      setError(asMessage(saveError));
+      setError(toErrorMessage(saveError));
     }
   }
 
@@ -640,7 +623,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       setRecentLogs([]);
       setNotice("診断ログを削除しました。");
     } catch (clearError) {
-      setError(asMessage(clearError));
+      setError(toErrorMessage(clearError));
     }
   }
 
@@ -658,7 +641,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
         setNotice("最近のログを更新しました。");
       }
     } catch (loadError) {
-      setError(asMessage(loadError));
+      setError(toErrorMessage(loadError));
     } finally {
       setIsLoadingRecentLogs(false);
     }
@@ -681,7 +664,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       await maildraftApi.exportBackup(path);
       setNotice("バックアップを書き出しました。");
     } catch (exportError) {
-      setError(asMessage(exportError));
+      setError(toErrorMessage(exportError));
     } finally {
       setIsExportingBackup(false);
     }
@@ -721,7 +704,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       hydrateLoggingSettings(imported.loggingSettings);
       setNotice("バックアップを読み込みました。");
     } catch (importError) {
-      setError(asMessage(importError));
+      setError(toErrorMessage(importError));
     } finally {
       setIsImportingBackup(false);
     }
@@ -773,73 +756,44 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
         return;
       }
 
-      const key = event.key.toLowerCase();
       const currentView = viewRef.current;
-
-      if (!event.shiftKey && key === "k") {
-        event.preventDefault();
-        focusWorkspaceSearch(currentView);
+      const shortcutIntent = resolveShortcutIntent({
+        currentView,
+        key: event.key,
+        shiftKey: event.shiftKey,
+      });
+      if (shortcutIntent.kind === "none") {
         return;
       }
 
-      if (!event.shiftKey && key === "1") {
-        event.preventDefault();
-        actions.changeView("drafts");
+      event.preventDefault();
+
+      if (shortcutIntent.kind === "focusSearch") {
+        focusWorkspaceSearch(shortcutIntent.view);
         return;
       }
 
-      if (!event.shiftKey && key === "2") {
-        event.preventDefault();
-        actions.changeView("templates");
+      if (shortcutIntent.kind === "changeView") {
+        actions.changeView(shortcutIntent.view);
         return;
       }
 
-      if (!event.shiftKey && key === "3") {
-        event.preventDefault();
-        actions.changeView("signatures");
+      if (shortcutIntent.kind === "createForView") {
+        runCreateShortcut(actions, shortcutIntent.view);
         return;
       }
 
-      if (!event.shiftKey && key === "4") {
-        event.preventDefault();
-        actions.changeView("trash");
+      if (shortcutIntent.kind === "saveForView") {
+        void runSaveShortcut(actions, shortcutIntent.view);
         return;
       }
 
-      if (!event.shiftKey && key === "5") {
-        event.preventDefault();
-        actions.changeView("settings");
+      if (shortcutIntent.kind === "pinForView") {
+        runPinShortcut(actions, shortcutIntent.view);
         return;
       }
 
-      if (!event.shiftKey && key === "6") {
-        event.preventDefault();
-        actions.changeView("help");
-        return;
-      }
-
-      if (!event.shiftKey && key === "n") {
-        event.preventDefault();
-        runCreateShortcut(actions, currentView);
-        return;
-      }
-
-      if (!event.shiftKey && key === "s") {
-        event.preventDefault();
-        void runSaveShortcut(actions, currentView);
-        return;
-      }
-
-      if (event.shiftKey && key === "p") {
-        event.preventDefault();
-        runPinShortcut(actions, currentView);
-        return;
-      }
-
-      if (event.shiftKey && key === "c" && currentView === "drafts") {
-        event.preventDefault();
-        void actions.copyDraftPreview();
-      }
+      void actions.copyDraftPreview();
     }
 
     window.addEventListener("keydown", handleKeyDown);
@@ -949,58 +903,19 @@ function focusWorkspaceSearch(view: WorkspaceView) {
 }
 
 function runCreateShortcut(actions: ShortcutActionSet, view: WorkspaceView) {
-  switch (view) {
-    case "drafts":
-      actions.createDraft();
-      return;
-    case "templates":
-      actions.createTemplate();
-      return;
-    case "signatures":
-      actions.createSignature();
-      return;
-    case "trash":
-    case "settings":
-    case "help":
-      actions.createDraft();
-      return;
-  }
+  actions[resolveCreateShortcutAction(view)]();
 }
 
 async function runSaveShortcut(actions: ShortcutActionSet, view: WorkspaceView) {
-  switch (view) {
-    case "drafts":
-      await actions.saveDraft();
-      return;
-    case "templates":
-      await actions.saveTemplate();
-      return;
-    case "signatures":
-      await actions.saveSignature();
-      return;
-    case "settings":
-      await actions.saveLoggingSettings();
-      return;
-    case "trash":
-    case "help":
-      return;
+  const action = resolveSaveShortcutAction(view);
+  if (action) {
+    await actions[action]();
   }
 }
 
 function runPinShortcut(actions: ShortcutActionSet, view: WorkspaceView) {
-  switch (view) {
-    case "drafts":
-      actions.toggleDraftPinned();
-      return;
-    case "templates":
-      actions.toggleTemplatePinned();
-      return;
-    case "signatures":
-      actions.toggleSignaturePinned();
-      return;
-    case "trash":
-    case "settings":
-    case "help":
-      return;
+  const action = resolvePinShortcutAction(view);
+  if (action) {
+    actions[action]();
   }
 }

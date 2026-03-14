@@ -87,3 +87,53 @@ pub struct LoggingSettingsSnapshot {
     pub max_file_size_bytes: u64,
     pub max_rotated_files: usize,
 }
+
+#[cfg(test)]
+mod tests {
+    use pretty_assertions::assert_eq;
+
+    use super::{AppSettings, LoggingMode, LoggingSettings, LoggingSettingsInput};
+
+    #[test]
+    fn logging_settings_normalized_limits_retention_days() {
+        assert_eq!(
+            LoggingSettings {
+                mode: LoggingMode::Standard,
+                retention_days: 99,
+            }
+            .normalized()
+            .retention_days,
+            14
+        );
+
+        assert_eq!(
+            LoggingSettings {
+                mode: LoggingMode::ErrorsOnly,
+                retention_days: 30,
+            }
+            .normalized()
+            .retention_days,
+            30
+        );
+    }
+
+    #[test]
+    fn input_and_app_settings_normalize_nested_logging_values() {
+        let settings = LoggingSettingsInput {
+            mode: LoggingMode::Off,
+            retention_days: 1,
+        }
+        .into_settings();
+        assert_eq!(settings.mode, LoggingMode::Off);
+        assert_eq!(settings.retention_days, 14);
+
+        let app_settings = AppSettings {
+            logging: LoggingSettings {
+                mode: LoggingMode::Standard,
+                retention_days: 3,
+            },
+        }
+        .normalized();
+        assert_eq!(app_settings.logging.retention_days, 14);
+    }
+}

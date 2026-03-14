@@ -63,3 +63,53 @@ impl Template {
         self.updated_at = timestamp.to_string();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use pretty_assertions::assert_eq;
+
+    use super::{Template, TemplateInput};
+
+    #[test]
+    fn template_new_and_update_keep_fields_in_sync() {
+        let mut template = Template::new(
+            TemplateInput {
+                id: "template-1".to_string(),
+                name: "お礼メール".to_string(),
+                is_pinned: true,
+                subject: "件名".to_string(),
+                recipient: "株式会社〇〇".to_string(),
+                opening: "お世話になっております。".to_string(),
+                body: "本文".to_string(),
+                closing: "よろしくお願いいたします。".to_string(),
+                signature_id: Some("signature-1".to_string()),
+            },
+            "10",
+        );
+
+        assert_eq!(template.created_at, "10");
+        assert_eq!(template.updated_at, "10");
+        assert_eq!(template.name, "お礼メール");
+
+        template.update(
+            TemplateInput {
+                id: "template-1".to_string(),
+                name: "日程調整".to_string(),
+                is_pinned: false,
+                subject: "更新件名".to_string(),
+                recipient: "".to_string(),
+                opening: "更新書き出し".to_string(),
+                body: "更新本文".to_string(),
+                closing: "".to_string(),
+                signature_id: None,
+            },
+            "20",
+        );
+
+        assert_eq!(template.name, "日程調整");
+        assert_eq!(template.is_pinned, false);
+        assert_eq!(template.subject, "更新件名");
+        assert_eq!(template.signature_id, None);
+        assert_eq!(template.updated_at, "20");
+    }
+}

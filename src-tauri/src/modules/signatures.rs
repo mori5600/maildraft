@@ -45,3 +45,45 @@ impl Signature {
         self.updated_at = timestamp.to_string();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use pretty_assertions::assert_eq;
+
+    use super::{Signature, SignatureInput};
+
+    #[test]
+    fn signature_new_and_update_keep_fields_in_sync() {
+        let mut signature = Signature::new(
+            SignatureInput {
+                id: "signature-1".to_string(),
+                name: "標準署名".to_string(),
+                is_pinned: true,
+                body: "本文".to_string(),
+                is_default: true,
+            },
+            "10",
+        );
+
+        assert_eq!(signature.created_at, "10");
+        assert_eq!(signature.updated_at, "10");
+        assert_eq!(signature.is_default, true);
+
+        signature.update(
+            SignatureInput {
+                id: "signature-1".to_string(),
+                name: "営業署名".to_string(),
+                is_pinned: false,
+                body: "更新本文".to_string(),
+                is_default: false,
+            },
+            "20",
+        );
+
+        assert_eq!(signature.name, "営業署名");
+        assert_eq!(signature.is_pinned, false);
+        assert_eq!(signature.body, "更新本文");
+        assert_eq!(signature.is_default, false);
+        assert_eq!(signature.updated_at, "20");
+    }
+}

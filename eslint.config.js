@@ -9,7 +9,7 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["dist", "node_modules", "src-tauri/target"],
+    ignores: ["coverage", "dist", "node_modules", "src-tauri/target"],
   },
   ...tailwind.configs["flat/recommended"],
   {
