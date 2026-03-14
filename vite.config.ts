@@ -18,6 +18,10 @@ export default defineConfig(async () => ({
     __APP_VERSION__: JSON.stringify(tauriConfig.version),
   },
   plugins: [react(), tailwindcss()],
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
+  },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

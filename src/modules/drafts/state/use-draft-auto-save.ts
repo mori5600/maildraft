@@ -1,6 +1,6 @@
 import {
   type Dispatch,
-  type MutableRefObject,
+  type RefObject,
   type SetStateAction,
   useCallback,
   useEffect,
@@ -26,7 +26,7 @@ const AUTO_SAVE_DELAY_MS = 900;
 
 interface DraftAutoSaveOptions {
   draftForm: DraftInput;
-  draftFormRef: MutableRefObject<DraftInput>;
+  draftFormRef: RefObject<DraftInput>;
   initialAutoSaveState: DraftAutoSaveState;
   onClearError: () => void;
   onError: (message: string) => void;
@@ -36,7 +36,7 @@ interface DraftAutoSaveOptions {
   setDraftForm: Dispatch<SetStateAction<DraftInput>>;
   setSelectedDraftId: Dispatch<SetStateAction<string | null>>;
   snapshot: StoreSnapshot;
-  snapshotRef: MutableRefObject<StoreSnapshot>;
+  snapshotRef: RefObject<StoreSnapshot>;
 }
 
 interface TransientDraftAutoSaveState {
