@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, fs, path::Path, sync::Mutex};
+use std::{collections::BTreeMap, fs, path::Path};
 
 use pretty_assertions::assert_eq;
 use serde_json::json;
@@ -14,7 +14,7 @@ use super::{
 };
 use crate::{
     app::{
-        logging::{AppLogger, LogEntry, LogLevel},
+        logging::{LogEntry, LogLevel},
         settings::{AppSettings, LoggingMode, LoggingSettings, LoggingSettingsInput},
     },
     modules::{
@@ -25,17 +25,7 @@ use crate::{
 
 fn make_state() -> (AppState, tempfile::TempDir) {
     let directory = tempdir().expect("tempdir");
-    let state = AppState {
-        store_path: directory.path().join("maildraft-store.json"),
-        settings_path: directory.path().join("maildraft-settings.json"),
-        store: Mutex::new(StoreSnapshot::seeded()),
-        settings: Mutex::new(AppSettings::default()),
-        logger: AppLogger::new(directory.path().join("logs")),
-    };
-
-    state.persist_current_store().expect("persist store");
-    state.persist_current_settings().expect("persist settings");
-
+    let state = AppState::new_for_tests(directory.path()).expect("state");
     (state, directory)
 }
 

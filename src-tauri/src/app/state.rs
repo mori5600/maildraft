@@ -12,6 +12,9 @@ mod tests;
 
 use std::{fs, path::PathBuf, sync::Mutex, time::Instant};
 
+#[cfg(test)]
+use std::path::Path;
+
 use tauri::{AppHandle, Manager};
 
 use crate::app::{
@@ -84,5 +87,19 @@ impl AppState {
         });
 
         Ok(snapshot)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn new_for_tests(root: &Path) -> AppResult<Self> {
+        let state = Self {
+            store_path: root.join("maildraft-store.json"),
+            settings_path: root.join("maildraft-settings.json"),
+            store: Mutex::new(StoreSnapshot::seeded()),
+            settings: Mutex::new(AppSettings::default()),
+            logger: AppLogger::new(root.join("logs")),
+        };
+        state.persist_current_store()?;
+        state.persist_current_settings()?;
+        Ok(state)
     }
 }
