@@ -1,59 +1,74 @@
 # MailDraft
 
-MailDraft は、メールの下書き作成に特化したローカルデスクトップアプリです。  
-下書き、テンプレート、署名を分けて管理しながら、プレーンテキストのメール文を整えていくことができます。
+MailDraft は、日本語メールの下書き作成に特化したローカルファーストのデスクトップアプリです。  
+下書き、テンプレート、署名、差し込み値セットを分けて管理しながら、プレーンテキストのメール文を素早く組み立てられます。
 
-## 主な機能
+- 対応想定: macOS / Windows
+- スタック: Tauri v2, React 19, TypeScript, Vite, Tailwind CSS v4, Rust
+- 現在のアプリバージョン: `0.1.0`
 
-- 下書き、テンプレート、署名の作成と保存
-- テンプレートから下書きを作成
-- テンプレート変数の入力
-- 自動保存と履歴復元
-- 未置換変数のチェック
-- 署名の切り替え
-- 完成プレビューの表示と拡大表示
-- プレーンテキストでのコピー
+## できること
+
+- 下書き、テンプレート、署名の作成、編集、削除
+- テンプレートからの下書き作成
+- `{{会社名}}` のような差し込み変数の入力と、差し込み値セットの保存
+- 下書きの自動保存と履歴復元
+- ゴミ箱への退避、復元、完全削除
+- 完成プレビューの表示、拡大表示、プレーンテキストコピー
 - 半角スペース、全角スペースの可視化
-- ダークモード、ライトモードの切り替え
-- 個人情報を記録しない前提の診断ログ設定
+- ダーク表示 / ライト表示の切り替え
+- バックアップの書き出し / 読み込み
+- 個人情報を保存しない前提の診断ログ設定
 
-## 機能説明
+## 画面構成
 
-- 下書き管理
-  件名、宛先メモ、書き出し、本文、結び、署名を分けて保存できます。
-- テンプレート
-  定型文をテンプレートとして保存し、そこから新しい下書きを起こせます。
-- テンプレート変数入力
-  `{{相手名}}` や `{{日付}}` のような変数を検出し、専用の入力欄から値を入れられます。
-- 自動保存
-  下書きの編集中は一定時間ごとに自動保存されます。
-- 履歴復元
-  自動保存された過去の状態を履歴から選び、下書きを元に戻せます。
-- 未置換変数チェック
-  変数に値が入っていない場合は、送信前チェックで分かるようになっています。
-- プレビュー
-  完成したメール文をプレーンテキストで確認でき、広い画面でも見られます。
-- コピー
-  プレビュー中の本文をそのままプレーンテキストでコピーできます。
-- スペース可視化
-  半角スペースと全角スペースを記号で表示して確認できます。
-- テーマ切り替え
-  ダークモードとライトモードを切り替えられます。
-- 診断ログ設定
-  ログの記録レベルや保持期間を設定でき、本文や宛先はログに保存しません。
+- `下書き`: 本文の作成、差し込み、プレビュー、履歴復元
+- `テンプレート`: 定型文の管理と下書き作成
+- `署名`: 署名の管理と既定署名の切り替え
+- `ゴミ箱`: 削除した下書き、テンプレート、署名の復元
+- `設定`: バックアップ、診断ログ設定
+- `ヘルプ`: 基本の使い方とショートカット
 
-## 技術スタック
+## 保存と復旧
 
-- Tauri v2
-- React 19
-- TypeScript
-- Vite
-- Rust
+MailDraft はローカル保存のみを前提にしています。アプリの状態は OS のアプリデータディレクトリ配下に保存されます。
 
-## 開発環境の起動
+- 保存ファイル
+  - `maildraft-store.json`
+  - `maildraft-settings.json`
+- バックアップファイル
+  - `*.bak`
+- 破損時の退避ファイル
+  - `*.corrupt-<timestamp>`
+
+保存形式は versioned JSON です。古い形式の保存ファイルは読み込み時に移行されます。  
+起動時に保存ファイルの復旧や既定値へのフォールバックが発生した場合は、アプリ上部に通知が表示されます。
+
+バックアップの書き出し / 読み込みは設定画面から行えます。バックアップ形式は現在 `v1` です。
+
+## 開発環境
+
+前提:
+
+- Node.js / npm
+- Rust toolchain
+- Tauri のビルドに必要な各 OS の依存
+
+セットアップ:
 
 ```bash
 npm install
+```
+
+フロントエンドのみ起動:
+
+```bash
+npm run dev
+```
+
+Tauri アプリを開発起動:
+
+```bash
 npm run tauri dev
 ```
 
@@ -62,17 +77,53 @@ npm run tauri dev
 ```bash
 npm run build
 npm run lint
+npm run test
+npm run test:coverage
 npm run format
+npm run format:check
 cargo check --manifest-path src-tauri/Cargo.toml
-```
-
-## 本番ビルド
-
-```bash
+cargo test --manifest-path src-tauri/Cargo.toml
 npm run tauri build
 ```
 
-## メモ
+## 検証の目安
 
-- データはローカルに保存されます。
-- 診断ログは本文や宛先を保存しないように設計しています。
+コード変更時の最低ライン:
+
+```bash
+npm run lint
+npm run test
+npm run build
+cargo check --manifest-path src-tauri/Cargo.toml
+```
+
+Rust 側のテストも含めて確認する場合:
+
+```bash
+cargo test --manifest-path src-tauri/Cargo.toml
+```
+
+## ディレクトリ構成
+
+### フロントエンド
+
+- `src/app`: アプリシェル、トップレベル state、workspace 切り替え
+- `src/modules/drafts`: 下書きの model、state、UI
+- `src/modules/templates`: テンプレートの model、state、UI
+- `src/modules/signatures`: 署名の model、state、UI
+- `src/modules/trash`: ゴミ箱の model、state、UI
+- `src/modules/settings`: 設定、バックアップ、ログ設定 UI
+- `src/modules/help`: ヘルプ表示
+- `src/modules/renderer`: プレビューとチェックの派生ロジック
+- `src/shared`: 共通 UI、ユーティリティ、型
+
+### バックエンド
+
+- `src-tauri/src/app`: Tauri アプリ state、保存、バックアップ、ログ
+- `src-tauri/src/modules`: drafts / templates / signatures / trash / store の Rust 側実装
+- `src-tauri/capabilities`: Tauri capability 設定
+
+## 補足
+
+- データは外部サービスへ送信しません。
+- 診断ログは本文や宛先を記録しない設計です。
