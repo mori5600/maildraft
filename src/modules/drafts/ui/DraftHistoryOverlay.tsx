@@ -53,18 +53,18 @@ export function DraftHistoryOverlay({
           variant="primary"
           onClick={() => (selectedEntry ? void onRestore(selectedEntry.id) : undefined)}
         >
-          Restore
+          復元
         </Button>
       }
-      description={`${historyEntries.length} revisions`}
+      description={`${historyEntries.length}件の履歴`}
       isOpen={isOpen}
-      title="Draft history"
+      title="履歴"
       onClose={onClose}
     >
       <div className="grid gap-3 xl:grid-cols-[260px_minmax(0,1fr)]">
         <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) p-3">
           <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-            Revisions
+            履歴一覧
           </div>
           <div className="mt-2.5 space-y-1.5">
             {historyEntries.length === 0 ? (
@@ -105,7 +105,7 @@ export function DraftHistoryOverlay({
         <div className="grid gap-3">
           <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) p-4">
             <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-              Subject
+              件名
             </div>
             <div className="mt-2.5 text-[13px] text-(--color-text-strong)">
               {previewSubject || "件名未設定"}
@@ -114,7 +114,7 @@ export function DraftHistoryOverlay({
 
           <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-preview-bg) p-4">
             <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-              Body
+              本文
             </div>
             <pre className="mail-preview-text mt-2.5 min-h-115 overflow-x-auto whitespace-pre-wrap text-(--color-preview-text)">
               {previewBodyText}

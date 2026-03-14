@@ -115,8 +115,8 @@ export function DraftWorkspace({
     (showWhitespace ? visualizeWhitespace(previewText) : previewText) ||
     "本文プレビューがここに表示されます。";
   const draftCountLabel = searchQuery.trim()
-    ? `${drafts.length} / ${totalDraftCount} drafts`
-    : `${totalDraftCount} drafts`;
+    ? `${drafts.length} / ${totalDraftCount}件`
+    : `${totalDraftCount}件`;
 
   return (
     <>
@@ -125,17 +125,17 @@ export function DraftWorkspace({
           <PaneHeader
             action={
               <Button size="sm" title="Ctrl/Cmd+N" variant="ghost" onClick={onCreateDraft}>
-                New
+                新規
               </Button>
             }
             description={draftCountLabel}
-            title="Draft list"
+            title="下書き一覧"
           />
           <div className="border-b border-(--color-panel-border-strong) px-1.5 py-1.5">
             <div className="grid gap-2 rounded-[7px] border border-(--color-panel-border-strong) bg-(--color-field-bg) px-2.5 py-2">
               <div className="grid gap-1.5">
                 <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                  Search
+                  検索
                 </div>
                 <div className="flex items-center gap-2">
                   <Input
@@ -153,14 +153,14 @@ export function DraftWorkspace({
                     variant="ghost"
                     onClick={() => onChangeSearchQuery("")}
                   >
-                    Clear
+                    消去
                   </Button>
                 </div>
               </div>
 
               <div className="grid gap-1.5">
                 <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                  Sort
+                  並び順
                 </div>
                 <Select
                   value={sort}
@@ -204,7 +204,7 @@ export function DraftWorkspace({
                         </div>
                         {draft.isPinned ? (
                           <span className="rounded-md border border-(--color-panel-border-strong) bg-(--color-field-bg) px-1.5 py-0.5 text-[9px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                            Pinned
+                            固定
                           </span>
                         ) : null}
                       </div>
@@ -227,7 +227,7 @@ export function DraftWorkspace({
             action={
               <div className="flex gap-2">
                 <Button size="sm" title="Ctrl/Cmd+Shift+P" variant="ghost" onClick={onTogglePinned}>
-                  {draftForm.isPinned ? "Unpin" : "Pin"}
+                  {draftForm.isPinned ? "固定解除" : "固定"}
                 </Button>
                 <Button
                   disabled={!canDuplicate}
@@ -235,10 +235,10 @@ export function DraftWorkspace({
                   variant="ghost"
                   onClick={() => void onDuplicateDraft()}
                 >
-                  Duplicate
+                  複製
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => void onDeleteDraft()}>
-                  {selectedDraftId ? "Trash" : "Reset"}
+                  {selectedDraftId ? "ゴミ箱へ移動" : "リセット"}
                 </Button>
                 <Button
                   size="sm"
@@ -246,18 +246,18 @@ export function DraftWorkspace({
                   variant="primary"
                   onClick={() => void onSaveDraft()}
                 >
-                  Save
+                  保存
                 </Button>
               </div>
             }
-            description={`${draftForm.isPinned ? "Pinned · " : ""}${draftLabel(draftForm)} · ${autoSaveLabel}`}
-            title="Editor"
+            description={`${draftForm.isPinned ? "固定・" : ""}${draftLabel(draftForm)}・${autoSaveLabel}`}
+            title="編集"
           />
 
           <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3.5">
             <div className="grid gap-3">
               <div className="grid gap-3 md:grid-cols-2">
-                <Field label="Label">
+                <Field label="一覧名">
                   <Input
                     placeholder="4/12 打ち合わせお礼"
                     showWhitespace={showWhitespace}
@@ -265,7 +265,7 @@ export function DraftWorkspace({
                     onChange={(event) => onChangeDraft("title", event.currentTarget.value)}
                   />
                 </Field>
-                <Field label="Subject">
+                <Field label="件名">
                   <Input
                     placeholder="件名"
                     showWhitespace={showWhitespace}
@@ -276,7 +276,7 @@ export function DraftWorkspace({
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">
-                <Field label="Template">
+                <Field label="テンプレート">
                   <Select
                     value={draftForm.templateId ?? ""}
                     onChange={(event) => {
@@ -300,7 +300,7 @@ export function DraftWorkspace({
                     ))}
                   </Select>
                 </Field>
-                <Field label="Signature">
+                <Field label="署名">
                   <Select
                     value={draftForm.signatureId ?? ""}
                     onChange={(event) =>
@@ -321,7 +321,7 @@ export function DraftWorkspace({
                 </Field>
               </div>
 
-              <Field label="Recipient note" hint="社名や担当者など">
+              <Field label="宛名メモ" hint="社名や担当者など">
                 <Textarea
                   className="min-h-24"
                   placeholder={"株式会社〇〇\n営業部\n佐藤 様"}
@@ -333,7 +333,7 @@ export function DraftWorkspace({
                 />
               </Field>
 
-              <Field label="Opening">
+              <Field label="書き出し">
                 <Textarea
                   className="min-h-33"
                   placeholder={"いつもお世話になっております。\n株式会社△△の田中です。"}
@@ -345,7 +345,7 @@ export function DraftWorkspace({
                 />
               </Field>
 
-              <Field label="Body">
+              <Field label="本文">
                 <Textarea
                   className="min-h-70"
                   placeholder="本文"
@@ -357,7 +357,7 @@ export function DraftWorkspace({
                 />
               </Field>
 
-              <Field label="Closing">
+              <Field label="結び">
                 <Textarea
                   className="min-h-33"
                   placeholder="引き続きよろしくお願いいたします。"
@@ -382,7 +382,7 @@ export function DraftWorkspace({
                   variant="ghost"
                   onClick={() => setIsHistoryOpen(true)}
                 >
-                  History
+                  履歴
                 </Button>
                 <Button
                   disabled={!canExpandPreview}
@@ -390,7 +390,7 @@ export function DraftWorkspace({
                   variant="ghost"
                   onClick={() => setIsWidePreviewOpen(true)}
                 >
-                  Expand
+                  拡大
                 </Button>
                 <Button
                   disabled={!canCopyPreview}
@@ -399,20 +399,20 @@ export function DraftWorkspace({
                   variant="ghost"
                   onClick={() => void onCopyPreview()}
                 >
-                  Copy
+                  コピー
                 </Button>
               </div>
             }
             description={
               selectedSignature?.name ?? (hasMissingSignature ? "ゴミ箱の署名を参照中" : "署名なし")
             }
-            title="Preview"
+            title="プレビュー"
           />
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             <div className="border-b border-(--color-panel-border-strong) px-3.5 py-3">
               <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                Variables
+                差し込み項目
               </div>
               <div className="mt-2.5 space-y-2.5">
                 {variableNames.length === 0 ? (
@@ -424,7 +424,7 @@ export function DraftWorkspace({
                     <div className="rounded-[7px] border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3 py-3">
                       <div className="grid gap-3">
                         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                          <Field label="Value set">
+                          <Field label="差し込みセット">
                             <Select
                               value={selectedVariablePresetId ?? ""}
                               onChange={(event) =>
@@ -440,7 +440,7 @@ export function DraftWorkspace({
                             </Select>
                           </Field>
 
-                          <Field label="Name">
+                          <Field label="セット名">
                             <Input
                               placeholder="A社向け"
                               showWhitespace={showWhitespace}
@@ -459,10 +459,10 @@ export function DraftWorkspace({
                             variant="secondary"
                             onClick={() => void onApplyVariablePreset()}
                           >
-                            Apply
+                            適用
                           </Button>
                           <Button size="sm" variant="ghost" onClick={onCreateVariablePreset}>
-                            New set
+                            新規セット
                           </Button>
                           <Button
                             disabled={!canSaveVariablePreset}
@@ -470,7 +470,7 @@ export function DraftWorkspace({
                             variant="primary"
                             onClick={() => void onSaveVariablePreset()}
                           >
-                            Save values
+                            値を保存
                           </Button>
                           <Button
                             disabled={!selectedVariablePresetId}
@@ -478,7 +478,7 @@ export function DraftWorkspace({
                             variant="danger"
                             onClick={() => void onDeleteVariablePreset()}
                           >
-                            Delete
+                            削除
                           </Button>
                         </div>
                       </div>
@@ -507,7 +507,7 @@ export function DraftWorkspace({
 
             <div className="border-b border-(--color-panel-border-strong) px-3.5 py-3">
               <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                Subject
+                件名
               </div>
               <div className="mt-1.5 text-[13px] text-(--color-text-strong)">
                 {previewSubject || "件名未設定"}
@@ -516,7 +516,7 @@ export function DraftWorkspace({
 
             <div className="border-b border-(--color-panel-border-strong) px-3.5 py-3">
               <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                Checks
+                確認
               </div>
               <div className="mt-2 space-y-1.5">
                 {checks.map((check) => (
@@ -536,7 +536,7 @@ export function DraftWorkspace({
 
             <div className="px-3.5 py-3">
               <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                Body
+                本文
               </div>
               <pre className="mail-preview-text mt-2 overflow-x-auto rounded-[7px] border border-(--color-panel-border-strong) bg-(--color-preview-bg) px-3.5 py-3 whitespace-pre-wrap text-(--color-preview-text)">
                 {previewBodyText}
@@ -555,20 +555,20 @@ export function DraftWorkspace({
             variant="ghost"
             onClick={() => void onCopyPreview()}
           >
-            Copy
+            コピー
           </Button>
         }
         description={
           selectedSignature?.name ?? (hasMissingSignature ? "ゴミ箱の署名を参照中" : "署名なし")
         }
         isOpen={isWidePreviewOpen}
-        title="Draft preview"
+        title="下書きプレビュー"
         onClose={() => setIsWidePreviewOpen(false)}
       >
         <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_280px]">
           <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-preview-bg) p-4">
             <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-              Body
+              本文
             </div>
             <pre className="mail-preview-text mt-2.5 min-h-120 overflow-x-auto whitespace-pre-wrap text-(--color-preview-text)">
               {previewBodyText}
@@ -578,7 +578,7 @@ export function DraftWorkspace({
           <div className="space-y-3">
             <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) p-4">
               <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                Subject
+                件名
               </div>
               <div className="mt-2.5 text-[13px] text-(--color-text-strong)">
                 {previewSubject || "件名未設定"}
@@ -587,7 +587,7 @@ export function DraftWorkspace({
 
             <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) p-4">
               <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                Checks
+                確認
               </div>
               <div className="mt-2.5 space-y-1.5">
                 {checks.map((check) => (

@@ -79,7 +79,7 @@ export function SettingsWorkspace({
     <>
       <div className="grid h-full min-h-0 gap-3 overflow-y-auto pr-1 lg:grid-cols-[188px_minmax(0,1fr)] lg:overflow-hidden lg:pr-0">
         <Panel className="overflow-hidden lg:h-full">
-          <PaneHeader description="設定カテゴリ" title="Settings" />
+          <PaneHeader description="設定カテゴリ" title="設定" />
 
           <div className="grid gap-1.5 px-2.5 py-2.5">
             {SETTINGS_SECTIONS.map((section) => {
@@ -121,7 +121,7 @@ export function SettingsWorkspace({
                       variant="primary"
                       onClick={() => void onSaveLoggingSettings()}
                     >
-                      Save
+                      保存
                     </Button>
                   }
                   description="診断ログに何を残すかを決めます。"
@@ -132,7 +132,7 @@ export function SettingsWorkspace({
                   <div className="grid gap-3">
                     <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3.5 py-3">
                       <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                        Privacy guarantees
+                        記録しない内容
                       </div>
                       <div className="mt-2.5 space-y-1.5 text-[13px] leading-6 text-(--color-text-muted)">
                         <p>
@@ -145,7 +145,7 @@ export function SettingsWorkspace({
                     </section>
 
                     <div className="grid gap-3 md:grid-cols-2">
-                      <Field label="Log mode" hint={loggingModeDescription(loggingForm.mode)}>
+                      <Field label="記録レベル" hint={loggingModeDescription(loggingForm.mode)}>
                         <Select
                           value={loggingForm.mode}
                           onChange={(event) =>
@@ -163,7 +163,7 @@ export function SettingsWorkspace({
                         </Select>
                       </Field>
 
-                      <Field label="Retention">
+                      <Field label="保存期間">
                         <Select
                           value={String(loggingForm.retentionDays)}
                           onChange={(event) =>
@@ -186,7 +186,7 @@ export function SettingsWorkspace({
 
                     <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3.5 py-3">
                       <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                        Current behavior
+                        現在の設定
                       </div>
                       <div className="mt-2.5 text-[13px] leading-6 text-(--color-text-muted)">
                         {loggingModeDescription(loggingSettings.mode)} 保持期間は{" "}
@@ -203,7 +203,7 @@ export function SettingsWorkspace({
                   action={
                     <div className="flex items-center gap-2">
                       <Button size="sm" variant="secondary" onClick={openLogViewer}>
-                        View logs
+                        ログを見る
                       </Button>
                       <Button
                         disabled={loggingSettings.fileCount === 0}
@@ -211,7 +211,7 @@ export function SettingsWorkspace({
                         variant="danger"
                         onClick={() => void onClearLogs()}
                       >
-                        Clear logs
+                        ログを削除
                       </Button>
                     </div>
                   }
@@ -222,19 +222,19 @@ export function SettingsWorkspace({
                 <div className="px-3.5 py-3.5">
                   <div className="grid gap-3 md:grid-cols-2">
                     <StatCard
-                      label="Usage"
+                      label="使用量"
                       value={formatBytes(loggingSettings.totalBytes)}
-                      note={`1ファイル ${formatBytes(loggingSettings.maxFileSizeBytes)} / current + ${loggingSettings.maxRotatedFiles}世代`}
+                      note={`1ファイル ${formatBytes(loggingSettings.maxFileSizeBytes)} / 現在 + ${loggingSettings.maxRotatedFiles}世代`}
                     />
                     <StatCard
-                      label="Files"
-                      value={`${loggingSettings.fileCount} files`}
+                      label="ファイル数"
+                      value={`${loggingSettings.fileCount}ファイル`}
                       note="JSONL 形式で保存"
                     />
                   </div>
                   <section className="mt-3 rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3.5 py-3">
                     <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                      Log directory
+                      保存先
                     </div>
                     <pre className="mt-2.5 overflow-x-auto text-[13px] leading-6 break-all whitespace-pre-wrap text-(--color-text-strong)">
                       {loggingSettings.directoryPath || "初回書き込み時に作成されます。"}
@@ -252,7 +252,7 @@ export function SettingsWorkspace({
                   <div className="grid gap-3">
                     <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3.5 py-3">
                       <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                        What is included
+                        含まれる内容
                       </div>
                       <div className="mt-2.5 text-[13px] leading-6 text-(--color-text-muted)">
                         下書き、テンプレート、署名、差し込み値セット、履歴、ログ設定を JSON
@@ -262,10 +262,10 @@ export function SettingsWorkspace({
 
                     <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3.5 py-3">
                       <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                        Actions
+                        操作
                       </div>
                       <div className="mt-2.5 text-[13px] leading-6 text-(--color-text-muted)">
-                        Import は現在のローカルデータを置き換えます。必要なら先に Export
+                        読み込みは現在のローカルデータを置き換えます。必要なら先に書き出し
                         を実行してください。
                       </div>
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -275,7 +275,7 @@ export function SettingsWorkspace({
                           variant="secondary"
                           onClick={() => void onExportBackup()}
                         >
-                          {isExportingBackup ? "Exporting" : "Export"}
+                          {isExportingBackup ? "書き出し中" : "書き出し"}
                         </Button>
                         <Button
                           disabled={isExportingBackup || isImportingBackup}
@@ -283,7 +283,7 @@ export function SettingsWorkspace({
                           variant="secondary"
                           onClick={() => void onImportBackup()}
                         >
-                          {isImportingBackup ? "Importing" : "Import"}
+                          {isImportingBackup ? "読み込み中" : "読み込み"}
                         </Button>
                       </div>
                     </section>
@@ -303,13 +303,13 @@ export function SettingsWorkspace({
             variant="secondary"
             onClick={() => void onRefreshRecentLogs()}
           >
-            {isLoadingRecentLogs ? "Refreshing" : "Refresh"}
+            {isLoadingRecentLogs ? "更新中" : "更新"}
           </Button>
         }
         description={`本文を含まない最新 ${RECENT_LOG_LIMIT} 件までの診断ログを確認できます。`}
         isOpen={isLogViewerOpen}
         onClose={() => setIsLogViewerOpen(false)}
-        title="Recent logs"
+        title="最近のログ"
       >
         <div className="grid gap-2.5">
           {recentLogs.length === 0 ? (

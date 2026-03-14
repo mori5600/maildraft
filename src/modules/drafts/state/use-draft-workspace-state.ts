@@ -491,8 +491,8 @@ export function useDraftWorkspaceState({
       {
         title: "MailDraft",
         kind: "warning",
-        okLabel: "Delete",
-        cancelLabel: "Cancel",
+        okLabel: "削除",
+        cancelLabel: "キャンセル",
       },
     );
 

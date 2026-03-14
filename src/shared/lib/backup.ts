@@ -1,5 +1,5 @@
 export const BACKUP_FILE_FILTER = {
-  name: "MailDraft Backup",
+  name: "MailDraft バックアップ",
   extensions: ["json"],
 };
 

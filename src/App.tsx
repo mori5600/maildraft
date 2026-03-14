@@ -52,7 +52,7 @@ function App() {
               MailDraft
             </div>
             <div className="mt-1.5 text-[13px] font-medium text-(--color-text-strong)">
-              Workspace
+              画面
             </div>
           </div>
 
@@ -90,7 +90,7 @@ function App() {
           </nav>
 
           <div className="mt-auto px-2.5 py-2 text-[11px] text-(--color-text-faint)">
-            local-first
+            ローカル保存
           </div>
         </aside>
 
@@ -116,7 +116,7 @@ function App() {
                 variant={app.theme === "light" ? "primary" : "secondary"}
                 onClick={app.toggleTheme}
               >
-                {app.theme === "dark" ? "Dark mode" : "Light mode"}
+                {app.theme === "dark" ? "ダーク表示" : "ライト表示"}
               </Button>
 
               <div className="flex w-48.5 items-center gap-2.5">
@@ -128,7 +128,7 @@ function App() {
                       variant={app.showWhitespace ? "primary" : "secondary"}
                       onClick={app.toggleWhitespace}
                     >
-                      Spaces
+                      空白表示
                     </Button>
                     <div
                       aria-hidden={!app.showWhitespace}
@@ -174,17 +174,17 @@ export default App;
 function getViewTitle(view: WorkspaceView): string {
   switch (view) {
     case "drafts":
-      return "Drafts";
+      return "下書き";
     case "templates":
-      return "Templates";
+      return "テンプレート";
     case "signatures":
-      return "Signatures";
+      return "署名";
     case "trash":
-      return "Trash";
+      return "ゴミ箱";
     case "settings":
-      return "Settings";
+      return "設定";
     case "help":
-      return "Help";
+      return "ヘルプ";
   }
 }
 

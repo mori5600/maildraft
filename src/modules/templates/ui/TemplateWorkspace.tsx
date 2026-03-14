@@ -64,8 +64,8 @@ export function TemplateWorkspace({
     (showWhitespace ? visualizeWhitespace(previewText) : previewText) ||
     "テンプレートのプレビューがここに表示されます。";
   const templateCountLabel = searchQuery.trim()
-    ? `${templates.length} / ${totalTemplateCount} templates`
-    : `${totalTemplateCount} templates`;
+    ? `${templates.length} / ${totalTemplateCount}件`
+    : `${totalTemplateCount}件`;
 
   return (
     <>
@@ -74,17 +74,17 @@ export function TemplateWorkspace({
           <PaneHeader
             action={
               <Button size="sm" title="Ctrl/Cmd+N" variant="ghost" onClick={onCreateTemplate}>
-                New
+                新規
               </Button>
             }
             description={templateCountLabel}
-            title="Template list"
+            title="テンプレート一覧"
           />
           <div className="border-b border-(--color-panel-border-strong) px-1.5 py-1.5">
             <div className="grid gap-2 rounded-[7px] border border-(--color-panel-border-strong) bg-(--color-field-bg) px-2.5 py-2">
               <div className="grid gap-1.5">
                 <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                  Search
+                  検索
                 </div>
                 <div className="flex items-center gap-2">
                   <Input
@@ -102,14 +102,14 @@ export function TemplateWorkspace({
                     variant="ghost"
                     onClick={() => onChangeSearchQuery("")}
                   >
-                    Clear
+                    消去
                   </Button>
                 </div>
               </div>
 
               <div className="grid gap-1.5">
                 <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                  Sort
+                  並び順
                 </div>
                 <Select
                   value={sort}
@@ -155,7 +155,7 @@ export function TemplateWorkspace({
                         </div>
                         {template.isPinned ? (
                           <span className="rounded-md border border-(--color-panel-border-strong) bg-(--color-field-bg) px-1.5 py-0.5 text-[9px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                            Pinned
+                            固定
                           </span>
                         ) : null}
                       </div>
@@ -178,7 +178,7 @@ export function TemplateWorkspace({
             action={
               <div className="flex gap-2">
                 <Button size="sm" title="Ctrl/Cmd+Shift+P" variant="ghost" onClick={onTogglePinned}>
-                  {templateForm.isPinned ? "Unpin" : "Pin"}
+                  {templateForm.isPinned ? "固定解除" : "固定"}
                 </Button>
                 <Button
                   disabled={!canDuplicate}
@@ -186,10 +186,10 @@ export function TemplateWorkspace({
                   variant="ghost"
                   onClick={() => void onDuplicateTemplate()}
                 >
-                  Duplicate
+                  複製
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => void onDeleteTemplate()}>
-                  {selectedTemplateId ? "Trash" : "Reset"}
+                  {selectedTemplateId ? "ゴミ箱へ移動" : "リセット"}
                 </Button>
                 <Button
                   size="sm"
@@ -197,25 +197,25 @@ export function TemplateWorkspace({
                   variant="primary"
                   onClick={() => void onSaveTemplate()}
                 >
-                  Save
+                  保存
                 </Button>
               </div>
             }
-            description={`${templateForm.isPinned ? "Pinned · " : ""}${templateForm.name}`}
-            title="Template editor"
+            description={`${templateForm.isPinned ? "固定・" : ""}${templateForm.name}`}
+            title="テンプレート編集"
           />
 
           <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3.5">
             <div className="grid gap-3">
               <div className="grid gap-3 md:grid-cols-2">
-                <Field label="Name">
+                <Field label="名前">
                   <Input
                     showWhitespace={showWhitespace}
                     value={templateForm.name}
                     onChange={(event) => onChangeTemplate("name", event.currentTarget.value)}
                   />
                 </Field>
-                <Field label="Subject">
+                <Field label="件名">
                   <Input
                     showWhitespace={showWhitespace}
                     value={templateForm.subject}
@@ -225,7 +225,7 @@ export function TemplateWorkspace({
               </div>
 
               <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_200px]">
-                <Field label="Signature">
+                <Field label="署名">
                   <Select
                     value={templateForm.signatureId ?? ""}
                     onChange={(event) =>
@@ -250,7 +250,7 @@ export function TemplateWorkspace({
                 </div>
               </div>
 
-              <Field label="Recipient note" hint="社名や担当者など">
+              <Field label="宛名メモ" hint="社名や担当者など">
                 <Textarea
                   className="min-h-24"
                   placeholder={"株式会社〇〇\n営業部\n佐藤 様"}
@@ -262,7 +262,7 @@ export function TemplateWorkspace({
                 />
               </Field>
 
-              <Field label="Opening">
+              <Field label="書き出し">
                 <Textarea
                   className="min-h-33"
                   rows={5}
@@ -273,7 +273,7 @@ export function TemplateWorkspace({
                 />
               </Field>
 
-              <Field label="Body">
+              <Field label="本文">
                 <Textarea
                   className="min-h-70"
                   rows={12}
@@ -284,7 +284,7 @@ export function TemplateWorkspace({
                 />
               </Field>
 
-              <Field label="Closing">
+              <Field label="結び">
                 <Textarea
                   className="min-h-33"
                   rows={5}
@@ -308,21 +308,21 @@ export function TemplateWorkspace({
                   variant="ghost"
                   onClick={() => setIsWidePreviewOpen(true)}
                 >
-                  Expand
+                  拡大
                 </Button>
                 <Button size="sm" variant="ghost" onClick={onStartDraftFromTemplate}>
-                  Start draft
+                  下書きを作成
                 </Button>
               </div>
             }
-            description="Rendered preview"
-            title="Preview"
+            description="仕上がり表示"
+            title="プレビュー"
           />
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             <div className="border-b border-(--color-panel-border-strong) px-3.5 py-3">
               <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                Subject
+                件名
               </div>
               <div className="mt-1.5 text-[13px] text-(--color-text-strong)">
                 {templateForm.subject || "件名未設定"}
@@ -330,7 +330,7 @@ export function TemplateWorkspace({
             </div>
             <div className="px-3.5 py-3">
               <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                Body
+                本文
               </div>
               <pre className="mail-preview-text mt-2 overflow-x-auto rounded-[7px] border border-(--color-panel-border-strong) bg-(--color-preview-bg) px-3.5 py-3 whitespace-pre-wrap text-(--color-preview-text)">
                 {previewBodyText}
@@ -343,18 +343,18 @@ export function TemplateWorkspace({
       <PreviewOverlay
         action={
           <Button size="sm" variant="ghost" onClick={onStartDraftFromTemplate}>
-            Start draft
+            下書きを作成
           </Button>
         }
-        description="Rendered preview"
+        description="仕上がり表示"
         isOpen={isWidePreviewOpen}
-        title="Template preview"
+        title="テンプレートプレビュー"
         onClose={() => setIsWidePreviewOpen(false)}
       >
         <div className="grid gap-3 xl:grid-cols-[260px_minmax(0,1fr)]">
           <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) p-4">
             <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-              Subject
+              件名
             </div>
             <div className="mt-2.5 text-[13px] text-(--color-text-strong)">
               {templateForm.subject || "件名未設定"}
@@ -363,7 +363,7 @@ export function TemplateWorkspace({
 
           <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-preview-bg) p-4">
             <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-              Body
+              本文
             </div>
             <pre className="mail-preview-text mt-2.5 min-h-120 overflow-x-auto whitespace-pre-wrap text-(--color-preview-text)">
               {previewBodyText}

@@ -37,23 +37,23 @@ export const HELP_USAGE_GROUPS: HelpGuideGroup[] = [
     steps: [
       {
         title: "下書きを作る",
-        body: "下書き画面で `New` を押して、Label と Subject を決めます。Label は一覧で見分けるための短い名前です。",
+        body: "下書き画面で `新規` を押して、一覧名と件名を決めます。一覧名は一覧で見分けるための短い名前です。",
       },
       {
         title: "本文を組み立てる",
-        body: "Recipient note、Opening、Body、Closing を分けて入力します。宛名メモと本文を分けておくと、文面の整理がしやすくなります。",
+        body: "宛名メモ、書き出し、本文、結びを分けて入力します。宛名メモと本文を分けておくと、文面の整理がしやすくなります。",
       },
       {
         title: "署名とテンプレートを選ぶ",
-        body: "必要なら Template と Signature を選びます。テンプレートを使うと定型文をすぐ下書きへ反映できます。",
+        body: "必要ならテンプレートと署名を選びます。テンプレートを使うと定型文をすぐ下書きへ反映できます。",
       },
       {
         title: "差し込み値を保存する",
-        body: "Variables に保存済みセットを作っておくと、会社名や担当者名などの差し込み値を次回以降まとめて再利用できます。",
+        body: "差し込み項目で保存済みセットを作っておくと、会社名や担当者名などの差し込み値を次回以降まとめて再利用できます。",
       },
       {
         title: "プレビューで確認してコピーする",
-        body: "右側の Preview で完成形を確認して、問題なければ `Copy` でプレーンテキストの本文をコピーします。",
+        body: "右側のプレビューで完成形を確認して、問題なければ `コピー` でプレーンテキストの本文をコピーします。",
       },
     ],
   },
@@ -72,7 +72,7 @@ export const HELP_USAGE_GROUPS: HelpGuideGroup[] = [
       },
       {
         title: "テンプレートから起こす",
-        body: "テンプレート画面の `Start draft` で、そのテンプレートを元に新しい下書きを始められます。",
+        body: "テンプレート画面の `下書きを作成` で、そのテンプレートを元に新しい下書きを始められます。",
       },
     ],
   },
@@ -87,11 +87,11 @@ export const HELP_USAGE_GROUPS: HelpGuideGroup[] = [
       },
       {
         title: "削除はゴミ箱へ送る",
-        body: "下書き、テンプレート、署名を削除すると、すぐ消えずにゴミ箱へ移動します。必要なら後から Restore できます。",
+        body: "下書き、テンプレート、署名を削除すると、すぐ消えずにゴミ箱へ移動します。必要なら後から復元できます。",
       },
       {
         title: "必要に応じてバックアップする",
-        body: "設定のバックアップ画面から JSON を Export / Import できます。下書き、テンプレート、署名、差し込み値セットごと別 PC へ移行できます。",
+        body: "設定のバックアップ画面から JSON を書き出し / 読み込みできます。下書き、テンプレート、署名、差し込み値セットごと別のPCへ移行できます。",
       },
     ],
   },
@@ -111,7 +111,7 @@ export interface ShortcutGroup {
 export const KEYBOARD_SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     id: "navigation",
-    title: "Workspace",
+    title: "画面切替",
     description: "画面の切り替え",
     items: [
       { keys: "Ctrl/Cmd+1", description: "下書きへ移動" },
@@ -124,7 +124,7 @@ export const KEYBOARD_SHORTCUT_GROUPS: ShortcutGroup[] = [
   },
   {
     id: "editing",
-    title: "Editing",
+    title: "編集",
     description: "作成と保存",
     items: [
       {
@@ -135,7 +135,7 @@ export const KEYBOARD_SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: "Ctrl/Cmd+S", description: "現在の編集内容を保存" },
       {
         keys: "Ctrl/Cmd+Shift+P",
-        description: "ピン留めを切り替え",
+        description: "固定留めを切り替え",
         note: "下書き・テンプレート・署名のみ",
       },
       {
@@ -147,7 +147,7 @@ export const KEYBOARD_SHORTCUT_GROUPS: ShortcutGroup[] = [
   },
   {
     id: "search",
-    title: "Search",
+    title: "検索",
     description: "一覧の操作",
     items: [
       {

@@ -65,7 +65,7 @@ export function PreviewOverlay({
             <div className="flex shrink-0 items-center gap-2">
               {action}
               <Button size="sm" variant="secondary" onClick={onClose}>
-                Close
+                閉じる
               </Button>
             </div>
           </div>

@@ -30,7 +30,7 @@ export function HelpWorkspace() {
   return (
     <div className="grid h-full min-h-0 gap-3 overflow-y-auto pr-1 lg:grid-cols-[188px_minmax(0,1fr)] lg:overflow-hidden lg:pr-0">
       <Panel className="flex flex-col overflow-hidden lg:h-full">
-        <PaneHeader description="ヘルプカテゴリ" title="Help" />
+        <PaneHeader description="ヘルプカテゴリ" title="ヘルプ" />
 
         <div className="grid flex-1 content-start gap-1.5 px-2.5 py-2.5">
           {HELP_SECTIONS.map((section) => {
@@ -81,7 +81,7 @@ function UsageGuide() {
       <div className="grid gap-3 px-3.5 py-3.5">
         <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3.5 py-3">
           <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-            Overview
+            概要
           </div>
           <div className="mt-2.5 space-y-1.5 text-[13px] leading-6 text-(--color-text-muted)">
             <p>
@@ -138,7 +138,7 @@ function ShortcutGuide() {
       <div className="grid gap-3 px-3.5 py-3.5">
         <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3.5 py-3">
           <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-            Notes
+            補足
           </div>
           <div className="mt-2.5 space-y-1.5 text-[13px] leading-6 text-(--color-text-muted)">
             <p>Windows では Ctrl、macOS では Cmd で使えます。</p>

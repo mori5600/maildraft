@@ -52,8 +52,8 @@ export function SignatureWorkspace({
     (showWhitespace ? visualizeWhitespace(signatureForm.body) : signatureForm.body) ||
     "署名プレビューがここに表示されます。";
   const signatureCountLabel = searchQuery.trim()
-    ? `${signatures.length} / ${totalSignatureCount} signatures`
-    : `${totalSignatureCount} signatures`;
+    ? `${signatures.length} / ${totalSignatureCount}件`
+    : `${totalSignatureCount}件`;
 
   return (
     <>
@@ -62,17 +62,17 @@ export function SignatureWorkspace({
           <PaneHeader
             action={
               <Button size="sm" title="Ctrl/Cmd+N" variant="ghost" onClick={onCreateSignature}>
-                New
+                新規
               </Button>
             }
             description={signatureCountLabel}
-            title="Signature list"
+            title="署名一覧"
           />
           <div className="border-b border-(--color-panel-border-strong) px-1.5 py-1.5">
             <div className="grid gap-2 rounded-[7px] border border-(--color-panel-border-strong) bg-(--color-field-bg) px-2.5 py-2">
               <div className="grid gap-1.5">
                 <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                  Search
+                  検索
                 </div>
                 <div className="flex items-center gap-2">
                   <Input
@@ -90,14 +90,14 @@ export function SignatureWorkspace({
                     variant="ghost"
                     onClick={() => onChangeSearchQuery("")}
                   >
-                    Clear
+                    消去
                   </Button>
                 </div>
               </div>
 
               <div className="grid gap-1.5">
                 <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                  Sort
+                  並び順
                 </div>
                 <Select
                   value={sort}
@@ -141,12 +141,12 @@ export function SignatureWorkspace({
                         </div>
                         {signature.isPinned ? (
                           <span className="rounded-md border border-(--color-panel-border-strong) bg-(--color-field-bg) px-1.5 py-0.5 text-[9px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                            Pinned
+                            固定
                           </span>
                         ) : null}
                         {signature.isDefault ? (
                           <span className="rounded-md border border-(--color-default-badge-border) bg-(--color-default-badge-bg) px-1.5 py-0.5 text-[9px] tracking-[0.14em] text-(--color-default-badge-text) uppercase">
-                            Default
+                            既定
                           </span>
                         ) : null}
                       </div>
@@ -166,7 +166,7 @@ export function SignatureWorkspace({
             action={
               <div className="flex gap-2">
                 <Button size="sm" title="Ctrl/Cmd+Shift+P" variant="ghost" onClick={onTogglePinned}>
-                  {signatureForm.isPinned ? "Unpin" : "Pin"}
+                  {signatureForm.isPinned ? "固定解除" : "固定"}
                 </Button>
                 <Button
                   disabled={!canDuplicate}
@@ -174,10 +174,10 @@ export function SignatureWorkspace({
                   variant="ghost"
                   onClick={() => void onDuplicateSignature()}
                 >
-                  Duplicate
+                  複製
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => void onDeleteSignature()}>
-                  {selectedSignatureId ? "Trash" : "Reset"}
+                  {selectedSignatureId ? "ゴミ箱へ移動" : "リセット"}
                 </Button>
                 <Button
                   size="sm"
@@ -185,17 +185,17 @@ export function SignatureWorkspace({
                   variant="primary"
                   onClick={() => void onSaveSignature()}
                 >
-                  Save
+                  保存
                 </Button>
               </div>
             }
-            description={`${signatureForm.isPinned ? "Pinned · " : ""}${signatureForm.name}`}
-            title="Signature editor"
+            description={`${signatureForm.isPinned ? "固定・" : ""}${signatureForm.name}`}
+            title="署名編集"
           />
 
           <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3.5">
             <div className="grid gap-3">
-              <Field label="Name">
+              <Field label="名前">
                 <Input
                   showWhitespace={showWhitespace}
                   value={signatureForm.name}
@@ -213,7 +213,7 @@ export function SignatureWorkspace({
                 新規下書きで既定の署名として使う
               </label>
 
-              <Field label="Body">
+              <Field label="本文">
                 <Textarea
                   className="min-h-80"
                   rows={14}
@@ -236,11 +236,11 @@ export function SignatureWorkspace({
                 variant="ghost"
                 onClick={() => setIsWidePreviewOpen(true)}
               >
-                Expand
+                拡大
               </Button>
             }
-            description="Rendered block"
-            title="Preview"
+            description="仕上がり表示"
+            title="プレビュー"
           />
           <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3">
             <pre className="mail-signature-text overflow-x-auto rounded-[7px] border border-(--color-panel-border-strong) bg-(--color-preview-bg) px-3.5 py-3 whitespace-pre-wrap text-(--color-preview-text)">
@@ -251,14 +251,14 @@ export function SignatureWorkspace({
       </div>
 
       <PreviewOverlay
-        description="Rendered block"
+        description="仕上がり表示"
         isOpen={isWidePreviewOpen}
-        title="Signature preview"
+        title="署名プレビュー"
         onClose={() => setIsWidePreviewOpen(false)}
       >
         <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-preview-bg) p-4">
           <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-            Body
+            本文
           </div>
           <pre className="mail-signature-text mt-2.5 min-h-120 overflow-x-auto whitespace-pre-wrap text-(--color-preview-text)">
             {previewBodyText}

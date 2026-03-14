@@ -54,11 +54,11 @@ export function TrashWorkspace({
               variant="ghost"
               onClick={() => void onEmptyTrash()}
             >
-              Empty trash
+              ゴミ箱を空にする
             </Button>
           }
-          description={`${items.length} items`}
-          title="Trash"
+          description={`${items.length}件`}
+          title="ゴミ箱"
         />
 
         <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
@@ -105,14 +105,14 @@ export function TrashWorkspace({
             selectedItem ? (
               <div className="flex gap-2">
                 <Button size="sm" variant="ghost" onClick={() => void onRestoreItem(selectedItem)}>
-                  Restore
+                  復元
                 </Button>
                 <Button
                   size="sm"
                   variant="danger"
                   onClick={() => void onDeleteItemPermanently(selectedItem)}
                 >
-                  Delete forever
+                  完全削除
                 </Button>
               </div>
             ) : null
@@ -122,7 +122,7 @@ export function TrashWorkspace({
               ? "削除済みの項目を復元または完全削除できます。"
               : "削除済みの項目はありません。"
           }
-          title="Details"
+          title="詳細"
         />
 
         <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3.5">
@@ -178,7 +178,7 @@ function TrashItemDetail({
       {detail.subject ? (
         <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) px-4 py-3">
           <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-            Subject
+            件名
           </div>
           <div className="mt-2.5 text-[13px] text-(--color-text-strong)">{detail.subject}</div>
         </section>
@@ -186,7 +186,7 @@ function TrashItemDetail({
 
       <section className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-preview-bg) px-4 py-3">
         <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-          Body
+          本文
         </div>
         <pre className="mail-preview-text mt-2.5 min-h-95 overflow-x-auto whitespace-pre-wrap text-(--color-preview-text)">
           {bodyText || "表示できる本文はありません。"}

@@ -543,8 +543,8 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     const confirmed = await confirm("この項目を完全に削除します。元に戻せません。続けますか？", {
       title: "MailDraft",
       kind: "warning",
-      okLabel: "Delete forever",
-      cancelLabel: "Cancel",
+      okLabel: "完全削除",
+      cancelLabel: "キャンセル",
     });
 
     if (!confirmed) {
@@ -588,8 +588,8 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     const confirmed = await confirm("ゴミ箱を空にします。元に戻せません。続けますか？", {
       title: "MailDraft",
       kind: "warning",
-      okLabel: "Empty trash",
-      cancelLabel: "Cancel",
+      okLabel: "ゴミ箱を空にする",
+      cancelLabel: "キャンセル",
     });
 
     if (!confirmed) {
@@ -695,8 +695,8 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
         {
           title: "MailDraft",
           kind: "warning",
-          okLabel: "Import",
-          cancelLabel: "Cancel",
+          okLabel: "読み込む",
+          cancelLabel: "キャンセル",
         },
       );
 
@@ -731,7 +731,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     const nextTheme = theme === "dark" ? "light" : "dark";
     setTheme(nextTheme);
     setNotice(
-      nextTheme === "dark" ? "ダークモードに切り替えました。" : "ライトモードに切り替えました。",
+      nextTheme === "dark" ? "ダーク表示に切り替えました。" : "ライト表示に切り替えました。",
     );
   }
 
