@@ -4,6 +4,7 @@ import type { StoreSnapshot } from "../../../shared/types/store";
 import {
   createInitialDraftState,
   formatDraftAutoSaveState,
+  hasMeaningfulDraftContent,
   shouldAutoPersistDraft,
   toDraftWorkspaceErrorMessage,
 } from "./draft-workspace-helpers";
@@ -92,12 +93,50 @@ describe("draft workspace helpers", () => {
           body: "",
           closing: "",
           templateId: null,
-          signatureId: null,
+          signatureId: "signature-1",
           variableValues: {},
         },
         snapshot,
       ),
     ).toBe(false);
+
+    expect(
+      hasMeaningfulDraftContent(
+        {
+          id: "draft-2",
+          title: "",
+          isPinned: false,
+          subject: "",
+          recipient: "",
+          opening: "",
+          body: "",
+          closing: "",
+          templateId: null,
+          signatureId: "signature-1",
+          variableValues: {},
+        },
+        snapshot,
+      ),
+    ).toBe(false);
+
+    expect(
+      hasMeaningfulDraftContent(
+        {
+          id: "draft-2",
+          title: "",
+          isPinned: false,
+          subject: "",
+          recipient: "",
+          opening: "",
+          body: "",
+          closing: "",
+          templateId: null,
+          signatureId: null,
+          variableValues: {},
+        },
+        snapshot,
+      ),
+    ).toBe(true);
 
     expect(
       shouldAutoPersistDraft(
@@ -119,6 +158,25 @@ describe("draft workspace helpers", () => {
         snapshot,
       ),
     ).toBe(false);
+
+    expect(
+      shouldAutoPersistDraft(
+        {
+          id: "draft-2",
+          title: "",
+          isPinned: false,
+          subject: "",
+          recipient: "",
+          opening: "",
+          body: "",
+          closing: "",
+          templateId: null,
+          signatureId: null,
+          variableValues: {},
+        },
+        snapshot,
+      ),
+    ).toBe(true);
 
     expect(
       shouldAutoPersistDraft(

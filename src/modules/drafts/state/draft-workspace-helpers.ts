@@ -49,11 +49,21 @@ export function formatDraftAutoSaveState(state: DraftAutoSaveState): string {
   }
 }
 
+export function hasMeaningfulDraftContent(
+  input: DraftInput,
+  snapshot: StoreSnapshot,
+): boolean {
+  return (
+    draftHasMeaningfulContent(input) ||
+    input.signatureId !== getDefaultSignatureId(snapshot)
+  );
+}
+
 export function shouldAutoPersistDraft(input: DraftInput, snapshot: StoreSnapshot): boolean {
   const persistedDraft = snapshot.drafts.find((draft) => draft.id === input.id);
   const persistedDraftInput = persistedDraft ? toDraftInput(persistedDraft) : null;
 
-  if (!persistedDraft && !draftHasMeaningfulContent(input)) {
+  if (!persistedDraft && !hasMeaningfulDraftContent(input, snapshot)) {
     return false;
   }
 

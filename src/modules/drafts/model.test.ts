@@ -121,5 +121,21 @@ describe("draft model", () => {
         },
       }),
     ).toBe(true);
+
+    expect(
+      draftHasMeaningfulContent({
+        id: "draft-1",
+        title: "",
+        isPinned: false,
+        subject: "",
+        recipient: "",
+        opening: "",
+        body: "",
+        closing: "",
+        templateId: null,
+        signatureId: "signature-default",
+        variableValues: {},
+      }),
+    ).toBe(false);
   });
 });

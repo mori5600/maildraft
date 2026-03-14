@@ -11,13 +11,13 @@ import { maildraftApi } from "../../../shared/api/maildraft-api";
 import { pickDraftInput } from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot } from "../../../shared/types/store";
 import {
-  draftHasMeaningfulContent,
   type DraftInput,
   draftInputsEqual,
   toDraftInput,
 } from "../model";
 import {
   type DraftAutoSaveState,
+  hasMeaningfulDraftContent,
   shouldAutoPersistDraft,
   toDraftWorkspaceErrorMessage,
 } from "./draft-workspace-helpers";
@@ -128,7 +128,8 @@ export function useDraftAutoSave({
 
   const persistedDraft = snapshot.drafts.find((draft) => draft.id === draftForm.id) ?? null;
   const persistedDraftInput = persistedDraft ? toDraftInput(persistedDraft) : null;
-  const draftShouldPersist = selectedDraftId !== null || draftHasMeaningfulContent(draftForm);
+  const draftShouldPersist =
+    selectedDraftId !== null || hasMeaningfulDraftContent(draftForm, snapshot);
   const draftIsDirty = draftShouldPersist && !draftInputsEqual(draftForm, persistedDraftInput);
   const draftRevision = serializeDraftRevision(draftForm);
   const baseDraftAutoSaveState: DraftAutoSaveState = !draftShouldPersist

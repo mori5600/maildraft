@@ -179,4 +179,41 @@ describe("App runtime integration", () => {
       expect(screen.getByLabelText("一覧名")).toHaveValue("削除した下書き");
     });
   });
+
+  it("keeps the draft list empty after deleting the last saved draft", async () => {
+    const user = userEvent.setup();
+    const runtime = installMockTauriRuntime({
+      snapshot: createSeededRuntimeSnapshot({
+        draftHistory: [],
+        drafts: [
+          createRuntimeDraft({
+            id: "draft-last",
+            title: "最後の下書き",
+            subject: "最後の件名",
+            signatureId: "signature-1",
+          }),
+        ],
+        trash: {
+          drafts: [],
+          templates: [],
+          signatures: [],
+        },
+      }),
+    });
+
+    render(<App />);
+    expect(await screen.findByDisplayValue("最後の下書き")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "ゴミ箱へ移動" }));
+
+    await waitFor(() => {
+      expect(runtime.getSnapshot().drafts).toHaveLength(0);
+    });
+    expect(await screen.findByText("まだ下書きはありません。")).toBeInTheDocument();
+
+    await new Promise((resolve) => window.setTimeout(resolve, 1000));
+
+    expect(runtime.getSnapshot().drafts).toHaveLength(0);
+    expect(runtime.commandCalls.filter((call) => call.cmd === "save_draft")).toHaveLength(0);
+  });
 });

@@ -86,6 +86,22 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
 
         return cloneData(snapshot);
       }
+      case "delete_draft": {
+        const id = (payload as { id: string }).id;
+        const currentIndex = snapshot.drafts.findIndex((draft) => draft.id === id);
+        if (currentIndex < 0) {
+          throw new Error("指定した下書きが見つかりませんでした。");
+        }
+
+        const [deletedDraft] = snapshot.drafts.splice(currentIndex, 1);
+        const history = snapshot.draftHistory.filter((entry) => entry.draftId === id);
+        snapshot.trash.drafts.unshift({
+          draft: deletedDraft,
+          history,
+          deletedAt: String(Date.now()),
+        });
+        return cloneData(snapshot);
+      }
       case "save_logging_settings": {
         const input = (payload as { input: LoggingSettingsInput }).input;
         loggingSettings = {

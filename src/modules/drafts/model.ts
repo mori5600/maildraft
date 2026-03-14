@@ -161,7 +161,6 @@ export function draftHasMeaningfulContent(draft: DraftInput): boolean {
     draft.body.trim() ||
     draft.closing.trim() ||
     draft.templateId ||
-    draft.signatureId ||
     Object.values(draft.variableValues).some((value) => value.trim().length > 0),
   );
 }
