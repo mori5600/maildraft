@@ -1,50 +1,13 @@
-import { confirm, open, save } from "@tauri-apps/plugin-dialog";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 
-import { createDraftFromTemplate, createDraftFromTemplateInput } from "../../modules/drafts/model";
 import type { DraftWorkspaceHandle } from "../../modules/drafts/ui/DraftWorkspaceScreen";
-import { renderTemplatePreview } from "../../modules/renderer/render-draft";
-import {
-  createDefaultLoggingSettingsSnapshot,
-  type LogEntrySnapshot,
-  type LoggingSettingsInput,
-  type LoggingSettingsSnapshot,
-  RECENT_LOG_LIMIT,
-  toLoggingSettingsInput,
-} from "../../modules/settings/model";
-import {
-  createEmptySignature,
-  duplicateSignatureInput,
-  type SignatureInput,
-  toSignatureInput,
-} from "../../modules/signatures/model";
-import {
-  createEmptyTemplate,
-  duplicateTemplateInput,
-  type TemplateInput,
-  toTemplateInput,
-} from "../../modules/templates/model";
-import {
-  buildTrashItemKey,
-  collectTrashItems,
-  findTrashSignature,
-  type TrashItem,
-} from "../../modules/trash/model";
+import type { LoggingSettingsSnapshot } from "../../modules/settings/model";
+import { useSettingsWorkspaceState } from "../../modules/settings/state/use-settings-workspace-state";
+import { useSignatureWorkspaceState } from "../../modules/signatures/state/use-signature-workspace-state";
+import { useTemplateWorkspaceState } from "../../modules/templates/state/use-template-workspace-state";
+import { collectTrashItems, type TrashItem } from "../../modules/trash/model";
 import { maildraftApi } from "../../shared/api/maildraft-api";
-import { BACKUP_FILE_FILTER, createBackupDefaultFileName } from "../../shared/lib/backup";
-import {
-  type SignatureSortOption,
-  sortSignatures,
-  sortTemplates,
-  type TemplateSortOption,
-} from "../../shared/lib/list-sort";
-import { matchesSearchQuery } from "../../shared/lib/search";
-import {
-  getDefaultSignatureId,
-  pickKnownSignatureId,
-  pickSignatureInput,
-  pickTemplateInput,
-} from "../../shared/lib/store-snapshot";
 import {
   applyTheme,
   type AppTheme,
@@ -53,7 +16,6 @@ import {
 } from "../../shared/lib/theme";
 import type { StoreSnapshot, WorkspaceView } from "../../shared/types/store";
 import {
-  buildHydratedWorkspaceState,
   buildWorkspaceSummaries,
   resolveCreateShortcutAction,
   resolvePinShortcutAction,
@@ -75,7 +37,6 @@ const EMPTY_SNAPSHOT: StoreSnapshot = {
     signatures: [],
   },
 };
-const DEFAULT_LOGGING_SETTINGS = createDefaultLoggingSettingsSnapshot();
 
 interface ShortcutActionSet {
   changeView: (nextView: WorkspaceView) => void;
@@ -94,37 +55,19 @@ interface ShortcutActionSet {
 
 export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandle | null>) {
   const [snapshot, setSnapshot] = useState<StoreSnapshot>(EMPTY_SNAPSHOT);
-  const [loggingSettings, setLoggingSettings] =
-    useState<LoggingSettingsSnapshot>(DEFAULT_LOGGING_SETTINGS);
-  const [recentLogs, setRecentLogs] = useState<LogEntrySnapshot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingRecentLogs, setIsLoadingRecentLogs] = useState(false);
-  const [isExportingBackup, setIsExportingBackup] = useState(false);
-  const [isImportingBackup, setIsImportingBackup] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState("ローカル保存の準備をしています。");
   const [view, setViewState] = useState<WorkspaceView>("drafts");
   const [theme, setTheme] = useState<AppTheme>(() => resolveInitialTheme());
   const [showWhitespace, setShowWhitespace] = useState(false);
-  const [templateSearchQuery, setTemplateSearchQuery] = useState("");
-  const [templateSort, setTemplateSort] = useState<TemplateSortOption>("recent");
-  const [signatureSearchQuery, setSignatureSearchQuery] = useState("");
-  const [signatureSort, setSignatureSort] = useState<SignatureSortOption>("recent");
-
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
-  const [selectedSignatureId, setSelectedSignatureId] = useState<string | null>(null);
   const [selectedTrashItemKey, setSelectedTrashItemKey] = useState<string | null>(null);
-
-  const [templateForm, setTemplateForm] = useState<TemplateInput>(() => createEmptyTemplate(null));
-  const [signatureForm, setSignatureForm] = useState<SignatureInput>(() =>
-    createEmptySignature(true),
-  );
-  const [loggingForm, setLoggingForm] = useState<LoggingSettingsInput>(() =>
-    toLoggingSettingsInput(DEFAULT_LOGGING_SETTINGS),
-  );
 
   const viewRef = useRef(view);
   const isLoadingRef = useRef(isLoading);
+  const hydrateAllRef = useRef<(snapshot: StoreSnapshot) => void>(() => undefined);
+  const hydrateLoggingSettingsRef =
+    useRef<(nextLoggingSettings: LoggingSettingsSnapshot) => void>(() => undefined);
   const shortcutActionsRef = useRef<ShortcutActionSet | null>(null);
 
   useEffect(() => {
@@ -136,65 +79,11 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
   }, [isLoading]);
 
   useEffect(() => {
-    void (async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const nextSnapshot = await maildraftApi.loadSnapshot();
-        const nextLoggingSettings = await maildraftApi.loadLoggingSettings();
-        hydrateAll(nextSnapshot);
-        hydrateLoggingSettings(nextLoggingSettings);
-        setNotice("ローカルデータと診断設定を読み込みました。");
-      } catch (loadError) {
-        setError(toErrorMessage(loadError));
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
     applyTheme(theme);
     persistTheme(theme);
   }, [theme]);
 
-  const selectedTemplateSignature = useMemo(
-    () =>
-      findTrashSignature(snapshot.signatures, snapshot.trash.signatures, templateForm.signatureId),
-    [snapshot.signatures, snapshot.trash.signatures, templateForm.signatureId],
-  );
-  const templatePreviewText = useMemo(
-    () => renderTemplatePreview(templateForm, selectedTemplateSignature),
-    [selectedTemplateSignature, templateForm],
-  );
   const trashItems = useMemo(() => collectTrashItems(snapshot.trash), [snapshot.trash]);
-  const filteredTemplates = useMemo(
-    () =>
-      sortTemplates(
-        snapshot.templates.filter((template) =>
-          matchesSearchQuery(templateSearchQuery, [
-            template.name,
-            template.subject,
-            template.recipient,
-            template.opening,
-            template.body,
-            template.closing,
-          ]),
-        ),
-        templateSort,
-      ),
-    [snapshot.templates, templateSearchQuery, templateSort],
-  );
-  const filteredSignatures = useMemo(
-    () =>
-      sortSignatures(
-        snapshot.signatures.filter((signature) =>
-          matchesSearchQuery(signatureSearchQuery, [signature.name, signature.body]),
-        ),
-        signatureSort,
-      ),
-    [signatureSearchQuery, signatureSort, snapshot.signatures],
-  );
   const views = useMemo(
     () =>
       buildWorkspaceSummaries({
@@ -221,21 +110,65 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     }
   }, [selectedTrashItemKey, trashItems]);
 
+  const templateState = useTemplateWorkspaceState({
+    onClearError: () => setError(null),
+    onError: setError,
+    onFlushDraft: () => draftWorkspaceRef.current?.flushPendingDraft(),
+    onNotice: setNotice,
+    onOpenDraftInput: (input) => draftWorkspaceRef.current?.openDraftInput(input),
+    onSnapshotChange: setSnapshot,
+    onTrashItemSelect: setSelectedTrashItemKey,
+    onViewChange: setViewState,
+    snapshot,
+  });
+  const signatureState = useSignatureWorkspaceState({
+    onClearError: () => setError(null),
+    onError: setError,
+    onFlushDraft: () => draftWorkspaceRef.current?.flushPendingDraft(),
+    onNotice: setNotice,
+    onSignatureSnapshotChange: templateState.syncTemplateSignatureId,
+    onSnapshotChange: setSnapshot,
+    onTrashItemSelect: setSelectedTrashItemKey,
+    onViewChange: setViewState,
+    snapshot,
+  });
+  const settingsState = useSettingsWorkspaceState({
+    onBackupImported: (nextSnapshot) => {
+      hydrateAll(nextSnapshot);
+      draftWorkspaceRef.current?.hydrateSnapshot(nextSnapshot);
+    },
+    onClearError: () => setError(null),
+    onError: setError,
+    onNotice: setNotice,
+  });
+
   function hydrateAll(nextSnapshot: StoreSnapshot) {
     setSnapshot(nextSnapshot);
-    const hydrated = buildHydratedWorkspaceState(nextSnapshot);
-
-    setSelectedTemplateId(hydrated.selectedTemplateId);
-    setSelectedSignatureId(hydrated.selectedSignatureId);
-    setSelectedTrashItemKey(hydrated.selectedTrashItemKey);
-    setTemplateForm(hydrated.templateForm);
-    setSignatureForm(hydrated.signatureForm);
+    templateState.hydrateTemplateState(nextSnapshot);
+    signatureState.hydrateSignatureState(nextSnapshot);
+    setSelectedTrashItemKey(collectTrashItems(nextSnapshot.trash)[0]?.key ?? null);
   }
 
-  function hydrateLoggingSettings(nextLoggingSettings: LoggingSettingsSnapshot) {
-    setLoggingSettings(nextLoggingSettings);
-    setLoggingForm(toLoggingSettingsInput(nextLoggingSettings));
-  }
+  hydrateAllRef.current = hydrateAll;
+  hydrateLoggingSettingsRef.current = settingsState.hydrateLoggingSettings;
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const nextSnapshot = await maildraftApi.loadSnapshot();
+        const nextLoggingSettings = await maildraftApi.loadLoggingSettings();
+        hydrateAllRef.current(nextSnapshot);
+        hydrateLoggingSettingsRef.current(nextLoggingSettings);
+        setNotice("ローカルデータと診断設定を読み込みました。");
+      } catch (loadError) {
+        setError(toErrorMessage(loadError));
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, []);
 
   function changeView(nextView: WorkspaceView) {
     if (viewRef.current === "drafts" && nextView !== "drafts") {
@@ -262,223 +195,6 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     draftWorkspaceRef.current?.togglePinned();
   }
 
-  function selectTemplate(id: string) {
-    draftWorkspaceRef.current?.flushPendingDraft();
-
-    const template = snapshot.templates.find((item) => item.id === id);
-    if (!template) {
-      return;
-    }
-
-    setSelectedTemplateId(id);
-    setTemplateForm(toTemplateInput(template));
-    setViewState("templates");
-  }
-
-  function createTemplate() {
-    draftWorkspaceRef.current?.flushPendingDraft();
-    setSelectedTemplateId(null);
-    setTemplateForm(createEmptyTemplate(getDefaultSignatureId(snapshot)));
-    setViewState("templates");
-    setNotice("新しいテンプレートを作成しています。");
-  }
-
-  function changeTemplate<K extends keyof TemplateInput>(field: K, value: TemplateInput[K]) {
-    setTemplateForm((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  }
-
-  function toggleTemplatePinned() {
-    setTemplateForm((current) => ({
-      ...current,
-      isPinned: !current.isPinned,
-    }));
-  }
-
-  function changeTemplateSearchQuery(value: string) {
-    setTemplateSearchQuery(value);
-  }
-
-  function changeTemplateSort(value: TemplateSortOption) {
-    setTemplateSort(value);
-  }
-
-  async function saveTemplate() {
-    try {
-      setError(null);
-      const nextSnapshot = await maildraftApi.saveTemplate(templateForm);
-      setSnapshot(nextSnapshot);
-      setSelectedTemplateId(templateForm.id);
-      setTemplateForm(pickTemplateInput(nextSnapshot, templateForm.id));
-      setNotice("テンプレートを保存しました。");
-    } catch (saveError) {
-      setError(toErrorMessage(saveError));
-    }
-  }
-
-  async function duplicateTemplate() {
-    if (!selectedTemplateId) {
-      return;
-    }
-
-    const duplicate = duplicateTemplateInput(templateForm);
-
-    try {
-      setError(null);
-      const nextSnapshot = await maildraftApi.saveTemplate(duplicate);
-      setSnapshot(nextSnapshot);
-      setSelectedTemplateId(duplicate.id);
-      setTemplateForm(pickTemplateInput(nextSnapshot, duplicate.id));
-      setNotice("テンプレートを複製しました。");
-    } catch (duplicateError) {
-      setError(toErrorMessage(duplicateError));
-    }
-  }
-
-  async function deleteTemplate() {
-    if (!selectedTemplateId) {
-      createTemplate();
-      return;
-    }
-
-    try {
-      setError(null);
-      const nextSnapshot = await maildraftApi.deleteTemplate(selectedTemplateId);
-      setSnapshot(nextSnapshot);
-      const nextSelectedId = nextSnapshot.templates[0]?.id ?? null;
-      setSelectedTemplateId(nextSelectedId);
-      setTemplateForm(pickTemplateInput(nextSnapshot, nextSelectedId));
-      setSelectedTrashItemKey(buildTrashItemKey("template", selectedTemplateId));
-      setNotice("テンプレートをゴミ箱に移動しました。");
-    } catch (deleteError) {
-      setError(toErrorMessage(deleteError));
-    }
-  }
-
-  function startDraftFromTemplate() {
-    const template = snapshot.templates.find((item) => item.id === templateForm.id);
-    const nextDraft = template
-      ? createDraftFromTemplate(template, getDefaultSignatureId(snapshot))
-      : createDraftFromTemplateInput(templateForm, getDefaultSignatureId(snapshot));
-
-    draftWorkspaceRef.current?.openDraftInput(nextDraft);
-    setViewState("drafts");
-    setNotice(
-      template
-        ? `テンプレート「${template.name}」から新しい下書きを起こしました。`
-        : "未保存のテンプレートから新しい下書きを起こしました。",
-    );
-  }
-
-  function selectSignature(id: string) {
-    draftWorkspaceRef.current?.flushPendingDraft();
-
-    const signature = snapshot.signatures.find((item) => item.id === id);
-    if (!signature) {
-      return;
-    }
-
-    setSelectedSignatureId(id);
-    setSignatureForm(toSignatureInput(signature));
-    setViewState("signatures");
-  }
-
-  function createSignature() {
-    draftWorkspaceRef.current?.flushPendingDraft();
-    setSelectedSignatureId(null);
-    setSignatureForm(createEmptySignature(snapshot.signatures.length === 0));
-    setViewState("signatures");
-    setNotice("新しい署名を作成しています。");
-  }
-
-  function changeSignature<K extends keyof SignatureInput>(field: K, value: SignatureInput[K]) {
-    setSignatureForm((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  }
-
-  function toggleSignaturePinned() {
-    setSignatureForm((current) => ({
-      ...current,
-      isPinned: !current.isPinned,
-    }));
-  }
-
-  function changeSignatureSearchQuery(value: string) {
-    setSignatureSearchQuery(value);
-  }
-
-  function changeSignatureSort(value: SignatureSortOption) {
-    setSignatureSort(value);
-  }
-
-  async function saveSignature() {
-    try {
-      setError(null);
-      const nextSnapshot = await maildraftApi.saveSignature(signatureForm);
-      setSnapshot(nextSnapshot);
-      setSelectedSignatureId(signatureForm.id);
-      setSignatureForm(pickSignatureInput(nextSnapshot, signatureForm.id));
-      setTemplateForm((current) => ({
-        ...current,
-        signatureId: pickKnownSignatureId(nextSnapshot, current.signatureId),
-      }));
-      setNotice("署名を保存しました。");
-    } catch (saveError) {
-      setError(toErrorMessage(saveError));
-    }
-  }
-
-  async function duplicateSignature() {
-    if (!selectedSignatureId) {
-      return;
-    }
-
-    const duplicate = duplicateSignatureInput(signatureForm);
-
-    try {
-      setError(null);
-      const nextSnapshot = await maildraftApi.saveSignature(duplicate);
-      setSnapshot(nextSnapshot);
-      setSelectedSignatureId(duplicate.id);
-      setSignatureForm(pickSignatureInput(nextSnapshot, duplicate.id));
-      setTemplateForm((current) => ({
-        ...current,
-        signatureId: pickKnownSignatureId(nextSnapshot, current.signatureId),
-      }));
-      setNotice("署名を複製しました。");
-    } catch (duplicateError) {
-      setError(toErrorMessage(duplicateError));
-    }
-  }
-
-  async function deleteSignature() {
-    if (!selectedSignatureId) {
-      createSignature();
-      return;
-    }
-
-    try {
-      setError(null);
-      const nextSnapshot = await maildraftApi.deleteSignature(selectedSignatureId);
-      setSnapshot(nextSnapshot);
-      const nextSelectedId = nextSnapshot.signatures[0]?.id ?? null;
-      setSelectedSignatureId(nextSelectedId);
-      setSignatureForm(pickSignatureInput(nextSnapshot, nextSelectedId));
-      setTemplateForm((current) => ({
-        ...current,
-        signatureId: pickKnownSignatureId(nextSnapshot, current.signatureId),
-      }));
-      setSelectedTrashItemKey(buildTrashItemKey("signature", selectedSignatureId));
-      setNotice("署名をゴミ箱に移動しました。");
-    } catch (deleteError) {
-      setError(toErrorMessage(deleteError));
-    }
-  }
-
   function selectTrashItem(key: string) {
     setSelectedTrashItemKey(key);
     setViewState("trash");
@@ -500,8 +216,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       if (item.kind === "template") {
         const nextSnapshot = await maildraftApi.restoreTemplateFromTrash(item.template.id);
         setSnapshot(nextSnapshot);
-        setSelectedTemplateId(item.template.id);
-        setTemplateForm(pickTemplateInput(nextSnapshot, item.template.id));
+        templateState.hydrateTemplateState(nextSnapshot, item.template.id);
         setViewState("templates");
         setNotice("テンプレートをゴミ箱から復元しました。");
         return;
@@ -509,12 +224,8 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
 
       const nextSnapshot = await maildraftApi.restoreSignatureFromTrash(item.signature.id);
       setSnapshot(nextSnapshot);
-      setSelectedSignatureId(item.signature.id);
-      setSignatureForm(pickSignatureInput(nextSnapshot, item.signature.id));
-      setTemplateForm((current) => ({
-        ...current,
-        signatureId: pickKnownSignatureId(nextSnapshot, current.signatureId),
-      }));
+      signatureState.hydrateSignatureState(nextSnapshot, item.signature.id);
+      templateState.syncTemplateSignatureId(nextSnapshot);
       setViewState("signatures");
       setNotice("署名をゴミ箱から復元しました。");
     } catch (restoreError) {
@@ -557,10 +268,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
         item.signature.id,
       );
       setSnapshot(nextSnapshot);
-      setTemplateForm((current) => ({
-        ...current,
-        signatureId: pickKnownSignatureId(nextSnapshot, current.signatureId),
-      }));
+      templateState.syncTemplateSignatureId(nextSnapshot);
       setNotice("署名を完全に削除しました。");
     } catch (deleteError) {
       setError(toErrorMessage(deleteError));
@@ -584,129 +292,10 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       const nextSnapshot = await maildraftApi.emptyTrash();
       setSnapshot(nextSnapshot);
       setSelectedTrashItemKey(null);
-      setTemplateForm((current) => ({
-        ...current,
-        signatureId: pickKnownSignatureId(nextSnapshot, current.signatureId),
-      }));
+      templateState.syncTemplateSignatureId(nextSnapshot);
       setNotice("ゴミ箱を空にしました。");
     } catch (emptyError) {
       setError(toErrorMessage(emptyError));
-    }
-  }
-
-  function changeLogging<K extends keyof LoggingSettingsInput>(
-    field: K,
-    value: LoggingSettingsInput[K],
-  ) {
-    setLoggingForm((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  }
-
-  async function saveLoggingSettings() {
-    try {
-      setError(null);
-      const nextLoggingSettings = await maildraftApi.saveLoggingSettings(loggingForm);
-      hydrateLoggingSettings(nextLoggingSettings);
-      setNotice("ログ設定を保存しました。");
-    } catch (saveError) {
-      setError(toErrorMessage(saveError));
-    }
-  }
-
-  async function clearLogs() {
-    try {
-      setError(null);
-      const nextLoggingSettings = await maildraftApi.clearLogs();
-      hydrateLoggingSettings(nextLoggingSettings);
-      setRecentLogs([]);
-      setNotice("診断ログを削除しました。");
-    } catch (clearError) {
-      setError(toErrorMessage(clearError));
-    }
-  }
-
-  async function refreshRecentLogs({ silent = false }: { silent?: boolean } = {}) {
-    try {
-      if (!silent) {
-        setError(null);
-      }
-
-      setIsLoadingRecentLogs(true);
-      const nextRecentLogs = await maildraftApi.loadRecentLogs(RECENT_LOG_LIMIT);
-      setRecentLogs(nextRecentLogs);
-
-      if (!silent) {
-        setNotice("最近のログを更新しました。");
-      }
-    } catch (loadError) {
-      setError(toErrorMessage(loadError));
-    } finally {
-      setIsLoadingRecentLogs(false);
-    }
-  }
-
-  async function exportBackup() {
-    try {
-      setError(null);
-      setIsExportingBackup(true);
-      const path = await save({
-        title: "MailDraft バックアップを書き出す",
-        defaultPath: createBackupDefaultFileName(),
-        filters: [BACKUP_FILE_FILTER],
-      });
-
-      if (!path) {
-        return;
-      }
-
-      await maildraftApi.exportBackup(path);
-      setNotice("バックアップを書き出しました。");
-    } catch (exportError) {
-      setError(toErrorMessage(exportError));
-    } finally {
-      setIsExportingBackup(false);
-    }
-  }
-
-  async function importBackup() {
-    try {
-      setError(null);
-      const confirmed = await confirm(
-        "バックアップを読み込むと、現在の下書き・テンプレート・署名・履歴を置き換えます。続けますか？",
-        {
-          title: "MailDraft",
-          kind: "warning",
-          okLabel: "読み込む",
-          cancelLabel: "キャンセル",
-        },
-      );
-
-      if (!confirmed) {
-        return;
-      }
-
-      setIsImportingBackup(true);
-      const selected = await open({
-        title: "MailDraft バックアップを読み込む",
-        multiple: false,
-        filters: [BACKUP_FILE_FILTER],
-      });
-
-      if (!selected || Array.isArray(selected)) {
-        return;
-      }
-
-      const imported = await maildraftApi.importBackup(selected);
-      hydrateAll(imported.snapshot);
-      draftWorkspaceRef.current?.hydrateSnapshot(imported.snapshot);
-      hydrateLoggingSettings(imported.loggingSettings);
-      setNotice("バックアップを読み込みました。");
-    } catch (importError) {
-      setError(toErrorMessage(importError));
-    } finally {
-      setIsImportingBackup(false);
     }
   }
 
@@ -727,15 +316,15 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       changeView,
       copyDraftPreview,
       createDraft,
-      createSignature,
-      createTemplate,
+      createSignature: signatureState.createSignature,
+      createTemplate: templateState.createTemplate,
       saveDraft,
-      saveLoggingSettings,
-      saveSignature,
-      saveTemplate,
+      saveLoggingSettings: settingsState.saveLoggingSettings,
+      saveSignature: signatureState.saveSignature,
+      saveTemplate: templateState.saveTemplate,
       toggleDraftPinned,
-      toggleSignaturePinned,
-      toggleTemplatePinned,
+      toggleSignaturePinned: signatureState.toggleSignaturePinned,
+      toggleTemplatePinned: templateState.toggleTemplatePinned,
     };
   });
 
@@ -815,61 +404,15 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     error,
     isLoading,
     notice,
-    settingsWorkspaceProps: {
-      isExportingBackup,
-      isImportingBackup,
-      isLoadingRecentLogs,
-      loggingForm,
-      loggingSettings,
-      onChangeLogging: changeLogging,
-      onClearLogs: clearLogs,
-      onExportBackup: exportBackup,
-      onImportBackup: importBackup,
-      onRefreshRecentLogs: refreshRecentLogs,
-      onSaveLoggingSettings: saveLoggingSettings,
-      recentLogs,
-    },
+    settingsWorkspaceProps: settingsState.settingsWorkspaceProps,
     showWhitespace,
     signatureWorkspaceProps: {
-      canDuplicate: selectedSignatureId !== null,
-      onChangeSearchQuery: changeSignatureSearchQuery,
-      onChangeSignature: changeSignature,
-      onChangeSort: changeSignatureSort,
-      onCreateSignature: createSignature,
-      onDeleteSignature: deleteSignature,
-      onDuplicateSignature: duplicateSignature,
-      onSaveSignature: saveSignature,
-      onSelectSignature: selectSignature,
-      onTogglePinned: toggleSignaturePinned,
-      searchQuery: signatureSearchQuery,
-      selectedSignatureId,
+      ...signatureState.signatureWorkspaceProps,
       showWhitespace,
-      signatureForm,
-      signatures: filteredSignatures,
-      sort: signatureSort,
-      totalSignatureCount: snapshot.signatures.length,
     },
     templateWorkspaceProps: {
-      canDuplicate: selectedTemplateId !== null,
-      onChangeSearchQuery: changeTemplateSearchQuery,
-      onChangeSort: changeTemplateSort,
-      onChangeTemplate: changeTemplate,
-      onCreateTemplate: createTemplate,
-      onDeleteTemplate: deleteTemplate,
-      onDuplicateTemplate: duplicateTemplate,
-      onSaveTemplate: saveTemplate,
-      onSelectTemplate: selectTemplate,
-      onStartDraftFromTemplate: startDraftFromTemplate,
-      onTogglePinned: toggleTemplatePinned,
-      previewText: templatePreviewText,
-      searchQuery: templateSearchQuery,
-      selectedTemplateId,
+      ...templateState.templateWorkspaceProps,
       showWhitespace,
-      signatures: snapshot.signatures,
-      sort: templateSort,
-      templateForm,
-      templates: filteredTemplates,
-      totalTemplateCount: snapshot.templates.length,
     },
     theme,
     toggleTheme,
