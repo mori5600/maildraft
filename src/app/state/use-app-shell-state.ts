@@ -11,8 +11,9 @@ import type { StoreSnapshot, WorkspaceView } from "../../shared/types/store";
 export function useAppShellState(initialSnapshot: StoreSnapshot) {
   const [snapshot, setSnapshot] = useState<StoreSnapshot>(initialSnapshot);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState("ローカル保存の準備をしています。");
+  const [error, setErrorState] = useState<string | null>(null);
+  const [warning, setWarningState] = useState<string | null>(null);
+  const [notice, setNoticeState] = useState("ローカル保存の準備をしています。");
   const [view, setViewState] = useState<WorkspaceView>("drafts");
   const [theme, setTheme] = useState<AppTheme>(() => resolveInitialTheme());
   const [showWhitespace, setShowWhitespace] = useState(false);
@@ -24,7 +25,23 @@ export function useAppShellState(initialSnapshot: StoreSnapshot) {
   }, [theme]);
 
   function clearError() {
-    setError(null);
+    setErrorState(null);
+    setWarningState(null);
+  }
+
+  function setError(message: string) {
+    setErrorState(message);
+    setWarningState(null);
+  }
+
+  function setNotice(message: string) {
+    setNoticeState(message);
+    setWarningState(null);
+  }
+
+  function setWarning(message: string) {
+    setWarningState(message);
+    setErrorState(null);
   }
 
   function toggleTheme() {
@@ -48,6 +65,7 @@ export function useAppShellState(initialSnapshot: StoreSnapshot) {
     setError,
     setIsLoading,
     setNotice,
+    setWarning,
     setSelectedTrashItemKey,
     setSnapshot,
     setViewState,
@@ -57,5 +75,6 @@ export function useAppShellState(initialSnapshot: StoreSnapshot) {
     toggleTheme,
     toggleWhitespace,
     view,
+    warning,
   };
 }

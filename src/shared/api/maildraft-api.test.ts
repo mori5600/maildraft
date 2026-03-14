@@ -77,6 +77,10 @@ describe("maildraftApi", () => {
       run: () => maildraftApi.loadSnapshot(),
     },
     {
+      expectedArgs: ["load_startup_notice"],
+      run: () => maildraftApi.loadStartupNotice(),
+    },
+    {
       expectedArgs: ["save_draft", { input: DRAFT_INPUT }],
       run: () => maildraftApi.saveDraft(DRAFT_INPUT),
     },

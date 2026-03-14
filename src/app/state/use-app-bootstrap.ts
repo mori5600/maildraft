@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 import type { LoggingSettingsSnapshot } from "../../modules/settings/model";
 import { maildraftApi } from "../../shared/api/maildraft-api";
-import type { StoreSnapshot } from "../../shared/types/store";
+import type { StartupNoticeSnapshot, StoreSnapshot } from "../../shared/types/store";
 import { toErrorMessage } from "./maildraft-app-helpers";
 
 interface AppBootstrapOptions {
@@ -12,6 +12,25 @@ interface AppBootstrapOptions {
   onError: (message: string) => void;
   onLoadingChange: (isLoading: boolean) => void;
   onNotice: (message: string) => void;
+  onWarning: (message: string) => void;
+}
+
+function applyStartupNotice(
+  startupNotice: StartupNoticeSnapshot | null,
+  onNotice: (message: string) => void,
+  onWarning: (message: string) => void,
+) {
+  if (!startupNotice) {
+    onNotice("ローカルデータと診断設定を読み込みました。");
+    return;
+  }
+
+  if (startupNotice.tone === "warning") {
+    onWarning(startupNotice.message);
+    return;
+  }
+
+  onNotice(startupNotice.message);
 }
 
 export function useAppBootstrap({
@@ -21,6 +40,7 @@ export function useAppBootstrap({
   onError,
   onLoadingChange,
   onNotice,
+  onWarning,
 }: AppBootstrapOptions) {
   const hydrateLoggingSettingsRef = useRef(hydrateLoggingSettings);
   const hydrateSnapshotRef = useRef(hydrateSnapshot);
@@ -28,6 +48,7 @@ export function useAppBootstrap({
   const errorRef = useRef(onError);
   const loadingChangeRef = useRef(onLoadingChange);
   const noticeRef = useRef(onNotice);
+  const warningRef = useRef(onWarning);
 
   useEffect(() => {
     hydrateLoggingSettingsRef.current = hydrateLoggingSettings;
@@ -54,15 +75,22 @@ export function useAppBootstrap({
   }, [onNotice]);
 
   useEffect(() => {
+    warningRef.current = onWarning;
+  }, [onWarning]);
+
+  useEffect(() => {
     void (async () => {
       try {
         loadingChangeRef.current(true);
         clearErrorRef.current();
-        const nextSnapshot = await maildraftApi.loadSnapshot();
-        const nextLoggingSettings = await maildraftApi.loadLoggingSettings();
+        const [nextSnapshot, nextLoggingSettings, startupNotice] = await Promise.all([
+          maildraftApi.loadSnapshot(),
+          maildraftApi.loadLoggingSettings(),
+          maildraftApi.loadStartupNotice(),
+        ]);
         hydrateSnapshotRef.current(nextSnapshot);
         hydrateLoggingSettingsRef.current(nextLoggingSettings);
-        noticeRef.current("ローカルデータと診断設定を読み込みました。");
+        applyStartupNotice(startupNotice, noticeRef.current, warningRef.current);
       } catch (loadError) {
         errorRef.current(toErrorMessage(loadError));
       } finally {

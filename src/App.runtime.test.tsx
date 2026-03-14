@@ -72,9 +72,10 @@ describe("App runtime integration", () => {
     render(<App />);
 
     expect(await screen.findByDisplayValue("4/12 打ち合わせお礼")).toBeInTheDocument();
-    expect(runtime.commandCalls.slice(0, 2).map((call) => call.cmd)).toEqual([
+    expect(runtime.commandCalls.slice(0, 3).map((call) => call.cmd)).toEqual([
       "load_snapshot",
       "load_logging_settings",
+      "load_startup_notice",
     ]);
 
     fireEvent.change(screen.getByLabelText("件名"), {
@@ -85,10 +86,25 @@ describe("App runtime integration", () => {
     await waitFor(() => {
       expect(runtime.getSnapshot().drafts[0]?.subject).toBe("統合テストの件名");
     });
-    expect(
-      runtime.commandCalls.some((call) => call.cmd === "save_draft"),
-    ).toBe(true);
+    expect(runtime.commandCalls.some((call) => call.cmd === "save_draft")).toBe(true);
     expect(await screen.findByText("下書きを保存しました。")).toBeInTheDocument();
+  });
+
+  it("shows startup recovery warnings returned by the Tauri runtime", async () => {
+    installMockTauriRuntime({
+      snapshot: createSeededRuntimeSnapshot(),
+      startupNotice: {
+        message: "ローカルデータを復旧できなかったため初期状態で起動しました。",
+        tone: "warning",
+      },
+    });
+
+    render(<App />);
+
+    expect(await screen.findByDisplayValue("4/12 打ち合わせお礼")).toBeInTheDocument();
+    expect(
+      await screen.findByText("ローカルデータを復旧できなかったため初期状態で起動しました。"),
+    ).toBeInTheDocument();
   });
 
   it("persists logging settings through the Tauri command boundary", async () => {
@@ -112,9 +128,7 @@ describe("App runtime integration", () => {
     await waitFor(() => {
       expect(runtime.getLoggingSettings().mode).toBe("standard");
     });
-    expect(
-      runtime.commandCalls.some((call) => call.cmd === "save_logging_settings"),
-    ).toBe(true);
+    expect(runtime.commandCalls.some((call) => call.cmd === "save_logging_settings")).toBe(true);
     expect(await screen.findByText("ログ設定を保存しました。")).toBeInTheDocument();
   });
 
@@ -159,12 +173,8 @@ describe("App runtime integration", () => {
     await waitFor(() => {
       expect(runtime.getSnapshot().trash.drafts).toHaveLength(0);
     });
-    expect(
-      runtime.commandCalls.some((call) => call.cmd === "restore_draft_from_trash"),
-    ).toBe(true);
-    expect(
-      await screen.findByText("下書きをゴミ箱から復元しました。"),
-    ).toBeInTheDocument();
+    expect(runtime.commandCalls.some((call) => call.cmd === "restore_draft_from_trash")).toBe(true);
+    expect(await screen.findByText("下書きをゴミ箱から復元しました。")).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.getByLabelText("一覧名")).toHaveValue("削除した下書き");
     });

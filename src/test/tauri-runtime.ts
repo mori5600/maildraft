@@ -6,7 +6,7 @@ import type {
   LoggingSettingsInput,
   LoggingSettingsSnapshot,
 } from "../modules/settings/model";
-import type { StoreSnapshot } from "../shared/types/store";
+import type { StartupNoticeSnapshot, StoreSnapshot } from "../shared/types/store";
 import {
   createDraft,
   createLogEntry,
@@ -41,16 +41,14 @@ interface MockTauriRuntimeOptions {
   loggingSettings?: LoggingSettingsSnapshot;
   recentLogs?: LogEntrySnapshot[];
   snapshot?: StoreSnapshot;
+  startupNotice?: StartupNoticeSnapshot | null;
 }
 
-export function installMockTauriRuntime(
-  options: MockTauriRuntimeOptions = {},
-): MockTauriRuntime {
+export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): MockTauriRuntime {
   const snapshot = cloneData(options.snapshot ?? createStoreSnapshot());
-  let loggingSettings = cloneData(
-    options.loggingSettings ?? createLoggingSettingsSnapshot(),
-  );
+  let loggingSettings = cloneData(options.loggingSettings ?? createLoggingSettingsSnapshot());
   const recentLogs = cloneData(options.recentLogs ?? [createLogEntry()]);
+  const startupNotice = cloneData(options.startupNotice ?? null);
   const commandCalls: Array<{ cmd: string; payload?: unknown }> = [];
 
   mockWindows("main");
@@ -63,6 +61,8 @@ export function installMockTauriRuntime(
     switch (cmd) {
       case "load_snapshot":
         return cloneData(snapshot);
+      case "load_startup_notice":
+        return cloneData(startupNotice);
       case "load_logging_settings":
         return cloneData(loggingSettings);
       case "load_recent_logs": {

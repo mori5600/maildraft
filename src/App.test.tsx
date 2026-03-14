@@ -48,6 +48,7 @@ function createAppState(overrides: Record<string, unknown> = {}) {
     ],
     error: null,
     notice: "保存しました",
+    warning: null,
     theme: "dark",
     showWhitespace: true,
     toggleTheme: vi.fn(),

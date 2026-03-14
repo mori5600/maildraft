@@ -3,6 +3,7 @@ use crate::app::{
     backup::ImportedBackupSnapshot,
     logging::LogEntrySnapshot,
     settings::{LoggingSettingsInput, LoggingSettingsSnapshot},
+    storage::StartupNoticeSnapshot,
 };
 use crate::modules::{
     drafts::DraftInput, signatures::SignatureInput, store::StoreSnapshot, templates::TemplateInput,
@@ -11,6 +12,10 @@ use crate::modules::{
 
 fn load_snapshot_impl(state: &AppState) -> Result<StoreSnapshot, String> {
     state.load_snapshot()
+}
+
+fn load_startup_notice_impl(state: &AppState) -> Result<Option<StartupNoticeSnapshot>, String> {
+    state.load_startup_notice()
 }
 
 fn save_draft_impl(state: &AppState, input: DraftInput) -> Result<StoreSnapshot, String> {
@@ -129,6 +134,13 @@ fn clear_logs_impl(state: &AppState) -> Result<LoggingSettingsSnapshot, String> 
 #[tauri::command]
 pub(crate) fn load_snapshot(state: tauri::State<'_, AppState>) -> Result<StoreSnapshot, String> {
     load_snapshot_impl(&state)
+}
+
+#[tauri::command]
+pub(crate) fn load_startup_notice(
+    state: tauri::State<'_, AppState>,
+) -> Result<Option<StartupNoticeSnapshot>, String> {
+    load_startup_notice_impl(&state)
 }
 
 #[tauri::command]
@@ -323,6 +335,10 @@ mod tests {
         let (state, _directory) = make_state();
         let initial = load_snapshot_impl(&state).expect("load snapshot");
         assert_eq!(initial.drafts.len(), 1);
+        assert_eq!(
+            load_startup_notice_impl(&state).expect("load startup notice"),
+            None
+        );
 
         let saved = save_draft_impl(
             &state,

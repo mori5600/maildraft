@@ -10,11 +10,14 @@ import type {
 } from "../../modules/settings/model";
 import type { SignatureInput } from "../../modules/signatures/model";
 import type { TemplateInput } from "../../modules/templates/model";
-import type { StoreSnapshot } from "../types/store";
+import type { StartupNoticeSnapshot, StoreSnapshot } from "../types/store";
 
 export const maildraftApi = {
   loadSnapshot() {
     return invoke<StoreSnapshot>("load_snapshot");
+  },
+  loadStartupNotice() {
+    return invoke<StartupNoticeSnapshot | null>("load_startup_notice");
   },
   saveDraft(input: DraftInput) {
     return invoke<StoreSnapshot>("save_draft", { input });

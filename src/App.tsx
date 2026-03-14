@@ -21,6 +21,12 @@ function App() {
   const app = useMaildraftApp(draftWorkspaceRef);
   const supportsWhitespace = app.view !== "settings" && app.view !== "help";
   const viewStrategy = WORKSPACE_VIEW_STRATEGIES[app.view];
+  const statusMessage = app.error ?? app.warning ?? app.notice;
+  const statusTextClass = app.error
+    ? "text-(--color-error)"
+    : app.warning
+      ? "text-(--color-warning-text)"
+      : "text-(--color-notice)";
 
   if (app.isLoading) {
     return (
@@ -106,13 +112,7 @@ function App() {
               </div>
             </div>
 
-            <div
-              className={`w-70 truncate text-[11px] ${
-                app.error ? "text-(--color-error)" : "text-(--color-notice)"
-              }`}
-            >
-              {app.error ?? app.notice}
-            </div>
+            <div className={`w-70 truncate text-[11px] ${statusTextClass}`}>{statusMessage}</div>
 
             <div className="flex shrink-0 items-center gap-2.5">
               <Button

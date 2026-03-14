@@ -8,6 +8,8 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use serde::Serialize;
+
 use crate::{app::settings::AppSettings, modules::store::StoreSnapshot};
 
 use self::{
@@ -20,12 +22,62 @@ type AppResult<T> = Result<T, String>;
 
 pub const STORAGE_DOCUMENT_APP: &str = "maildraft";
 
-pub fn load_app_settings(path: &Path) -> AppResult<AppSettings> {
-    load_with_fallback(path, decode_settings, AppSettings::default)
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StartupNoticeTone {
+    Notice,
+    Warning,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StartupNoticeSnapshot {
+    pub message: String,
+    pub tone: StartupNoticeTone,
+}
+
+pub struct LoadOutcome<T> {
+    pub startup_notice: Option<StartupNoticeSnapshot>,
+    pub value: T,
+}
+
+struct StorageNoticeMessages {
+    recovered_from_backup: &'static str,
+    reset_to_defaults: &'static str,
+}
+
+#[cfg(test)]
+pub fn load_app_settings(path: &Path) -> AppResult<AppSettings> {
+    load_app_settings_with_status(path).map(|outcome| outcome.value)
+}
+
+#[cfg(test)]
 pub fn load_store_snapshot(path: &Path) -> AppResult<StoreSnapshot> {
-    load_with_fallback(path, decode_store_snapshot, StoreSnapshot::seeded)
+    load_store_snapshot_with_status(path).map(|outcome| outcome.value)
+}
+
+pub fn load_app_settings_with_status(path: &Path) -> AppResult<LoadOutcome<AppSettings>> {
+    load_with_fallback(
+        path,
+        decode_settings,
+        AppSettings::default,
+        StorageNoticeMessages {
+            recovered_from_backup: "診断設定をバックアップから復旧しました。",
+            reset_to_defaults: "診断設定を復旧できなかったため既定値で起動しました。",
+        },
+    )
+}
+
+pub fn load_store_snapshot_with_status(path: &Path) -> AppResult<LoadOutcome<StoreSnapshot>> {
+    load_with_fallback(
+        path,
+        decode_store_snapshot,
+        StoreSnapshot::seeded,
+        StorageNoticeMessages {
+            recovered_from_backup: "ローカルデータをバックアップから復旧しました。",
+            reset_to_defaults: "ローカルデータを復旧できなかったため初期状態で起動しました。",
+        },
+    )
 }
 
 pub fn write_app_settings(path: &Path, settings: &AppSettings) -> AppResult<()> {
@@ -42,14 +94,21 @@ fn load_with_fallback<T>(
     path: &Path,
     decode: impl Fn(&str) -> AppResult<T>,
     default: impl Fn() -> T,
-) -> AppResult<T> {
+    notices: StorageNoticeMessages,
+) -> AppResult<LoadOutcome<T>> {
     if !path.exists() {
         let backup_path = backup_path(path);
         if backup_path.exists() {
             return match read_and_decode(&backup_path, &decode) {
                 Ok(value) => {
                     eprintln!("MailDraft storage recovered from backup because the primary file was missing.");
-                    Ok(value)
+                    Ok(LoadOutcome {
+                        startup_notice: Some(StartupNoticeSnapshot {
+                            message: notices.recovered_from_backup.to_string(),
+                            tone: StartupNoticeTone::Notice,
+                        }),
+                        value,
+                    })
                 }
                 Err(error) => {
                     quarantine_file(&backup_path);
@@ -57,16 +116,28 @@ fn load_with_fallback<T>(
                         "MailDraft storage backup was unreadable when the primary file was missing: {}",
                         error
                     );
-                    Ok(default())
+                    Ok(LoadOutcome {
+                        startup_notice: Some(StartupNoticeSnapshot {
+                            message: notices.reset_to_defaults.to_string(),
+                            tone: StartupNoticeTone::Warning,
+                        }),
+                        value: default(),
+                    })
                 }
             };
         }
 
-        return Ok(default());
+        return Ok(LoadOutcome {
+            startup_notice: None,
+            value: default(),
+        });
     }
 
     match read_and_decode(path, &decode) {
-        Ok(value) => Ok(value),
+        Ok(value) => Ok(LoadOutcome {
+            startup_notice: None,
+            value,
+        }),
         Err(main_error) => {
             let backup_path = backup_path(path);
             if backup_path.exists() {
@@ -77,7 +148,13 @@ fn load_with_fallback<T>(
                             "MailDraft storage recovered from backup after primary load failed: {}",
                             main_error
                         );
-                        return Ok(value);
+                        return Ok(LoadOutcome {
+                            startup_notice: Some(StartupNoticeSnapshot {
+                                message: notices.recovered_from_backup.to_string(),
+                                tone: StartupNoticeTone::Notice,
+                            }),
+                            value,
+                        });
                     }
                     Err(backup_error) => {
                         quarantine_file(&backup_path);
@@ -95,7 +172,13 @@ fn load_with_fallback<T>(
             }
 
             quarantine_file(path);
-            Ok(default())
+            Ok(LoadOutcome {
+                startup_notice: Some(StartupNoticeSnapshot {
+                    message: notices.reset_to_defaults.to_string(),
+                    tone: StartupNoticeTone::Warning,
+                }),
+                value: default(),
+            })
         }
     }
 }
@@ -145,8 +228,9 @@ mod tests {
     use tempfile::tempdir;
 
     use super::{
-        backup_path, load_app_settings, load_store_snapshot, write_app_settings,
-        write_store_snapshot,
+        backup_path, load_app_settings, load_app_settings_with_status, load_store_snapshot,
+        load_store_snapshot_with_status, write_app_settings, write_store_snapshot,
+        StartupNoticeSnapshot, StartupNoticeTone,
     };
     use crate::{
         app::settings::{AppSettings, LoggingMode, LoggingSettings},
@@ -208,7 +292,15 @@ mod tests {
             serde_json::to_string(&StoreSnapshot::seeded()).expect("backup json"),
         )
         .expect("write backup");
-        let recovered = load_store_snapshot(&path).expect("recover from backup");
+        let recovered = load_store_snapshot_with_status(&path).expect("recover from backup");
+        assert_eq!(
+            recovered.startup_notice,
+            Some(StartupNoticeSnapshot {
+                message: "ローカルデータをバックアップから復旧しました。".to_string(),
+                tone: StartupNoticeTone::Notice,
+            })
+        );
+        let recovered = recovered.value;
         assert_eq!(recovered.drafts[0].id, "draft-welcome");
     }
 
@@ -218,7 +310,15 @@ mod tests {
         let path = directory.path().join("maildraft-store.json");
         fs::write(&path, "{broken").expect("write broken store");
 
-        let loaded = load_store_snapshot(&path).expect("fallback to seeded");
+        let loaded = load_store_snapshot_with_status(&path).expect("fallback to seeded");
+        assert_eq!(
+            loaded.startup_notice,
+            Some(StartupNoticeSnapshot {
+                message: "ローカルデータを復旧できなかったため初期状態で起動しました。".to_string(),
+                tone: StartupNoticeTone::Warning,
+            })
+        );
+        let loaded = loaded.value;
         assert_eq!(loaded.drafts[0].id, "draft-welcome");
         assert!(!path.exists());
         assert!(fs::read_dir(directory.path())
@@ -274,12 +374,28 @@ mod tests {
         )
         .expect("write settings backup");
 
-        let recovered = load_app_settings(&path).expect("recover settings backup");
+        let recovered = load_app_settings_with_status(&path).expect("recover settings backup");
+        assert_eq!(
+            recovered.startup_notice,
+            Some(StartupNoticeSnapshot {
+                message: "診断設定をバックアップから復旧しました。".to_string(),
+                tone: StartupNoticeTone::Notice,
+            })
+        );
+        let recovered = recovered.value;
         assert_eq!(recovered.logging.mode, LoggingMode::Standard);
 
         fs::write(&path, "{broken-again").expect("write broken settings again");
         fs::write(backup_path(&path), "{broken-backup").expect("write broken backup");
-        let defaulted = load_app_settings(&path).expect("default settings");
+        let defaulted = load_app_settings_with_status(&path).expect("default settings");
+        assert_eq!(
+            defaulted.startup_notice,
+            Some(StartupNoticeSnapshot {
+                message: "診断設定を復旧できなかったため既定値で起動しました。".to_string(),
+                tone: StartupNoticeTone::Warning,
+            })
+        );
+        let defaulted = defaulted.value;
         assert_eq!(defaulted.logging.mode, LoggingMode::ErrorsOnly);
         assert_eq!(defaulted.logging.retention_days, 14);
     }

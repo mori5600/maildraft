@@ -13,4 +13,9 @@ export interface StoreSnapshot {
   trash: TrashSnapshot;
 }
 
+export interface StartupNoticeSnapshot {
+  message: string;
+  tone: "notice" | "warning";
+}
+
 export type WorkspaceView = "drafts" | "templates" | "signatures" | "trash" | "settings" | "help";

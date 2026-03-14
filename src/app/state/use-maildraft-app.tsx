@@ -58,7 +58,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     onError: shell.setError,
     onNotice: shell.setNotice,
   });
- 
+
   function hydrateAll(nextSnapshot: StoreSnapshot) {
     const hydratedState = buildHydratedWorkspaceState(nextSnapshot);
     shell.setSnapshot(nextSnapshot);
@@ -74,6 +74,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     onError: shell.setError,
     onLoadingChange: shell.setIsLoading,
     onNotice: shell.setNotice,
+    onWarning: shell.setWarning,
   });
 
   function changeView(nextView: WorkspaceView) {
@@ -167,6 +168,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     error: shell.error,
     isLoading: shell.isLoading,
     notice: shell.notice,
+    warning: shell.warning,
     settingsWorkspaceProps: settingsState.settingsWorkspaceProps,
     showWhitespace: shell.showWhitespace,
     signatureWorkspaceProps: {

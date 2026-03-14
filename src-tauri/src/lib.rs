@@ -8,10 +8,11 @@ use app::state::AppState;
 use commands::{
     clear_logs, delete_draft, delete_signature, delete_template, delete_variable_preset,
     empty_trash, export_backup, import_backup, load_logging_settings, load_recent_logs,
-    load_snapshot, permanently_delete_draft_from_trash, permanently_delete_signature_from_trash,
-    permanently_delete_template_from_trash, restore_draft_from_trash, restore_draft_history,
-    restore_signature_from_trash, restore_template_from_trash, save_draft, save_logging_settings,
-    save_signature, save_template, save_variable_preset,
+    load_snapshot, load_startup_notice, permanently_delete_draft_from_trash,
+    permanently_delete_signature_from_trash, permanently_delete_template_from_trash,
+    restore_draft_from_trash, restore_draft_history, restore_signature_from_trash,
+    restore_template_from_trash, save_draft, save_logging_settings, save_signature, save_template,
+    save_variable_preset,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -27,6 +28,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             load_snapshot,
+            load_startup_notice,
             save_draft,
             delete_draft,
             restore_draft_from_trash,

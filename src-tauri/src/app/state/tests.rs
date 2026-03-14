@@ -15,7 +15,7 @@ use crate::{
     app::{
         logging::{LogEntry, LogLevel},
         settings::{AppSettings, LoggingMode, LoggingSettings, LoggingSettingsInput},
-        storage::{load_app_settings, load_store_snapshot},
+        storage::{load_app_settings, load_store_snapshot, StartupNoticeTone},
     },
     modules::{
         drafts::DraftInput, signatures::SignatureInput, store::StoreSnapshot,
@@ -35,6 +35,14 @@ fn read_store(path: &Path) -> StoreSnapshot {
 
 fn read_settings_file(path: &Path) -> AppSettings {
     load_app_settings(path).expect("settings file")
+}
+
+fn backup_path(path: &Path) -> std::path::PathBuf {
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .expect("backup file name");
+    path.with_file_name(format!("{}.bak", file_name))
 }
 
 #[test]
@@ -59,6 +67,45 @@ fn load_settings_defaults_missing_files_and_normalizes_saved_values() {
     let loaded = load_app_settings(&saved_path).expect("load settings");
     assert_eq!(loaded.logging.mode, LoggingMode::Standard);
     assert_eq!(loaded.logging.retention_days, 14);
+}
+
+#[test]
+fn load_startup_notice_reports_recovery_and_default_fallback() {
+    let directory = tempdir().expect("tempdir");
+    let store_path = directory.path().join("maildraft-store.json");
+    let settings_path = directory.path().join("maildraft-settings.json");
+
+    fs::write(&store_path, "{broken-store").expect("write broken store");
+    fs::write(
+        backup_path(&store_path),
+        serde_json::to_string(&StoreSnapshot::seeded()).expect("store backup"),
+    )
+    .expect("write store backup");
+    fs::write(&settings_path, "{broken-settings").expect("write broken settings");
+    fs::write(backup_path(&settings_path), "{broken-settings-backup")
+        .expect("write broken settings backup");
+
+    let state = AppState::new_for_tests(directory.path()).expect("state with startup notice");
+    let notice = state
+        .load_startup_notice()
+        .expect("load startup notice")
+        .expect("startup notice");
+
+    assert_eq!(notice.tone, StartupNoticeTone::Warning);
+    assert_eq!(
+        notice.message,
+        "診断設定を復旧できなかったため既定値で起動しました。 ローカルデータをバックアップから復旧しました。"
+    );
+}
+
+#[test]
+fn load_startup_notice_is_empty_for_clean_boot() {
+    let (state, _directory) = make_state();
+
+    assert_eq!(
+        state.load_startup_notice().expect("load startup notice"),
+        None
+    );
 }
 
 #[test]
