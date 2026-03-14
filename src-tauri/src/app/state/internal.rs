@@ -1,8 +1,9 @@
-use std::{fs, path::PathBuf, time::Instant};
+use std::time::Instant;
 
 use crate::app::{
     logging::{LogEntry, LogLevel},
     settings::{AppSettings, LoggingSettings, LoggingSettingsSnapshot},
+    storage::{write_app_settings, write_store_snapshot},
 };
 use crate::modules::store::StoreSnapshot;
 
@@ -10,17 +11,6 @@ use super::{
     context::{elapsed_millis, merge_context, snapshot_counts_context, trash_kind_context},
     AppResult, AppState,
 };
-
-pub(super) fn load_settings(path: &PathBuf) -> AppResult<AppSettings> {
-    if !path.exists() {
-        return Ok(AppSettings::default());
-    }
-
-    let content = fs::read_to_string(path).map_err(|error| error.to_string())?;
-    serde_json::from_str::<AppSettings>(&content)
-        .map(AppSettings::normalized)
-        .map_err(|error| error.to_string())
-}
 
 impl AppState {
     pub(super) fn mutate_store<F>(&self, mutator: F) -> AppResult<StoreSnapshot>
@@ -45,13 +35,11 @@ impl AppState {
     }
 
     pub(super) fn persist_locked_store(&self, store: &StoreSnapshot) -> AppResult<()> {
-        let content = serde_json::to_string_pretty(store).map_err(|error| error.to_string())?;
-        fs::write(&self.store_path, content).map_err(|error| error.to_string())
+        write_store_snapshot(&self.store_path, store)
     }
 
     pub(super) fn persist_locked_settings(&self, settings: &AppSettings) -> AppResult<()> {
-        let content = serde_json::to_string_pretty(settings).map_err(|error| error.to_string())?;
-        fs::write(&self.settings_path, content).map_err(|error| error.to_string())
+        write_app_settings(&self.settings_path, settings)
     }
 
     pub(super) fn logging_settings_snapshot(&self) -> AppResult<LoggingSettingsSnapshot> {

@@ -5,10 +5,7 @@ use crate::app::{
     settings::{LoggingSettingsInput, LoggingSettingsSnapshot},
 };
 use crate::modules::{
-    drafts::DraftInput,
-    signatures::SignatureInput,
-    store::StoreSnapshot,
-    templates::TemplateInput,
+    drafts::DraftInput, signatures::SignatureInput, store::StoreSnapshot, templates::TemplateInput,
     variable_presets::VariablePresetInput,
 };
 
@@ -62,10 +59,7 @@ fn delete_template_impl(state: &AppState, id: String) -> Result<StoreSnapshot, S
     state.delete_template(&id)
 }
 
-fn restore_template_from_trash_impl(
-    state: &AppState,
-    id: String,
-) -> Result<StoreSnapshot, String> {
+fn restore_template_from_trash_impl(state: &AppState, id: String) -> Result<StoreSnapshot, String> {
     state.restore_template_from_trash(&id)
 }
 
@@ -343,10 +337,7 @@ mod tests {
                 closing: "よろしくお願いいたします。".to_string(),
                 template_id: Some("template-thanks".to_string()),
                 signature_id: Some("signature-default".to_string()),
-                variable_values: BTreeMap::from([(
-                    "担当者名".to_string(),
-                    "山田様".to_string(),
-                )]),
+                variable_values: BTreeMap::from([("担当者名".to_string(), "山田様".to_string())]),
             },
         )
         .expect("save draft");
@@ -357,7 +348,10 @@ mod tests {
 
         let restored =
             restore_draft_from_trash_impl(&state, "draft-command".to_string()).expect("restore");
-        assert!(restored.drafts.iter().any(|draft| draft.id == "draft-command"));
+        assert!(restored
+            .drafts
+            .iter()
+            .any(|draft| draft.id == "draft-command"));
 
         let updated = save_draft_impl(
             &state,
@@ -382,12 +376,9 @@ mod tests {
             .find(|entry| entry.draft_id == "draft-command")
             .expect("history entry");
 
-        let restored_history = restore_draft_history_impl(
-            &state,
-            "draft-command".to_string(),
-            history.id.clone(),
-        )
-        .expect("restore history");
+        let restored_history =
+            restore_draft_history_impl(&state, "draft-command".to_string(), history.id.clone())
+                .expect("restore history");
         let restored_draft = restored_history
             .drafts
             .iter()
@@ -396,11 +387,9 @@ mod tests {
         assert_eq!(restored_draft.subject, "ご確認ください");
 
         delete_draft_impl(&state, "draft-command".to_string()).expect("trash again");
-        let permanently_deleted = permanently_delete_draft_from_trash_impl(
-            &state,
-            "draft-command".to_string(),
-        )
-        .expect("delete permanently");
+        let permanently_deleted =
+            permanently_delete_draft_from_trash_impl(&state, "draft-command".to_string())
+                .expect("delete permanently");
         assert!(permanently_deleted
             .trash
             .drafts
@@ -437,10 +426,7 @@ mod tests {
             VariablePresetInput {
                 id: "preset-command".to_string(),
                 name: "A社".to_string(),
-                values: BTreeMap::from([(
-                    "会社名".to_string(),
-                    "株式会社〇〇".to_string(),
-                )]),
+                values: BTreeMap::from([("会社名".to_string(), "株式会社〇〇".to_string())]),
             },
         )
         .expect("save preset");
@@ -467,22 +453,18 @@ mod tests {
             .any(|signature| signature.id == "signature-command"));
 
         delete_template_impl(&state, "template-command".to_string()).expect("trash template");
-        let restored_template = restore_template_from_trash_impl(
-            &state,
-            "template-command".to_string(),
-        )
-        .expect("restore template");
+        let restored_template =
+            restore_template_from_trash_impl(&state, "template-command".to_string())
+                .expect("restore template");
         assert!(restored_template
             .templates
             .iter()
             .any(|template| template.id == "template-command"));
 
         delete_template_impl(&state, "template-command".to_string()).expect("trash template");
-        let removed_template = permanently_delete_template_from_trash_impl(
-            &state,
-            "template-command".to_string(),
-        )
-        .expect("delete template permanently");
+        let removed_template =
+            permanently_delete_template_from_trash_impl(&state, "template-command".to_string())
+                .expect("delete template permanently");
         assert!(removed_template
             .trash
             .templates
@@ -490,22 +472,18 @@ mod tests {
             .all(|template| template.template.id != "template-command"));
 
         delete_signature_impl(&state, "signature-command".to_string()).expect("trash signature");
-        let restored_signature = restore_signature_from_trash_impl(
-            &state,
-            "signature-command".to_string(),
-        )
-        .expect("restore signature");
+        let restored_signature =
+            restore_signature_from_trash_impl(&state, "signature-command".to_string())
+                .expect("restore signature");
         assert!(restored_signature
             .signatures
             .iter()
             .any(|signature| signature.id == "signature-command"));
 
         delete_signature_impl(&state, "signature-command".to_string()).expect("trash signature");
-        let removed_signature = permanently_delete_signature_from_trash_impl(
-            &state,
-            "signature-command".to_string(),
-        )
-        .expect("delete signature permanently");
+        let removed_signature =
+            permanently_delete_signature_from_trash_impl(&state, "signature-command".to_string())
+                .expect("delete signature permanently");
         assert!(removed_signature
             .trash
             .signatures
@@ -558,7 +536,8 @@ mod tests {
         )
         .expect("save template");
 
-        let written = export_backup_impl(&state, export_path.display().to_string()).expect("export");
+        let written =
+            export_backup_impl(&state, export_path.display().to_string()).expect("export");
         assert_eq!(written, export_path.display().to_string());
         assert!(fs::exists(&export_path).expect("backup exists"));
 

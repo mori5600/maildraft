@@ -20,11 +20,11 @@ use tauri::{AppHandle, Manager};
 use crate::app::{
     logging::{AppLogger, LogEntry, LogLevel},
     settings::AppSettings,
+    storage::{load_app_settings, load_store_snapshot},
 };
 use crate::modules::store::StoreSnapshot;
 
 use self::context::{elapsed_millis, snapshot_counts_context};
-use self::internal::load_settings;
 
 type AppResult<T> = Result<T, String>;
 
@@ -45,16 +45,11 @@ impl AppState {
         fs::create_dir_all(&store_dir).map_err(|error| error.to_string())?;
 
         let settings_path = store_dir.join("maildraft-settings.json");
-        let settings = load_settings(&settings_path)?;
+        let settings = load_app_settings(&settings_path)?;
         let logger = AppLogger::new(store_dir.join("logs"));
 
         let store_path = store_dir.join("maildraft-store.json");
-        let mut store = if store_path.exists() {
-            let content = fs::read_to_string(&store_path).map_err(|error| error.to_string())?;
-            serde_json::from_str::<StoreSnapshot>(&content).map_err(|error| error.to_string())?
-        } else {
-            StoreSnapshot::seeded()
-        };
+        let mut store = load_store_snapshot(&store_path)?;
 
         store.ensure_consistency();
         let state = Self {

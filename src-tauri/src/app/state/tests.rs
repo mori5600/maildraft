@@ -9,13 +9,13 @@ use super::{
         draft_context, logging_settings_context, merge_context, snapshot_counts_context,
         template_context, trash_kind_context, variable_preset_context,
     },
-    internal::load_settings,
     AppState,
 };
 use crate::{
     app::{
         logging::{LogEntry, LogLevel},
         settings::{AppSettings, LoggingMode, LoggingSettings, LoggingSettingsInput},
+        storage::{load_app_settings, load_store_snapshot},
     },
     modules::{
         drafts::DraftInput, signatures::SignatureInput, store::StoreSnapshot,
@@ -30,11 +30,11 @@ fn make_state() -> (AppState, tempfile::TempDir) {
 }
 
 fn read_store(path: &Path) -> StoreSnapshot {
-    serde_json::from_str(&fs::read_to_string(path).expect("read store")).expect("store json")
+    load_store_snapshot(path).expect("store snapshot")
 }
 
 fn read_settings_file(path: &Path) -> AppSettings {
-    serde_json::from_str(&fs::read_to_string(path).expect("read settings")).expect("settings json")
+    load_app_settings(path).expect("settings file")
 }
 
 #[test]
@@ -42,7 +42,7 @@ fn load_settings_defaults_missing_files_and_normalizes_saved_values() {
     let directory = tempdir().expect("tempdir");
     let missing_path = directory.path().join("missing.json");
 
-    let default_settings = load_settings(&missing_path).expect("default settings");
+    let default_settings = load_app_settings(&missing_path).expect("default settings");
     assert_eq!(default_settings.logging.mode, LoggingMode::ErrorsOnly);
     assert_eq!(default_settings.logging.retention_days, 14);
 
@@ -56,7 +56,7 @@ fn load_settings_defaults_missing_files_and_normalizes_saved_values() {
     .expect("serialize settings");
     fs::write(&saved_path, content).expect("write settings");
 
-    let loaded = load_settings(&saved_path).expect("load settings");
+    let loaded = load_app_settings(&saved_path).expect("load settings");
     assert_eq!(loaded.logging.mode, LoggingMode::Standard);
     assert_eq!(loaded.logging.retention_days, 14);
 }

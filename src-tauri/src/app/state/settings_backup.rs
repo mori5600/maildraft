@@ -1,7 +1,7 @@
 use std::{fs, time::Instant};
 
 use crate::app::{
-    backup::{BackupDocument, ImportedBackupSnapshot},
+    backup::{decode_backup_document, BackupDocument, ImportedBackupSnapshot},
     logging::{LogEntry, LogEntrySnapshot, LogLevel},
     settings::{LoggingSettingsInput, LoggingSettingsSnapshot},
 };
@@ -62,8 +62,7 @@ impl AppState {
     pub fn import_backup(&self, path: &str) -> AppResult<ImportedBackupSnapshot> {
         let started_at = Instant::now();
         let content = fs::read_to_string(path).map_err(|error| error.to_string())?;
-        let document =
-            serde_json::from_str::<BackupDocument>(&content).map_err(|error| error.to_string())?;
+        let document = decode_backup_document(&content)?;
         let (mut snapshot, settings) = document.into_state()?;
         snapshot.ensure_consistency();
 

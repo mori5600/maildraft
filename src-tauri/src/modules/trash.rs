@@ -52,12 +52,8 @@ mod tests {
 
     use pretty_assertions::assert_eq;
 
-    use super::{TrashedDraft, TrashedSignature, TrashedTemplate, TrashSnapshot};
-    use crate::modules::{
-        drafts::Draft,
-        signatures::Signature,
-        templates::Template,
-    };
+    use super::{TrashSnapshot, TrashedDraft, TrashedSignature, TrashedTemplate};
+    use crate::modules::{drafts::Draft, signatures::Signature, templates::Template};
 
     #[test]
     fn trash_snapshot_counts_all_item_kinds() {

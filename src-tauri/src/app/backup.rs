@@ -1,13 +1,14 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::{
     app::settings::{AppSettings, LoggingSettingsSnapshot},
+    app::storage::STORAGE_DOCUMENT_APP,
     modules::store::StoreSnapshot,
 };
 
-pub const BACKUP_DOCUMENT_APP: &str = "maildraft";
 pub const BACKUP_DOCUMENT_VERSION: u8 = 1;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -31,7 +32,7 @@ pub struct ImportedBackupSnapshot {
 impl BackupDocument {
     pub fn from_state(snapshot: StoreSnapshot, settings: AppSettings) -> Self {
         Self {
-            app: BACKUP_DOCUMENT_APP.to_string(),
+            app: STORAGE_DOCUMENT_APP.to_string(),
             version: BACKUP_DOCUMENT_VERSION,
             exported_at_ms: now_unix_millis(),
             snapshot,
@@ -40,15 +41,27 @@ impl BackupDocument {
     }
 
     pub fn into_state(self) -> Result<(StoreSnapshot, AppSettings), String> {
-        if self.app != BACKUP_DOCUMENT_APP {
+        if self.app != STORAGE_DOCUMENT_APP {
             return Err("MailDraft のバックアップファイルではありません。".to_string());
         }
 
-        if self.version != BACKUP_DOCUMENT_VERSION {
-            return Err("このバックアップ形式には対応していません。".to_string());
-        }
-
         Ok((self.snapshot, self.settings.normalized()))
+    }
+}
+
+pub fn decode_backup_document(content: &str) -> Result<BackupDocument, String> {
+    let raw = serde_json::from_str::<Value>(content).map_err(|error| error.to_string())?;
+    let version = raw
+        .as_object()
+        .and_then(|object| object.get("version"))
+        .and_then(Value::as_u64)
+        .ok_or_else(|| "このバックアップ形式には対応していません。".to_string())?;
+
+    match version as u8 {
+        BACKUP_DOCUMENT_VERSION => {
+            serde_json::from_value::<BackupDocument>(raw).map_err(|error| error.to_string())
+        }
+        _ => Err("このバックアップ形式には対応していません。".to_string()),
     }
 }
 
@@ -63,7 +76,7 @@ fn now_unix_millis() -> u128 {
 mod tests {
     use pretty_assertions::assert_eq;
 
-    use super::{BackupDocument, BACKUP_DOCUMENT_APP, BACKUP_DOCUMENT_VERSION};
+    use super::{decode_backup_document, BackupDocument, BACKUP_DOCUMENT_VERSION};
     use crate::app::settings::{AppSettings, LoggingMode, LoggingSettings};
     use crate::modules::store::StoreSnapshot;
 
@@ -100,15 +113,34 @@ mod tests {
         .unwrap_err();
         assert_eq!(err, "MailDraft のバックアップファイルではありません。");
 
-        let err = BackupDocument {
-            app: BACKUP_DOCUMENT_APP.to_string(),
-            version: BACKUP_DOCUMENT_VERSION + 1,
-            exported_at_ms: 0,
-            snapshot: StoreSnapshot::seeded(),
-            settings: AppSettings::default(),
-        }
-        .into_state()
+        let err = decode_backup_document(
+            &serde_json::to_string(&BackupDocument {
+                app: crate::app::storage::STORAGE_DOCUMENT_APP.to_string(),
+                version: BACKUP_DOCUMENT_VERSION + 1,
+                exported_at_ms: 0,
+                snapshot: StoreSnapshot::seeded(),
+                settings: AppSettings::default(),
+            })
+            .unwrap(),
+        )
         .unwrap_err();
         assert_eq!(err, "このバックアップ形式には対応していません。");
+    }
+
+    #[test]
+    fn backup_document_decoder_accepts_current_version() {
+        let decoded = decode_backup_document(
+            &serde_json::to_string(&BackupDocument {
+                app: crate::app::storage::STORAGE_DOCUMENT_APP.to_string(),
+                version: BACKUP_DOCUMENT_VERSION,
+                exported_at_ms: 0,
+                snapshot: StoreSnapshot::seeded(),
+                settings: AppSettings::default(),
+            })
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(decoded.version, BACKUP_DOCUMENT_VERSION);
     }
 }
