@@ -3,6 +3,7 @@ import "./App.css";
 import { useRef } from "react";
 
 import { useMaildraftApp } from "./app/state/use-maildraft-app";
+import { WORKSPACE_VIEW_STRATEGIES } from "./app/workspace-view-strategies";
 import {
   type DraftWorkspaceHandle,
   DraftWorkspaceScreen,
@@ -13,15 +14,13 @@ import { SettingsWorkspace } from "./modules/settings/ui/SettingsWorkspace";
 import { SignatureWorkspace } from "./modules/signatures/ui/SignatureWorkspace";
 import { TemplateWorkspace } from "./modules/templates/ui/TemplateWorkspace";
 import { TrashWorkspace } from "./modules/trash/ui/TrashWorkspace";
-import type { WorkspaceView } from "./shared/types/store";
 import { Button, Panel } from "./shared/ui/primitives";
 
 function App() {
   const draftWorkspaceRef = useRef<DraftWorkspaceHandle>(null);
   const app = useMaildraftApp(draftWorkspaceRef);
   const supportsWhitespace = app.view !== "settings" && app.view !== "help";
-  const viewTitle = getViewTitle(app.view);
-  const viewDescription = getViewDescription(app.view);
+  const viewStrategy = WORKSPACE_VIEW_STRATEGIES[app.view];
 
   if (app.isLoading) {
     return (
@@ -51,14 +50,13 @@ function App() {
             <div className="text-[11px] tracking-[0.22em] text-(--color-text-faint) uppercase">
               MailDraft
             </div>
-            <div className="mt-1.5 text-[13px] font-medium text-(--color-text-strong)">
-              画面
-            </div>
           </div>
 
           <nav className="mt-2.5 space-y-1">
             {app.views.map((item) => {
               const active = app.view === item.id;
+              const itemStrategy = WORKSPACE_VIEW_STRATEGIES[item.id];
+              const ViewIcon = itemStrategy.icon;
 
               return (
                 <button
@@ -72,7 +70,10 @@ function App() {
                   title={`${item.label} (${getViewShortcutHint(item.id)})`}
                   type="button"
                 >
-                  <span className="text-[13px] font-medium">{item.label}</span>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <ViewIcon aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+                    <span className="truncate text-[13px] font-medium">{item.label}</span>
+                  </span>
                   {typeof item.count === "number" ? (
                     <span
                       className={`rounded-md px-1.5 py-0.5 text-[10px] ${
@@ -97,8 +98,12 @@ function App() {
         <div className="flex min-h-screen flex-col">
           <header className="grid min-h-11 grid-cols-[minmax(0,1fr)_280px_auto] items-center gap-3 border-b border-(--color-sidebar-border) px-4">
             <div>
-              <div className="text-[13px] font-medium text-(--color-text-strong)">{viewTitle}</div>
-              <div className="mt-0.5 text-[11px] text-(--color-text-faint)">{viewDescription}</div>
+              <div className="text-[13px] font-medium text-(--color-text-strong)">
+                {viewStrategy.title}
+              </div>
+              <div className="mt-0.5 text-[11px] text-(--color-text-faint)">
+                {viewStrategy.description}
+              </div>
             </div>
 
             <div
@@ -170,37 +175,3 @@ function App() {
 }
 
 export default App;
-
-function getViewTitle(view: WorkspaceView): string {
-  switch (view) {
-    case "drafts":
-      return "下書き";
-    case "templates":
-      return "テンプレート";
-    case "signatures":
-      return "署名";
-    case "trash":
-      return "ゴミ箱";
-    case "settings":
-      return "設定";
-    case "help":
-      return "ヘルプ";
-  }
-}
-
-function getViewDescription(view: WorkspaceView): string {
-  switch (view) {
-    case "drafts":
-      return "件名・本文・署名を分けて編集";
-    case "templates":
-      return "定型文と推奨署名を管理";
-    case "signatures":
-      return "差出人プロフィールを管理";
-    case "trash":
-      return "削除した項目を復元または完全削除";
-    case "settings":
-      return "ログとバックアップを管理";
-    case "help":
-      return "ショートカットと基本操作を見る";
-  }
-}
