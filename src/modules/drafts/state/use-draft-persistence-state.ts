@@ -1,24 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import { getDefaultSignatureId, pickDraftInput } from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot } from "../../../shared/types/store";
-import {
-  createEmptyDraft,
-  draftHasMeaningfulContent,
-  type DraftInput,
-  draftInputsEqual,
-  duplicateDraftInput,
-  toDraftInput,
-} from "../model";
+import { createEmptyDraft, type DraftInput, duplicateDraftInput, toDraftInput } from "../model";
 import {
   createInitialDraftState,
-  type DraftAutoSaveState,
-  shouldAutoPersistDraft,
   toDraftWorkspaceErrorMessage,
 } from "./draft-workspace-helpers";
-
-const AUTO_SAVE_DELAY_MS = 900;
+import { useDraftAutoSave } from "./use-draft-auto-save";
 
 interface DraftPersistenceStateOptions {
   onClearError: () => void;
@@ -42,9 +32,6 @@ export function useDraftPersistenceState({
     initialDraftStateRef.current.selectedDraftId,
   );
   const [draftForm, setDraftForm] = useState<DraftInput>(initialDraftStateRef.current.draftForm);
-  const [draftAutoSaveState, setDraftAutoSaveState] = useState<DraftAutoSaveState>(
-    initialDraftStateRef.current.autoSaveState,
-  );
 
   const draftFormRef = useRef(draftForm);
   const selectedDraftIdRef = useRef(selectedDraftId);
@@ -61,6 +48,22 @@ export function useDraftPersistenceState({
   useEffect(() => {
     snapshotRef.current = snapshot;
   }, [snapshot]);
+
+  const { draftAutoSaveState, flushPendingDraft, saveDraft, setDraftAutoSaveState } =
+    useDraftAutoSave({
+      draftForm,
+      draftFormRef,
+      initialAutoSaveState: initialDraftStateRef.current.autoSaveState,
+      onClearError,
+      onError,
+      onNotice,
+      onSnapshotChange,
+      selectedDraftId,
+      setDraftForm,
+      setSelectedDraftId,
+      snapshot,
+      snapshotRef,
+    });
 
   function hydrateSnapshot(nextSnapshot: StoreSnapshot) {
     const initial = createInitialDraftState(nextSnapshot);
@@ -90,52 +93,6 @@ export function useDraftPersistenceState({
     onResetVariablePresetSelection();
   }
 
-  const persistDraft = useCallback(
-    async ({ input, mode }: { input: DraftInput; mode: "manual" | "auto" }) => {
-      const affectsCurrentDraft = draftFormRef.current.id === input.id;
-
-      if (mode === "auto" && !shouldAutoPersistDraft(input, snapshotRef.current)) {
-        return;
-      }
-
-      try {
-        if (mode === "auto" && affectsCurrentDraft) {
-          setDraftAutoSaveState("saving");
-        }
-
-        if (mode === "manual") {
-          onClearError();
-        }
-
-        const nextSnapshot = await maildraftApi.saveDraft(input);
-        onSnapshotChange(nextSnapshot);
-
-        if (draftFormRef.current.id === input.id) {
-          setSelectedDraftId(input.id);
-          setDraftForm(pickDraftInput(nextSnapshot, input.id));
-        }
-
-        if (mode === "manual") {
-          setDraftAutoSaveState("saved");
-          onNotice("下書きを保存しました。");
-        } else if (affectsCurrentDraft) {
-          setDraftAutoSaveState("saved");
-        }
-      } catch (saveError) {
-        if (affectsCurrentDraft) {
-          setDraftAutoSaveState("error");
-        }
-        onError(toDraftWorkspaceErrorMessage(saveError));
-      }
-    },
-    [onClearError, onError, onNotice, onSnapshotChange],
-  );
-
-  const persistedDraft = snapshot.drafts.find((draft) => draft.id === draftForm.id) ?? null;
-  const persistedDraftInput = persistedDraft ? toDraftInput(persistedDraft) : null;
-  const draftShouldPersist = selectedDraftId !== null || draftHasMeaningfulContent(draftForm);
-  const draftIsDirty = draftShouldPersist && !draftInputsEqual(draftForm, persistedDraftInput);
-
   useEffect(() => {
     if (!selectedDraftId) {
       return;
@@ -150,43 +107,7 @@ export function useDraftPersistenceState({
     setDraftForm(initial.draftForm);
     setDraftAutoSaveState(initial.autoSaveState);
     onResetVariablePresetSelection();
-  }, [onResetVariablePresetSelection, selectedDraftId, snapshot]);
-
-  useEffect(() => {
-    if (!draftShouldPersist) {
-      setDraftAutoSaveState("idle");
-      return;
-    }
-
-    if (!draftIsDirty) {
-      setDraftAutoSaveState((current) => (current === "error" ? current : "saved"));
-      return;
-    }
-
-    setDraftAutoSaveState("dirty");
-
-    const timeout = window.setTimeout(() => {
-      void persistDraft({
-        input: draftForm,
-        mode: "auto",
-      });
-    }, AUTO_SAVE_DELAY_MS);
-
-    return () => {
-      window.clearTimeout(timeout);
-    };
-  }, [draftForm, draftIsDirty, draftShouldPersist, persistDraft]);
-
-  function flushPendingDraft() {
-    if (!shouldAutoPersistDraft(draftFormRef.current, snapshotRef.current)) {
-      return;
-    }
-
-    void persistDraft({
-      input: draftFormRef.current,
-      mode: "auto",
-    });
-  }
+  }, [onResetVariablePresetSelection, selectedDraftId, setDraftAutoSaveState, snapshot]);
 
   function createDraft() {
     flushPendingDraft();
@@ -207,13 +128,6 @@ export function useDraftPersistenceState({
       ...current,
       isPinned: !current.isPinned,
     }));
-  }
-
-  async function saveDraft() {
-    await persistDraft({
-      input: draftForm,
-      mode: "manual",
-    });
   }
 
   async function duplicateDraft() {
