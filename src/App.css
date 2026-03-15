@@ -184,6 +184,12 @@
     font: inherit;
   }
 
+  input,
+  textarea,
+  select {
+    text-rendering: auto;
+  }
+
   ::selection {
     background: var(--color-selection);
   }
@@ -210,21 +216,30 @@
   }
 }
 
-.mail-compose-text {
+.mail-editor-text {
   font-family:
-    "BIZ UDPGothic", "Yu Gothic UI", "Hiragino Sans", "Meiryo", "Segoe UI Variable Text", sans-serif;
+    system-ui, -apple-system, "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
   font-size: 14px;
   font-weight: 400;
-  line-height: 1.84;
-  letter-spacing: 0.008em;
-  font-kerning: normal;
-  font-feature-settings:
-    "palt" 1,
-    "pkna" 1;
+  line-height: normal;
+  letter-spacing: normal;
+  font-kerning: auto;
+  font-feature-settings: normal;
+}
+
+.mail-compose-text {
+  font-family:
+    system-ui, -apple-system, "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: normal;
+  font-kerning: auto;
+  font-feature-settings: normal;
 }
 
 .mail-compose-text::placeholder {
-  letter-spacing: 0.008em;
+  letter-spacing: normal;
 }
 
 .mail-preview-text {
@@ -250,4 +265,15 @@
   font-feature-settings:
     "palt" 1,
     "pkna" 1;
+}
+
+.mail-signature-edit-text {
+  font-family:
+    system-ui, -apple-system, "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: normal;
+  font-kerning: auto;
+  font-feature-settings: normal;
 }

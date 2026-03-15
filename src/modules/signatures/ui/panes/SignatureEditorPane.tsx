@@ -86,7 +86,7 @@ export function SignatureEditorPane({
               className="min-h-80"
               rows={14}
               showWhitespace={showWhitespace}
-              textClassName="mail-signature-text"
+              textClassName="mail-signature-edit-text"
               value={signatureForm.body}
               onChange={(event) => onChangeSignature("body", event.currentTarget.value)}
             />

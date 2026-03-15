@@ -159,6 +159,7 @@ export function Textarea({
 }) {
   const [scrollTop, setScrollTop] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+  const resolvedTextClassName = textClassName ?? "mail-editor-text";
   const displayValue = toDisplayText(value);
   const deferredDisplayValue = useDeferredValue(displayValue);
   const overlayText = deferredDisplayValue || (typeof placeholder === "string" ? placeholder : "");
@@ -169,8 +170,8 @@ export function Textarea({
         <div
           aria-hidden="true"
           className={cn(
-            "pointer-events-none absolute inset-0 overflow-hidden rounded-[7px] px-3 py-2 text-[13px] leading-6 text-(--color-text-overlay)",
-            textClassName,
+            "pointer-events-none absolute inset-0 overflow-hidden rounded-[7px] px-3 py-2 text-(--color-text-overlay)",
+            resolvedTextClassName,
           )}
         >
           <pre
@@ -185,8 +186,8 @@ export function Textarea({
       ) : null}
       <textarea
         className={cn(
-          "min-h-28 w-full rounded-[7px] border border-(--color-field-border) bg-(--color-field-bg) px-3 py-2 text-[13px] leading-6 text-(--color-text-strong) transition-colors outline-none placeholder:text-(--color-text-placeholder) focus:border-(--color-field-focus)",
-          textClassName,
+          "min-h-28 w-full rounded-[7px] border border-(--color-field-border) bg-(--color-field-bg) px-3 py-2 text-(--color-text-strong) transition-colors outline-none placeholder:text-(--color-text-placeholder) focus:border-(--color-field-focus)",
+          resolvedTextClassName,
           showWhitespace && "text-transparent caret-(--color-text-strong)",
           className,
         )}
