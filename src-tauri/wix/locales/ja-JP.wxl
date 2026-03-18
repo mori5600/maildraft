@@ -1,0 +1,8 @@
+<WixLocalization Culture="ja-jp" xmlns="http://schemas.microsoft.com/wix/2006/localization">
+  <String Id="TauriLanguage">1041</String>
+  <String Id="TauriCodepage">932</String>
+  <String Id="LaunchApp">MailDraft を起動</String>
+  <String Id="DowngradeErrorMessage">より新しいバージョンの MailDraft が既にインストールされています。</String>
+  <String Id="PathEnvVarFeature">MailDraft 実行ファイルのインストール先をシステム環境変数 PATH に追加します。これにより、任意の場所から MailDraft を実行できます。</String>
+  <String Id="InstallAppFeature">MailDraft をインストールします。</String>
+</WixLocalization>
