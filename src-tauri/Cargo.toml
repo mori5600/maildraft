@@ -1,6 +1,6 @@
 [package]
 name = "maildraft"
-version = "1.0.0"
+version = "1.1.0"
 description = "Local-first desktop app for writing email drafts."
 authors = ["MailDraft contributors"]
 edition = "2021"
