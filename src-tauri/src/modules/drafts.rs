@@ -91,6 +91,7 @@ impl Draft {
         self.updated_at = timestamp.to_string();
     }
 
+    /// Restored drafts are unpinned so they do not jump ahead of active work.
     pub fn restore(&mut self, entry: &DraftHistoryEntry, timestamp: &str) {
         self.title = entry.title.clone();
         self.is_pinned = false;

@@ -36,6 +36,7 @@ impl Default for LoggingSettings {
 }
 
 impl LoggingSettings {
+    /// Retention days outside the supported set collapse to 14.
     pub fn normalized(mut self) -> Self {
         self.retention_days = match self.retention_days {
             7 | 14 | 30 => self.retention_days,
@@ -67,6 +68,7 @@ pub struct LoggingSettingsInput {
 }
 
 impl LoggingSettingsInput {
+    /// Frontend input uses the same shape but still needs backend normalization.
     pub fn into_settings(self) -> LoggingSettings {
         LoggingSettings {
             mode: self.mode,

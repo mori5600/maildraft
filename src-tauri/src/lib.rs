@@ -1,3 +1,5 @@
+//! Tauri entrypoint and backend wiring for MailDraft.
+
 mod app;
 mod commands;
 mod modules;
@@ -15,6 +17,11 @@ use commands::{
     save_variable_preset,
 };
 
+/// Starts the Tauri runtime.
+///
+/// # Panics
+///
+/// Panics if the Tauri runtime cannot be started.
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()

@@ -25,6 +25,9 @@ export function getDefaultSignatureId(snapshot: StoreSnapshot): string | null {
   );
 }
 
+/**
+ * Falls back to the current default when the referenced signature disappeared.
+ */
 export function pickKnownSignatureId(
   snapshot: StoreSnapshot,
   signatureId: string | null,
@@ -86,6 +89,11 @@ export function templateExists(snapshot: StoreSnapshot, templateId: string | nul
   );
 }
 
+/**
+ * Patches one saved draft into the current snapshot.
+ *
+ * The backend returns history for that draft only.
+ */
 export function applySavedDraftResult(
   snapshot: StoreSnapshot,
   savedDraft: SaveDraftResult,
@@ -104,6 +112,7 @@ export function applySavedDraftResult(
   };
 }
 
+/** Patches one saved template into the current snapshot. */
 export function applySavedTemplateResult(
   snapshot: StoreSnapshot,
   savedTemplate: SaveTemplateResult,
@@ -114,6 +123,7 @@ export function applySavedTemplateResult(
   };
 }
 
+/** Replaces active signatures with the saved result payload. */
 export function applySavedSignatureResult(
   snapshot: StoreSnapshot,
   savedSignature: SaveSignatureResult,

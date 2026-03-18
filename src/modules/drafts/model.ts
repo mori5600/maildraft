@@ -91,6 +91,11 @@ export function createDraftFromTemplateInput(
   };
 }
 
+/**
+ * Applying a template keeps existing variable values.
+ *
+ * Those values belong to the draft, not to the template.
+ */
 export function applyTemplateToDraft(draft: DraftInput, template: Template): DraftInput {
   return {
     ...draft,

@@ -45,6 +45,12 @@ interface TransientDraftAutoSaveState {
   kind: "error" | "saving";
 }
 
+/**
+ * Persists the active draft and reports auto-save state for the current revision.
+ *
+ * @remarks
+ * Transient saving and error states are keyed to a serialized draft revision. A late auto-save result must not change the state of newer edits.
+ */
 export function useDraftAutoSave({
   draftForm,
   draftFormRef,

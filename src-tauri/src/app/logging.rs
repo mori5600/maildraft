@@ -40,6 +40,7 @@ pub struct LogEntry {
     pub result: &'static str,
     pub duration_ms: Option<u64>,
     pub error_code: Option<&'static str>,
+    /// Stores redacted operational context only. Callers must keep user content and secrets out of this map.
     pub safe_context: Map<String, Value>,
 }
 
@@ -79,6 +80,11 @@ impl AppLogger {
         }
     }
 
+    /// Appends one JSONL entry after enforcing retention and rotation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the logger cannot create the log directory, rotate files, or append the entry.
     pub fn record(&self, settings: &LoggingSettings, entry: LogEntry) -> Result<(), String> {
         if !should_record(settings, entry.level) {
             return Ok(());

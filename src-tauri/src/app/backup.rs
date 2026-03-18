@@ -40,6 +40,13 @@ impl BackupDocument {
         }
     }
 
+    /// Converts an imported backup into runtime state.
+    ///
+    /// Import normalizes embedded settings so older backups pick up current bounds.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the document was not exported by this app.
     pub fn into_state(self) -> Result<(StoreSnapshot, AppSettings), String> {
         if self.app != STORAGE_DOCUMENT_APP {
             return Err("MailDraft のバックアップファイルではありません。".to_string());
@@ -49,6 +56,11 @@ impl BackupDocument {
     }
 }
 
+/// Decodes a backup document only when its schema version matches the current importer.
+///
+/// # Errors
+///
+/// Returns an error if the payload is not valid JSON or if the version is unsupported.
 pub fn decode_backup_document(content: &str) -> Result<BackupDocument, String> {
     let raw = serde_json::from_str::<Value>(content).map_err(|error| error.to_string())?;
     let version = raw

@@ -48,6 +48,9 @@ export type TrashItem =
       signature: Signature;
     };
 
+/**
+ * Flattens trash and sorts newest deletions first.
+ */
 export function collectTrashItems(trash: TrashSnapshot): TrashItem[] {
   return [
     ...trash.drafts.map((entry) => ({
@@ -90,6 +93,9 @@ export function trashItemTypeLabel(kind: TrashItem["kind"]): string {
   }
 }
 
+/**
+ * Looks in active signatures first, then in trashed signatures.
+ */
 export function findTrashSignature(
   signatures: Signature[],
   trashedSignatures: TrashedSignature[],

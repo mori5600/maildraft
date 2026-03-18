@@ -33,6 +33,12 @@ function applyStartupNotice(
   onNotice(startupNotice.message);
 }
 
+/**
+ * Loads the initial snapshot, logging settings, and startup notice once at app startup.
+ *
+ * @remarks
+ * Handler refs keep the bootstrap effect single-shot while still calling the latest callbacks after rerenders.
+ */
 export function useAppBootstrap({
   hydrateLoggingSettings,
   hydrateSnapshot,

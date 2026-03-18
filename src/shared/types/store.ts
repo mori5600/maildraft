@@ -4,6 +4,7 @@ import type { Signature } from "../../modules/signatures/model";
 import type { Template } from "../../modules/templates/model";
 import type { TrashSnapshot } from "../../modules/trash/model";
 
+/** Frontend source of truth hydrated from the backend snapshot. */
 export interface StoreSnapshot {
   drafts: Draft[];
   draftHistory: DraftHistoryEntry[];
@@ -13,6 +14,7 @@ export interface StoreSnapshot {
   trash: TrashSnapshot;
 }
 
+/** `save_draft` returns this payload instead of a full snapshot. */
 export interface SaveDraftResult {
   draft: Draft;
   draftHistory: DraftHistoryEntry[];
@@ -26,6 +28,7 @@ export interface SaveSignatureResult {
   signatures: Signature[];
 }
 
+/** Startup notice shown after recovery or reset. */
 export interface StartupNoticeSnapshot {
   message: string;
   tone: "notice" | "warning";

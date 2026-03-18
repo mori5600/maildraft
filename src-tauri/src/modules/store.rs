@@ -1,3 +1,5 @@
+//! Store types shared across storage and Tauri commands.
+
 mod consistency;
 mod draft_operations;
 mod seed;
@@ -38,6 +40,7 @@ pub struct StoreSnapshot {
     pub trash: TrashSnapshot,
 }
 
+/// Save commands return compact payloads to avoid cloning full snapshots.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SaveDraftResult {

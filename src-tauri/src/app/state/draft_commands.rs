@@ -14,6 +14,13 @@ use super::{
 };
 
 impl AppState {
+    /// Persists a draft, records the save attempt, and returns the saved draft with its history.
+    ///
+    /// The compact payload avoids cloning the full store after every save.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store lock, persistence step, or saved draft lookup fails.
     pub fn save_draft(&self, input: DraftInput) -> AppResult<SaveDraftResult> {
         let started_at = Instant::now();
         let safe_context = draft_context(&input);

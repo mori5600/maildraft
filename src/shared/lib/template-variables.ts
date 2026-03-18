@@ -16,6 +16,11 @@ export function extractVariableNames(texts: string[]): string[] {
   return ordered;
 }
 
+/**
+ * Missing values stay in token form.
+ *
+ * Callers rely on that to surface unresolved placeholders.
+ */
 export function resolveVariableTokens(
   text: string,
   variableValues: Record<string, string>,
@@ -45,6 +50,7 @@ export function resolveVariableTokens(
   return resolvedParts.join("");
 }
 
+/** Use this when the caller needs resolved text and variable order in one pass. */
 export function resolveVariableTokensWithNames(
   text: string,
   variableValues: Record<string, string>,

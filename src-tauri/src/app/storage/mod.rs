@@ -1,3 +1,7 @@
+//! Storage helpers for MailDraft's JSON documents.
+//!
+//! Corrupt primary files fall back to backups, then to defaults.
+
 mod atomic_write;
 mod settings_document;
 mod store_document;
@@ -36,6 +40,7 @@ pub struct StartupNoticeSnapshot {
     pub tone: StartupNoticeTone,
 }
 
+/// Carries a loaded value plus any startup notice caused by recovery.
 pub struct LoadOutcome<T> {
     pub startup_notice: Option<StartupNoticeSnapshot>,
     pub value: T,
@@ -56,6 +61,7 @@ pub fn load_store_snapshot(path: &Path) -> AppResult<StoreSnapshot> {
     load_store_snapshot_with_status(path).map(|outcome| outcome.value)
 }
 
+/// Loads app settings. Missing or unreadable files fall back to backup, then defaults.
 pub fn load_app_settings_with_status(path: &Path) -> AppResult<LoadOutcome<AppSettings>> {
     load_with_fallback(
         path,
@@ -68,6 +74,7 @@ pub fn load_app_settings_with_status(path: &Path) -> AppResult<LoadOutcome<AppSe
     )
 }
 
+/// Loads the store snapshot. Missing or unreadable files fall back to backup, then seeded data.
 pub fn load_store_snapshot_with_status(path: &Path) -> AppResult<LoadOutcome<StoreSnapshot>> {
     load_with_fallback(
         path,
@@ -80,11 +87,21 @@ pub fn load_store_snapshot_with_status(path: &Path) -> AppResult<LoadOutcome<Sto
     )
 }
 
+/// Writes app settings with the current storage document format.
+///
+/// # Errors
+///
+/// Returns an error if settings cannot be encoded or written atomically.
 pub fn write_app_settings(path: &Path, settings: &AppSettings) -> AppResult<()> {
     let content = encode_settings(settings)?;
     write_json_safely(path, &content)
 }
 
+/// Writes the store snapshot with the current storage document format.
+///
+/// # Errors
+///
+/// Returns an error if the snapshot cannot be encoded or written atomically.
 pub fn write_store_snapshot(path: &Path, snapshot: &StoreSnapshot) -> AppResult<()> {
     let content = encode_store_snapshot(snapshot)?;
     write_json_safely(path, &content)
