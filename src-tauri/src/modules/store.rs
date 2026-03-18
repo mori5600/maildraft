@@ -37,3 +37,24 @@ pub struct StoreSnapshot {
     #[serde(default)]
     pub trash: TrashSnapshot,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveDraftResult {
+    pub draft: Draft,
+    #[serde(default)]
+    pub draft_history: Vec<DraftHistoryEntry>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveTemplateResult {
+    pub template: Template,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveSignatureResult {
+    #[serde(default)]
+    pub signatures: Vec<Signature>,
+}

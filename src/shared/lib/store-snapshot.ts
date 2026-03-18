@@ -9,7 +9,13 @@ import {
   type TemplateInput,
   toTemplateInput,
 } from "../../modules/templates/model";
-import type { StoreSnapshot } from "../types/store";
+import type {
+  SaveDraftResult,
+  SaveSignatureResult,
+  SaveTemplateResult,
+  StoreSnapshot,
+} from "../types/store";
+import { sortDrafts, sortSignatures, sortTemplates } from "./list-sort";
 
 export function getDefaultSignatureId(snapshot: StoreSnapshot): string | null {
   return (
@@ -78,4 +84,58 @@ export function templateExists(snapshot: StoreSnapshot, templateId: string | nul
     (snapshot.templates.some((template) => template.id === templateId) ||
       snapshot.trash.templates.some((entry) => entry.template.id === templateId)),
   );
+}
+
+export function applySavedDraftResult(
+  snapshot: StoreSnapshot,
+  savedDraft: SaveDraftResult,
+): StoreSnapshot {
+  const drafts = sortDrafts(upsertById(snapshot.drafts, savedDraft.draft), "recent");
+  const draftHistory = [
+    ...retainOtherDraftHistory(snapshot, savedDraft.draft.id),
+    ...savedDraft.draftHistory,
+  ]
+    .sort((left, right) => Number(right.recordedAt) - Number(left.recordedAt));
+
+  return {
+    ...snapshot,
+    drafts,
+    draftHistory,
+  };
+}
+
+export function applySavedTemplateResult(
+  snapshot: StoreSnapshot,
+  savedTemplate: SaveTemplateResult,
+): StoreSnapshot {
+  return {
+    ...snapshot,
+    templates: sortTemplates(upsertById(snapshot.templates, savedTemplate.template), "recent"),
+  };
+}
+
+export function applySavedSignatureResult(
+  snapshot: StoreSnapshot,
+  savedSignature: SaveSignatureResult,
+): StoreSnapshot {
+  return {
+    ...snapshot,
+    signatures: sortSignatures(savedSignature.signatures, "recent"),
+  };
+}
+
+function retainOtherDraftHistory(snapshot: StoreSnapshot, draftId: string) {
+  return snapshot.draftHistory.filter((entry) => entry.draftId !== draftId);
+}
+
+function upsertById<T extends { id: string }>(items: T[], nextItem: T): T[] {
+  const nextIndex = items.findIndex((item) => item.id === nextItem.id);
+
+  if (nextIndex === -1) {
+    return [...items, nextItem];
+  }
+
+  const nextItems = [...items];
+  nextItems[nextIndex] = nextItem;
+  return nextItems;
 }

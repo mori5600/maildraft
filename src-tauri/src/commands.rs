@@ -6,7 +6,10 @@ use crate::app::{
     storage::StartupNoticeSnapshot,
 };
 use crate::modules::{
-    drafts::DraftInput, signatures::SignatureInput, store::StoreSnapshot, templates::TemplateInput,
+    drafts::DraftInput,
+    signatures::SignatureInput,
+    store::{SaveDraftResult, SaveSignatureResult, SaveTemplateResult, StoreSnapshot},
+    templates::TemplateInput,
     variable_presets::VariablePresetInput,
 };
 
@@ -18,7 +21,7 @@ fn load_startup_notice_impl(state: &AppState) -> Result<Option<StartupNoticeSnap
     state.load_startup_notice()
 }
 
-fn save_draft_impl(state: &AppState, input: DraftInput) -> Result<StoreSnapshot, String> {
+fn save_draft_impl(state: &AppState, input: DraftInput) -> Result<SaveDraftResult, String> {
     state.save_draft(input)
 }
 
@@ -45,7 +48,10 @@ fn restore_draft_history_impl(
     state.restore_draft_history(&draft_id, &history_id)
 }
 
-fn save_template_impl(state: &AppState, input: TemplateInput) -> Result<StoreSnapshot, String> {
+fn save_template_impl(
+    state: &AppState,
+    input: TemplateInput,
+) -> Result<SaveTemplateResult, String> {
     state.save_template(input)
 }
 
@@ -75,7 +81,10 @@ fn permanently_delete_template_from_trash_impl(
     state.permanently_delete_template_from_trash(&id)
 }
 
-fn save_signature_impl(state: &AppState, input: SignatureInput) -> Result<StoreSnapshot, String> {
+fn save_signature_impl(
+    state: &AppState,
+    input: SignatureInput,
+) -> Result<SaveSignatureResult, String> {
     state.save_signature(input)
 }
 
@@ -147,7 +156,7 @@ pub(crate) fn load_startup_notice(
 pub(crate) fn save_draft(
     state: tauri::State<'_, AppState>,
     input: DraftInput,
-) -> Result<StoreSnapshot, String> {
+) -> Result<SaveDraftResult, String> {
     save_draft_impl(&state, input)
 }
 
@@ -188,7 +197,7 @@ pub(crate) fn restore_draft_history(
 pub(crate) fn save_template(
     state: tauri::State<'_, AppState>,
     input: TemplateInput,
-) -> Result<StoreSnapshot, String> {
+) -> Result<SaveTemplateResult, String> {
     save_template_impl(&state, input)
 }
 
@@ -236,7 +245,7 @@ pub(crate) fn permanently_delete_template_from_trash(
 pub(crate) fn save_signature(
     state: tauri::State<'_, AppState>,
     input: SignatureInput,
-) -> Result<StoreSnapshot, String> {
+) -> Result<SaveSignatureResult, String> {
     save_signature_impl(&state, input)
 }
 
@@ -357,7 +366,7 @@ mod tests {
             },
         )
         .expect("save draft");
-        assert!(saved.drafts.iter().any(|draft| draft.id == "draft-command"));
+        assert_eq!(saved.draft.id, "draft-command");
 
         let trashed = delete_draft_impl(&state, "draft-command".to_string()).expect("trash draft");
         assert_eq!(trashed.trash.drafts.len(), 1);
@@ -432,10 +441,7 @@ mod tests {
             },
         )
         .expect("save template");
-        assert!(templates
-            .templates
-            .iter()
-            .any(|template| template.id == "template-command"));
+        assert_eq!(templates.template.id, "template-command");
 
         let presets = save_variable_preset_impl(
             &state,

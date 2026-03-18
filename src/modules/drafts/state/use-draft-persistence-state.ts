@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
-import { getDefaultSignatureId, pickDraftInput } from "../../../shared/lib/store-snapshot";
+import {
+  applySavedDraftResult,
+  getDefaultSignatureId,
+  pickDraftInput,
+} from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot } from "../../../shared/types/store";
 import { createEmptyDraft, type DraftInput, duplicateDraftInput, toDraftInput } from "../model";
 import {
@@ -142,10 +146,11 @@ export function useDraftPersistenceState({
 
     try {
       onClearError();
-      const nextSnapshot = await maildraftApi.saveDraft(duplicate);
+      const savedDraft = await maildraftApi.saveDraft(duplicate);
+      const nextSnapshot = applySavedDraftResult(snapshotRef.current, savedDraft);
       onSnapshotChange(nextSnapshot);
-      setSelectedDraftId(duplicate.id);
-      setDraftForm(pickDraftInput(nextSnapshot, duplicate.id));
+      setSelectedDraftId(savedDraft.draft.id);
+      setDraftForm(toDraftInput(savedDraft.draft));
       setDraftAutoSaveState("saved");
       onNotice("下書きを複製しました。");
     } catch (duplicateError) {

@@ -10,7 +10,13 @@ import type {
 } from "../../modules/settings/model";
 import type { SignatureInput } from "../../modules/signatures/model";
 import type { TemplateInput } from "../../modules/templates/model";
-import type { StartupNoticeSnapshot, StoreSnapshot } from "../types/store";
+import type {
+  SaveDraftResult,
+  SaveSignatureResult,
+  SaveTemplateResult,
+  StartupNoticeSnapshot,
+  StoreSnapshot,
+} from "../types/store";
 
 export const maildraftApi = {
   loadSnapshot() {
@@ -20,7 +26,7 @@ export const maildraftApi = {
     return invoke<StartupNoticeSnapshot | null>("load_startup_notice");
   },
   saveDraft(input: DraftInput) {
-    return invoke<StoreSnapshot>("save_draft", { input });
+    return invoke<SaveDraftResult>("save_draft", { input });
   },
   deleteDraft(id: string) {
     return invoke<StoreSnapshot>("delete_draft", { id });
@@ -41,7 +47,7 @@ export const maildraftApi = {
     return invoke<StoreSnapshot>("delete_variable_preset", { id });
   },
   saveTemplate(input: TemplateInput) {
-    return invoke<StoreSnapshot>("save_template", { input });
+    return invoke<SaveTemplateResult>("save_template", { input });
   },
   deleteTemplate(id: string) {
     return invoke<StoreSnapshot>("delete_template", { id });
@@ -53,7 +59,7 @@ export const maildraftApi = {
     return invoke<StoreSnapshot>("permanently_delete_template_from_trash", { id });
   },
   saveSignature(input: SignatureInput) {
-    return invoke<StoreSnapshot>("save_signature", { input });
+    return invoke<SaveSignatureResult>("save_signature", { input });
   },
   deleteSignature(id: string) {
     return invoke<StoreSnapshot>("delete_signature", { id });

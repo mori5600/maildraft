@@ -3,7 +3,10 @@ use std::time::Instant;
 use serde_json::Map;
 
 use crate::app::logging::{LogEntry, LogLevel};
-use crate::modules::{signatures::SignatureInput, store::StoreSnapshot};
+use crate::modules::{
+    signatures::SignatureInput,
+    store::{SaveSignatureResult, StoreSnapshot},
+};
 
 use super::{
     context::{
@@ -13,14 +16,25 @@ use super::{
 };
 
 impl AppState {
-    pub fn save_signature(&self, input: SignatureInput) -> AppResult<StoreSnapshot> {
+    pub fn save_signature(&self, input: SignatureInput) -> AppResult<SaveSignatureResult> {
         let started_at = Instant::now();
         let safe_context = signature_context(&input);
+        let timestamp = timestamp();
 
-        match self.mutate_store(|store| {
-            store.upsert_signature(input, &timestamp());
-        }) {
-            Ok(snapshot) => {
+        let result = (|| {
+            let mut store = self.store.lock().map_err(|error| error.to_string())?;
+            store.upsert_signature(input, &timestamp);
+            store.ensure_consistency();
+            self.persist_locked_store(&store)?;
+
+            let snapshot_context = snapshot_counts_context(&store);
+            let signatures = store.signatures.clone();
+
+            Ok((SaveSignatureResult { signatures }, snapshot_context))
+        })();
+
+        match result {
+            Ok((saved_signature, snapshot_context)) => {
                 self.log_event(LogEntry {
                     level: LogLevel::Info,
                     event_name: "signature.save",
@@ -28,9 +42,9 @@ impl AppState {
                     result: "success",
                     duration_ms: Some(elapsed_millis(started_at)),
                     error_code: None,
-                    safe_context: merge_context(safe_context, snapshot_counts_context(&snapshot)),
+                    safe_context: merge_context(safe_context, snapshot_context),
                 });
-                Ok(snapshot)
+                Ok(saved_signature)
             }
             Err(error) => {
                 self.log_event(LogEntry {

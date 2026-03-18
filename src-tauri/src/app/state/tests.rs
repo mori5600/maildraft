@@ -219,7 +219,7 @@ fn trash_kind_and_merge_context_preserve_expected_keys() {
 fn save_template_and_variable_preset_persist_store_updates() {
     let (state, _directory) = make_state();
 
-    let snapshot = state
+    let saved_template = state
         .save_template(TemplateInput {
             id: "template-follow-up".to_string(),
             name: "確認メール".to_string(),
@@ -232,8 +232,7 @@ fn save_template_and_variable_preset_persist_store_updates() {
             signature_id: Some("signature-default".to_string()),
         })
         .expect("save template");
-    assert_eq!(snapshot.templates.len(), 2);
-    assert_eq!(snapshot.templates[0].id, "template-follow-up");
+    assert_eq!(saved_template.template.id, "template-follow-up");
 
     let snapshot = state
         .save_variable_preset(VariablePresetInput {

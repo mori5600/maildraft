@@ -9,11 +9,12 @@ import {
 } from "react";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
-import { pickDraftInput } from "../../../shared/lib/store-snapshot";
+import { applySavedDraftResult } from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot } from "../../../shared/types/store";
 import {
   type DraftInput,
   draftMatchesPersistedDraft,
+  toDraftInput,
 } from "../model";
 import {
   type DraftAutoSaveState,
@@ -89,12 +90,13 @@ export function useDraftAutoSave({
           onClearError();
         }
 
-        const nextSnapshot = await maildraftApi.saveDraft(input);
+        const savedDraft = await maildraftApi.saveDraft(input);
+        const nextSnapshot = applySavedDraftResult(snapshotRef.current, savedDraft);
         onSnapshotChange(nextSnapshot);
 
-        if (draftFormRef.current.id === input.id) {
-          setSelectedDraftId(input.id);
-          setDraftForm(pickDraftInput(nextSnapshot, input.id));
+        if (draftFormRef.current.id === savedDraft.draft.id) {
+          setSelectedDraftId(savedDraft.draft.id);
+          setDraftForm(toDraftInput(savedDraft.draft));
         }
 
         if (mode === "manual") {

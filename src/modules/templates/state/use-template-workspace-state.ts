@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import { sortTemplates, type TemplateSortOption } from "../../../shared/lib/list-sort";
@@ -7,7 +7,11 @@ import {
   createSearchTokens,
   matchesSearchTokens,
 } from "../../../shared/lib/search";
-import { getDefaultSignatureId, pickKnownSignatureId } from "../../../shared/lib/store-snapshot";
+import {
+  applySavedTemplateResult,
+  getDefaultSignatureId,
+  pickKnownSignatureId,
+} from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot, WorkspaceView } from "../../../shared/types/store";
 import {
   createDraftFromTemplate,
@@ -95,6 +99,11 @@ export function useTemplateWorkspaceState({
   const [templateSearchQuery, setTemplateSearchQuery] = useState("");
   const [templateSort, setTemplateSort] = useState<TemplateSortOption>("recent");
   const deferredTemplateSearchQuery = useDeferredValue(templateSearchQuery);
+  const snapshotRef = useRef(snapshot);
+
+  useEffect(() => {
+    snapshotRef.current = snapshot;
+  }, [snapshot]);
 
   const selectedTemplateSignature = useMemo(
     () =>
@@ -195,9 +204,10 @@ export function useTemplateWorkspaceState({
   async function saveTemplate() {
     try {
       onClearError();
-      const nextSnapshot = await maildraftApi.saveTemplate(templateForm);
+      const savedTemplate = await maildraftApi.saveTemplate(templateForm);
+      const nextSnapshot = applySavedTemplateResult(snapshotRef.current, savedTemplate);
       onSnapshotChange(nextSnapshot);
-      hydrateTemplateState(nextSnapshot, templateForm.id);
+      hydrateTemplateState(nextSnapshot, savedTemplate.template.id);
       onNotice("テンプレートを保存しました。");
     } catch (saveError) {
       onError(toErrorMessage(saveError));
@@ -213,9 +223,10 @@ export function useTemplateWorkspaceState({
 
     try {
       onClearError();
-      const nextSnapshot = await maildraftApi.saveTemplate(duplicate);
+      const savedTemplate = await maildraftApi.saveTemplate(duplicate);
+      const nextSnapshot = applySavedTemplateResult(snapshotRef.current, savedTemplate);
       onSnapshotChange(nextSnapshot);
-      hydrateTemplateState(nextSnapshot, duplicate.id);
+      hydrateTemplateState(nextSnapshot, savedTemplate.template.id);
       onNotice("テンプレートを複製しました。");
     } catch (duplicateError) {
       onError(toErrorMessage(duplicateError));

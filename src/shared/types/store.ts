@@ -13,6 +13,19 @@ export interface StoreSnapshot {
   trash: TrashSnapshot;
 }
 
+export interface SaveDraftResult {
+  draft: Draft;
+  draftHistory: DraftHistoryEntry[];
+}
+
+export interface SaveTemplateResult {
+  template: Template;
+}
+
+export interface SaveSignatureResult {
+  signatures: Signature[];
+}
+
 export interface StartupNoticeSnapshot {
   message: string;
   tone: "notice" | "warning";

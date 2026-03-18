@@ -3,7 +3,10 @@ use std::time::Instant;
 use serde_json::Map;
 
 use crate::app::logging::{LogEntry, LogLevel};
-use crate::modules::{store::StoreSnapshot, templates::TemplateInput};
+use crate::modules::{
+    store::{SaveTemplateResult, StoreSnapshot},
+    templates::TemplateInput,
+};
 
 use super::{
     context::{
@@ -13,14 +16,31 @@ use super::{
 };
 
 impl AppState {
-    pub fn save_template(&self, input: TemplateInput) -> AppResult<StoreSnapshot> {
+    pub fn save_template(&self, input: TemplateInput) -> AppResult<SaveTemplateResult> {
         let started_at = Instant::now();
         let safe_context = template_context(&input);
+        let template_id = input.id.clone();
+        let timestamp = timestamp();
 
-        match self.mutate_store(|store| {
-            store.upsert_template(input, &timestamp());
-        }) {
-            Ok(snapshot) => {
+        let result = (|| {
+            let mut store = self.store.lock().map_err(|error| error.to_string())?;
+            store.upsert_template(input, &timestamp);
+            store.ensure_consistency();
+            self.persist_locked_store(&store)?;
+
+            let template = store
+                .templates
+                .iter()
+                .find(|template| template.id == template_id)
+                .cloned()
+                .ok_or_else(|| "保存したテンプレートが見つかりませんでした。".to_string())?;
+            let snapshot_context = snapshot_counts_context(&store);
+
+            Ok((SaveTemplateResult { template }, snapshot_context))
+        })();
+
+        match result {
+            Ok((saved_template, snapshot_context)) => {
                 self.log_event(LogEntry {
                     level: LogLevel::Info,
                     event_name: "template.save",
@@ -28,9 +48,9 @@ impl AppState {
                     result: "success",
                     duration_ms: Some(elapsed_millis(started_at)),
                     error_code: None,
-                    safe_context: merge_context(safe_context, snapshot_counts_context(&snapshot)),
+                    safe_context: merge_context(safe_context, snapshot_context),
                 });
-                Ok(snapshot)
+                Ok(saved_template)
             }
             Err(error) => {
                 self.log_event(LogEntry {

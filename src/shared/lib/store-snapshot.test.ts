@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import type { StoreSnapshot } from "../types/store";
 import {
+  applySavedDraftResult,
+  applySavedSignatureResult,
+  applySavedTemplateResult,
   getDefaultSignatureId,
   pickDraftInput,
   pickKnownSignatureId,
@@ -138,5 +141,59 @@ describe("store-snapshot helpers", () => {
     expect(templateExists(snapshot, "template-1")).toBe(true);
     expect(templateExists(snapshot, "template-trash")).toBe(true);
     expect(templateExists(snapshot, "missing")).toBe(false);
+  });
+
+  it("applies compact save payloads without replacing unrelated snapshot data", () => {
+    const nextDraftSnapshot = applySavedDraftResult(snapshot, {
+      draft: {
+        ...snapshot.drafts[0],
+        subject: "更新件名",
+        updatedAt: "5",
+      },
+      draftHistory: [
+        {
+          id: "draft-1-4",
+          draftId: "draft-1",
+          title: "下書き",
+          subject: "件名",
+          recipient: "",
+          opening: "",
+          body: "",
+          closing: "",
+          templateId: "template-1",
+          signatureId: "signature-default",
+          variableValues: {},
+          recordedAt: "4",
+        },
+      ],
+    });
+    expect(nextDraftSnapshot.drafts[0]?.subject).toBe("更新件名");
+    expect(nextDraftSnapshot.draftHistory).toHaveLength(1);
+
+    const nextTemplateSnapshot = applySavedTemplateResult(snapshot, {
+      template: {
+        ...snapshot.templates[0],
+        name: "更新テンプレート",
+        updatedAt: "5",
+      },
+    });
+    expect(nextTemplateSnapshot.templates[0]?.name).toBe("更新テンプレート");
+
+    const nextSignatureSnapshot = applySavedSignatureResult(snapshot, {
+      signatures: [
+        {
+          ...snapshot.signatures[1],
+          isDefault: true,
+          updatedAt: "5",
+        },
+        {
+          ...snapshot.signatures[0],
+          isDefault: false,
+          updatedAt: "4",
+        },
+      ],
+    });
+    expect(nextSignatureSnapshot.signatures[0]?.id).toBe("signature-other");
+    expect(nextSignatureSnapshot.signatures[0]?.isDefault).toBe(true);
   });
 });

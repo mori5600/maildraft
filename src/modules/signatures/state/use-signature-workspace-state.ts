@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import { type SignatureSortOption, sortSignatures } from "../../../shared/lib/list-sort";
@@ -7,6 +7,7 @@ import {
   createSearchTokens,
   matchesSearchTokens,
 } from "../../../shared/lib/search";
+import { applySavedSignatureResult } from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot, WorkspaceView } from "../../../shared/types/store";
 import { buildTrashItemKey } from "../../trash/model";
 import {
@@ -90,6 +91,11 @@ export function useSignatureWorkspaceState({
   const [signatureSearchQuery, setSignatureSearchQuery] = useState("");
   const [signatureSort, setSignatureSort] = useState<SignatureSortOption>("recent");
   const deferredSignatureSearchQuery = useDeferredValue(signatureSearchQuery);
+  const snapshotRef = useRef(snapshot);
+
+  useEffect(() => {
+    snapshotRef.current = snapshot;
+  }, [snapshot]);
   const signatureSearchTokens = useMemo(
     () => createSearchTokens(deferredSignatureSearchQuery),
     [deferredSignatureSearchQuery],
@@ -163,7 +169,8 @@ export function useSignatureWorkspaceState({
   async function saveSignature() {
     try {
       onClearError();
-      const nextSnapshot = await maildraftApi.saveSignature(signatureForm);
+      const savedSignature = await maildraftApi.saveSignature(signatureForm);
+      const nextSnapshot = applySavedSignatureResult(snapshotRef.current, savedSignature);
       onSnapshotChange(nextSnapshot);
       hydrateSignatureState(nextSnapshot, signatureForm.id);
       onSignatureSnapshotChange(nextSnapshot);
@@ -182,7 +189,8 @@ export function useSignatureWorkspaceState({
 
     try {
       onClearError();
-      const nextSnapshot = await maildraftApi.saveSignature(duplicate);
+      const savedSignature = await maildraftApi.saveSignature(duplicate);
+      const nextSnapshot = applySavedSignatureResult(snapshotRef.current, savedSignature);
       onSnapshotChange(nextSnapshot);
       hydrateSignatureState(nextSnapshot, duplicate.id);
       onSignatureSnapshotChange(nextSnapshot);
