@@ -84,7 +84,10 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
           snapshot.drafts.unshift(nextDraft);
         }
 
-        return cloneData(snapshot);
+        return cloneData({
+          draft: nextDraft,
+          draftHistory: snapshot.draftHistory.filter((entry) => entry.draftId === nextDraft.id),
+        });
       }
       case "delete_draft": {
         const id = (payload as { id: string }).id;
