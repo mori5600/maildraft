@@ -2,7 +2,12 @@ import type { Draft, DraftHistoryEntry } from "../../modules/drafts/model";
 import type { VariablePreset } from "../../modules/drafts/variable-presets";
 import type { Signature } from "../../modules/signatures/model";
 import type { Template } from "../../modules/templates/model";
-import type { TrashSnapshot } from "../../modules/trash/model";
+import type {
+  TrashedDraft,
+  TrashedSignature,
+  TrashedTemplate,
+  TrashSnapshot,
+} from "../../modules/trash/model";
 
 /** Frontend source of truth hydrated from the backend snapshot. */
 export interface StoreSnapshot {
@@ -20,12 +25,25 @@ export interface SaveDraftResult {
   draftHistory: DraftHistoryEntry[];
 }
 
+export interface DeleteDraftResult {
+  trashedDraft: TrashedDraft;
+}
+
 export interface SaveTemplateResult {
   template: Template;
 }
 
+export interface DeleteTemplateResult {
+  trashedTemplate: TrashedTemplate;
+}
+
 export interface SaveSignatureResult {
   signatures: Signature[];
+}
+
+export interface DeleteSignatureResult {
+  signatures: Signature[];
+  trashedSignature: TrashedSignature;
 }
 
 /** Startup notice shown after recovery or reset. */

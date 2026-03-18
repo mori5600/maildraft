@@ -11,6 +11,9 @@ import type {
 import type { SignatureInput } from "../../modules/signatures/model";
 import type { TemplateInput } from "../../modules/templates/model";
 import type {
+  DeleteDraftResult,
+  DeleteSignatureResult,
+  DeleteTemplateResult,
   SaveDraftResult,
   SaveSignatureResult,
   SaveTemplateResult,
@@ -33,11 +36,11 @@ export const maildraftApi = {
   },
 
   deleteDraft(id: string) {
-    return invoke<StoreSnapshot>("delete_draft", { id });
+    return invoke<DeleteDraftResult>("delete_draft", { id });
   },
 
   restoreDraftFromTrash(id: string) {
-    return invoke<StoreSnapshot>("restore_draft_from_trash", { id });
+    return invoke<SaveDraftResult>("restore_draft_from_trash", { id });
   },
 
   permanentlyDeleteDraftFromTrash(id: string) {
@@ -61,11 +64,11 @@ export const maildraftApi = {
   },
 
   deleteTemplate(id: string) {
-    return invoke<StoreSnapshot>("delete_template", { id });
+    return invoke<DeleteTemplateResult>("delete_template", { id });
   },
 
   restoreTemplateFromTrash(id: string) {
-    return invoke<StoreSnapshot>("restore_template_from_trash", { id });
+    return invoke<SaveTemplateResult>("restore_template_from_trash", { id });
   },
 
   permanentlyDeleteTemplateFromTrash(id: string) {
@@ -77,11 +80,11 @@ export const maildraftApi = {
   },
 
   deleteSignature(id: string) {
-    return invoke<StoreSnapshot>("delete_signature", { id });
+    return invoke<DeleteSignatureResult>("delete_signature", { id });
   },
 
   restoreSignatureFromTrash(id: string) {
-    return invoke<StoreSnapshot>("restore_signature_from_trash", { id });
+    return invoke<SaveSignatureResult>("restore_signature_from_trash", { id });
   },
 
   permanentlyDeleteSignatureFromTrash(id: string) {

@@ -1,7 +1,12 @@
 import { confirm } from "@tauri-apps/plugin-dialog";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
+import {
+  applyRestoredDraftResult,
+  applyRestoredSignatureResult,
+  applyRestoredTemplateResult,
+} from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot, WorkspaceView } from "../../../shared/types/store";
 import {
   collectTrashItems,
@@ -50,7 +55,12 @@ export function useTrashWorkspaceState({
   selectedTrashItemKey,
   snapshot,
 }: TrashWorkspaceStateOptions) {
+  const snapshotRef = useRef(snapshot);
   const trashItems = useMemo(() => collectTrashItems(snapshot.trash), [snapshot.trash]);
+
+  useEffect(() => {
+    snapshotRef.current = snapshot;
+  }, [snapshot]);
 
   useEffect(() => {
     if (trashItems.length === 0) {
@@ -77,7 +87,8 @@ export function useTrashWorkspaceState({
       onClearError();
 
       if (item.kind === "draft") {
-        const nextSnapshot = await maildraftApi.restoreDraftFromTrash(item.draft.id);
+        const restoredDraft = await maildraftApi.restoreDraftFromTrash(item.draft.id);
+        const nextSnapshot = applyRestoredDraftResult(snapshotRef.current, restoredDraft);
         onSnapshotChange(nextSnapshot);
         onDraftRestored(item.draft.id, nextSnapshot);
         onViewChange("drafts");
@@ -86,7 +97,8 @@ export function useTrashWorkspaceState({
       }
 
       if (item.kind === "template") {
-        const nextSnapshot = await maildraftApi.restoreTemplateFromTrash(item.template.id);
+        const restoredTemplate = await maildraftApi.restoreTemplateFromTrash(item.template.id);
+        const nextSnapshot = applyRestoredTemplateResult(snapshotRef.current, restoredTemplate);
         onSnapshotChange(nextSnapshot);
         onTemplateRestored(nextSnapshot, item.template.id);
         onViewChange("templates");
@@ -94,7 +106,12 @@ export function useTrashWorkspaceState({
         return;
       }
 
-      const nextSnapshot = await maildraftApi.restoreSignatureFromTrash(item.signature.id);
+      const restoredSignature = await maildraftApi.restoreSignatureFromTrash(item.signature.id);
+      const nextSnapshot = applyRestoredSignatureResult(
+        snapshotRef.current,
+        restoredSignature,
+        item.signature.id,
+      );
       onSnapshotChange(nextSnapshot);
       onSignatureRestored(nextSnapshot, item.signature.id);
       onViewChange("signatures");

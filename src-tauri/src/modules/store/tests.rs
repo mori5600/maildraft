@@ -100,7 +100,7 @@ fn delete_and_restore_draft_round_trips_draft_and_history() {
         },
         "100",
     );
-    store.delete_draft(&draft_id, "120");
+    assert!(store.delete_draft(&draft_id, "120").is_some());
 
     assert_eq!(store.drafts.len(), 0);
     assert_eq!(store.trash.drafts.len(), 1);
@@ -108,7 +108,7 @@ fn delete_and_restore_draft_round_trips_draft_and_history() {
 
     let restored = store.restore_draft_from_trash(&draft_id);
 
-    assert_eq!(restored, true);
+    assert!(restored.is_some());
     assert_eq!(store.drafts.len(), 1);
     assert_eq!(store.draft_history.len(), 1);
     assert_eq!(store.trash.drafts.len(), 0);
@@ -215,12 +215,12 @@ fn template_and_signature_trash_round_trip_and_default_switch_work() {
         Some(false)
     );
 
-    store.delete_template("template-thanks", "20");
+    assert!(store.delete_template("template-thanks", "20").is_some());
     assert_eq!(store.templates.len(), 0);
-    assert_eq!(store.restore_template_from_trash("template-thanks"), true);
+    assert!(store.restore_template_from_trash("template-thanks").is_some());
     assert_eq!(store.templates.len(), 1);
 
-    store.delete_signature("signature-alt", "30");
+    assert!(store.delete_signature("signature-alt", "30").is_some());
     assert_eq!(
         store
             .trash
@@ -229,7 +229,7 @@ fn template_and_signature_trash_round_trip_and_default_switch_work() {
             .any(|entry| entry.signature.id == "signature-alt"),
         true
     );
-    assert_eq!(store.restore_signature_from_trash("signature-alt"), true);
+    assert!(store.restore_signature_from_trash("signature-alt").is_some());
     assert_eq!(
         store
             .signatures
@@ -268,9 +268,9 @@ fn variable_presets_can_be_deleted_and_empty_trash_clears_all_kinds() {
         },
         "10",
     );
-    store.delete_draft("draft-welcome", "20");
-    store.delete_template("template-thanks", "21");
-    store.delete_signature("signature-default", "22");
+    assert!(store.delete_draft("draft-welcome", "20").is_some());
+    assert!(store.delete_template("template-thanks", "21").is_some());
+    assert!(store.delete_signature("signature-default", "22").is_some());
     assert_eq!(store.trash.item_count(), 3);
 
     store.empty_trash();

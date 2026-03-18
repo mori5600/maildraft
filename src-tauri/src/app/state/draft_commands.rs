@@ -5,7 +5,7 @@ use serde_json::Map;
 use crate::app::logging::{LogEntry, LogLevel};
 use crate::modules::{
     drafts::DraftInput,
-    store::{SaveDraftResult, StoreSnapshot},
+    store::{DeleteDraftResult, SaveDraftResult, StoreSnapshot},
 };
 
 use super::{
@@ -78,13 +78,26 @@ impl AppState {
         }
     }
 
-    pub fn delete_draft(&self, id: &str) -> AppResult<StoreSnapshot> {
+    pub fn delete_draft(&self, id: &str) -> AppResult<DeleteDraftResult> {
         let started_at = Instant::now();
 
-        match self.mutate_store(|store| {
-            store.delete_draft(id, &timestamp());
-        }) {
-            Ok(snapshot) => {
+        let timestamp = timestamp();
+
+        let result = (|| {
+            let mut store = self.store.lock().map_err(|error| error.to_string())?;
+            let trashed_draft = store
+                .delete_draft(id, &timestamp)
+                .ok_or_else(|| "指定した下書きが見つかりませんでした。".to_string())?;
+            store.ensure_consistency();
+            self.persist_locked_store(&store)?;
+
+            let snapshot_context = snapshot_counts_context(&store);
+
+            Ok((DeleteDraftResult { trashed_draft }, snapshot_context))
+        })();
+
+        match result {
+            Ok((deleted_draft, snapshot_context)) => {
                 self.log_event(LogEntry {
                     level: LogLevel::Info,
                     event_name: "draft.trash",
@@ -92,9 +105,9 @@ impl AppState {
                     result: "success",
                     duration_ms: Some(elapsed_millis(started_at)),
                     error_code: None,
-                    safe_context: snapshot_counts_context(&snapshot),
+                    safe_context: snapshot_context,
                 });
-                Ok(snapshot)
+                Ok(deleted_draft)
             }
             Err(error) => {
                 self.log_event(LogEntry {
@@ -103,7 +116,7 @@ impl AppState {
                     module: "drafts",
                     result: "failure",
                     duration_ms: Some(elapsed_millis(started_at)),
-                    error_code: Some("STORE_WRITE_FAILED"),
+                    error_code: Some("DRAFT_NOT_FOUND"),
                     safe_context: Map::new(),
                 });
                 Err(error)

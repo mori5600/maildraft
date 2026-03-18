@@ -98,12 +98,15 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
 
         const [deletedDraft] = snapshot.drafts.splice(currentIndex, 1);
         const history = snapshot.draftHistory.filter((entry) => entry.draftId === id);
+        snapshot.draftHistory = snapshot.draftHistory.filter((entry) => entry.draftId !== id);
         snapshot.trash.drafts.unshift({
           draft: deletedDraft,
           history,
           deletedAt: String(Date.now()),
         });
-        return cloneData(snapshot);
+        return cloneData({
+          trashedDraft: snapshot.trash.drafts[0],
+        });
       }
       case "save_logging_settings": {
         const input = (payload as { input: LoggingSettingsInput }).input;
@@ -122,7 +125,13 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
 
         const [restored] = snapshot.trash.drafts.splice(trashedIndex, 1);
         snapshot.drafts.unshift(restored.draft);
-        return cloneData(snapshot);
+        snapshot.draftHistory = snapshot.draftHistory
+          .filter((entry) => entry.draftId !== id)
+          .concat(restored.history);
+        return cloneData({
+          draft: restored.draft,
+          draftHistory: restored.history,
+        });
       }
       default:
         throw new Error(`Unhandled mocked Tauri command: ${cmd}`);

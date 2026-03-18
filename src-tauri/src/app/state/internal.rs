@@ -83,51 +83,6 @@ impl AppState {
         let _ = self.logger.record(logging_settings, entry);
     }
 
-    pub(super) fn restore_item_from_trash<F>(
-        &self,
-        kind: &str,
-        mutator: F,
-    ) -> AppResult<StoreSnapshot>
-    where
-        F: FnOnce(&mut StoreSnapshot) -> bool,
-    {
-        let started_at = Instant::now();
-        let mut store = self.store.lock().map_err(|error| error.to_string())?;
-
-        if !mutator(&mut store) {
-            self.log_event(LogEntry {
-                level: LogLevel::Error,
-                event_name: "trash.restore",
-                module: "trash",
-                result: "failure",
-                duration_ms: Some(elapsed_millis(started_at)),
-                error_code: Some("TRASH_ITEM_NOT_FOUND"),
-                safe_context: trash_kind_context(kind),
-            });
-            return Err("指定した項目がゴミ箱に見つかりませんでした。".to_string());
-        }
-
-        store.ensure_consistency();
-        self.persist_locked_store(&store)?;
-        let snapshot = store.clone();
-        drop(store);
-
-        self.log_event(LogEntry {
-            level: LogLevel::Info,
-            event_name: "trash.restore",
-            module: "trash",
-            result: "success",
-            duration_ms: Some(elapsed_millis(started_at)),
-            error_code: None,
-            safe_context: merge_context(
-                trash_kind_context(kind),
-                snapshot_counts_context(&snapshot),
-            ),
-        });
-
-        Ok(snapshot)
-    }
-
     pub(super) fn permanently_delete_item_from_trash<F>(
         &self,
         kind: &str,

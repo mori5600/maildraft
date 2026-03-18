@@ -16,7 +16,7 @@ use crate::modules::{
     drafts::{Draft, DraftHistoryEntry},
     signatures::Signature,
     templates::Template,
-    trash::TrashSnapshot,
+    trash::{TrashSnapshot, TrashedDraft, TrashedSignature, TrashedTemplate},
     variable_presets::VariablePreset,
 };
 
@@ -51,8 +51,20 @@ pub struct SaveDraftResult {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct DeleteDraftResult {
+    pub trashed_draft: TrashedDraft,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SaveTemplateResult {
     pub template: Template,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteTemplateResult {
+    pub trashed_template: TrashedTemplate,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,4 +72,12 @@ pub struct SaveTemplateResult {
 pub struct SaveSignatureResult {
     #[serde(default)]
     pub signatures: Vec<Signature>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteSignatureResult {
+    #[serde(default)]
+    pub signatures: Vec<Signature>,
+    pub trashed_signature: TrashedSignature,
 }

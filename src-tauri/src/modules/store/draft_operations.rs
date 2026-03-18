@@ -19,9 +19,9 @@ impl StoreSnapshot {
         self.drafts.push(Draft::new(input, timestamp));
     }
 
-    pub fn delete_draft(&mut self, id: &str, timestamp: &str) {
+    pub fn delete_draft(&mut self, id: &str, timestamp: &str) -> Option<TrashedDraft> {
         let Some(index) = self.drafts.iter().position(|draft| draft.id == id) else {
-            return;
+            return None;
         };
 
         let draft = self.drafts.remove(index);
@@ -34,11 +34,13 @@ impl StoreSnapshot {
 
         self.draft_history.retain(|entry| entry.draft_id != id);
         self.trash.drafts.retain(|entry| entry.draft.id != id);
-        self.trash.drafts.push(TrashedDraft {
+        let trashed_draft = TrashedDraft {
             draft,
             history,
             deleted_at: timestamp.to_string(),
-        });
+        };
+        self.trash.drafts.push(trashed_draft.clone());
+        Some(trashed_draft)
     }
 
     pub fn restore_draft_history(

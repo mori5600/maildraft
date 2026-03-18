@@ -21,17 +21,19 @@ impl StoreSnapshot {
             .push(crate::modules::templates::Template::new(input, timestamp));
     }
 
-    pub fn delete_template(&mut self, id: &str, timestamp: &str) {
+    pub fn delete_template(&mut self, id: &str, timestamp: &str) -> Option<TrashedTemplate> {
         let Some(index) = self.templates.iter().position(|template| template.id == id) else {
-            return;
+            return None;
         };
 
         let template = self.templates.remove(index);
         self.trash.templates.retain(|entry| entry.template.id != id);
-        self.trash.templates.push(TrashedTemplate {
+        let trashed_template = TrashedTemplate {
             template,
             deleted_at: timestamp.to_string(),
-        });
+        };
+        self.trash.templates.push(trashed_template.clone());
+        Some(trashed_template)
     }
 
     pub fn upsert_variable_preset(&mut self, input: VariablePresetInput, timestamp: &str) {

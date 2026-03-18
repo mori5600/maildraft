@@ -8,6 +8,7 @@ import {
   matchesSearchTokens,
 } from "../../../shared/lib/search";
 import {
+  applyDeletedTemplateResult,
   applySavedTemplateResult,
   getDefaultSignatureId,
   pickKnownSignatureId,
@@ -241,7 +242,8 @@ export function useTemplateWorkspaceState({
 
     try {
       onClearError();
-      const nextSnapshot = await maildraftApi.deleteTemplate(selectedTemplateId);
+      const deletedTemplate = await maildraftApi.deleteTemplate(selectedTemplateId);
+      const nextSnapshot = applyDeletedTemplateResult(snapshotRef.current, deletedTemplate);
       onSnapshotChange(nextSnapshot);
       hydrateTemplateState(nextSnapshot);
       onTrashItemSelect(buildTrashItemKey("template", selectedTemplateId));

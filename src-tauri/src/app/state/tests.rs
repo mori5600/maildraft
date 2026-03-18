@@ -267,20 +267,18 @@ fn trash_operations_round_trip_and_persist_snapshot_changes() {
     let deleted = state
         .delete_template("template-thanks")
         .expect("trash template");
-    assert!(deleted.templates.is_empty());
-    assert_eq!(deleted.trash.templates.len(), 1);
+    assert_eq!(deleted.trashed_template.template.id, "template-thanks");
 
     let restored = state
         .restore_template_from_trash("template-thanks")
         .expect("restore template");
-    assert_eq!(restored.templates.len(), 1);
-    assert!(restored.trash.templates.is_empty());
+    assert_eq!(restored.template.id, "template-thanks");
 
     let deleted = state
         .delete_signature("signature-default")
         .expect("trash signature");
     assert!(deleted.signatures.is_empty());
-    assert_eq!(deleted.trash.signatures.len(), 1);
+    assert_eq!(deleted.trashed_signature.signature.id, "signature-default");
 
     let deleted = state
         .permanently_delete_signature_from_trash("signature-default")

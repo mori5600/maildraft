@@ -7,7 +7,10 @@ import {
   createSearchTokens,
   matchesSearchTokens,
 } from "../../../shared/lib/search";
-import { applySavedSignatureResult } from "../../../shared/lib/store-snapshot";
+import {
+  applyDeletedSignatureResult,
+  applySavedSignatureResult,
+} from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot, WorkspaceView } from "../../../shared/types/store";
 import { buildTrashItemKey } from "../../trash/model";
 import {
@@ -208,7 +211,8 @@ export function useSignatureWorkspaceState({
 
     try {
       onClearError();
-      const nextSnapshot = await maildraftApi.deleteSignature(selectedSignatureId);
+      const deletedSignature = await maildraftApi.deleteSignature(selectedSignatureId);
+      const nextSnapshot = applyDeletedSignatureResult(snapshotRef.current, deletedSignature);
       onSnapshotChange(nextSnapshot);
       hydrateSignatureState(nextSnapshot);
       onSignatureSnapshotChange(nextSnapshot);

@@ -10,6 +10,9 @@ import {
   toTemplateInput,
 } from "../../modules/templates/model";
 import type {
+  DeleteDraftResult,
+  DeleteSignatureResult,
+  DeleteTemplateResult,
   SaveDraftResult,
   SaveSignatureResult,
   SaveTemplateResult,
@@ -112,6 +115,46 @@ export function applySavedDraftResult(
   };
 }
 
+/** Moves one deleted draft into trash without replacing unrelated snapshot data. */
+export function applyDeletedDraftResult(
+  snapshot: StoreSnapshot,
+  deletedDraft: DeleteDraftResult,
+): StoreSnapshot {
+  return {
+    ...snapshot,
+    drafts: snapshot.drafts.filter((draft) => draft.id !== deletedDraft.trashedDraft.draft.id),
+    draftHistory: retainOtherDraftHistory(snapshot, deletedDraft.trashedDraft.draft.id),
+    trash: {
+      ...snapshot.trash,
+      drafts: upsertTrashEntry(
+        snapshot.trash.drafts,
+        deletedDraft.trashedDraft,
+        (entry) => entry.draft.id,
+      ),
+    },
+  };
+}
+
+/** Restores one draft from trash using the same compact shape as save. */
+export function applyRestoredDraftResult(
+  snapshot: StoreSnapshot,
+  restoredDraft: SaveDraftResult,
+): StoreSnapshot {
+  const nextSnapshot = applySavedDraftResult(snapshot, restoredDraft);
+
+  return {
+    ...nextSnapshot,
+    trash: {
+      ...nextSnapshot.trash,
+      drafts: removeTrashEntry(
+        nextSnapshot.trash.drafts,
+        restoredDraft.draft.id,
+        (entry) => entry.draft.id,
+      ),
+    },
+  };
+}
+
 /** Patches one saved template into the current snapshot. */
 export function applySavedTemplateResult(
   snapshot: StoreSnapshot,
@@ -120,6 +163,47 @@ export function applySavedTemplateResult(
   return {
     ...snapshot,
     templates: sortTemplates(upsertById(snapshot.templates, savedTemplate.template), "recent"),
+  };
+}
+
+/** Moves one deleted template into trash without replacing unrelated snapshot data. */
+export function applyDeletedTemplateResult(
+  snapshot: StoreSnapshot,
+  deletedTemplate: DeleteTemplateResult,
+): StoreSnapshot {
+  return {
+    ...snapshot,
+    templates: snapshot.templates.filter(
+      (template) => template.id !== deletedTemplate.trashedTemplate.template.id,
+    ),
+    trash: {
+      ...snapshot.trash,
+      templates: upsertTrashEntry(
+        snapshot.trash.templates,
+        deletedTemplate.trashedTemplate,
+        (entry) => entry.template.id,
+      ),
+    },
+  };
+}
+
+/** Restores one template from trash using the same compact shape as save. */
+export function applyRestoredTemplateResult(
+  snapshot: StoreSnapshot,
+  restoredTemplate: SaveTemplateResult,
+): StoreSnapshot {
+  const nextSnapshot = applySavedTemplateResult(snapshot, restoredTemplate);
+
+  return {
+    ...nextSnapshot,
+    trash: {
+      ...nextSnapshot.trash,
+      templates: removeTrashEntry(
+        nextSnapshot.trash.templates,
+        restoredTemplate.template.id,
+        (entry) => entry.template.id,
+      ),
+    },
   };
 }
 
@@ -134,8 +218,71 @@ export function applySavedSignatureResult(
   };
 }
 
+/** Replaces active signatures and appends the deleted signature to trash. */
+export function applyDeletedSignatureResult(
+  snapshot: StoreSnapshot,
+  deletedSignature: DeleteSignatureResult,
+): StoreSnapshot {
+  return {
+    ...snapshot,
+    signatures: sortSignatures(deletedSignature.signatures, "recent"),
+    trash: {
+      ...snapshot.trash,
+      signatures: upsertTrashEntry(
+        snapshot.trash.signatures,
+        deletedSignature.trashedSignature,
+        (entry) => entry.signature.id,
+      ),
+    },
+  };
+}
+
+/** Restores one signature from trash using the same compact shape as save. */
+export function applyRestoredSignatureResult(
+  snapshot: StoreSnapshot,
+  restoredSignature: SaveSignatureResult,
+  signatureId: string,
+): StoreSnapshot {
+  const nextSnapshot = applySavedSignatureResult(snapshot, restoredSignature);
+
+  return {
+    ...nextSnapshot,
+    trash: {
+      ...nextSnapshot.trash,
+      signatures: removeTrashEntry(
+        nextSnapshot.trash.signatures,
+        signatureId,
+        (entry) => entry.signature.id,
+      ),
+    },
+  };
+}
+
 function retainOtherDraftHistory(snapshot: StoreSnapshot, draftId: string) {
   return snapshot.draftHistory.filter((entry) => entry.draftId !== draftId);
+}
+
+function removeTrashEntry<T>(
+  entries: T[],
+  itemId: string,
+  getId: (entry: T) => string,
+): T[] {
+  return entries.filter((entry) => getId(entry) !== itemId);
+}
+
+function sortTrashEntries<T extends { deletedAt: string }>(entries: T[]): T[] {
+  return [...entries].sort((left, right) => Number(right.deletedAt) - Number(left.deletedAt));
+}
+
+function upsertTrashEntry<T extends { deletedAt: string }>(
+  entries: T[],
+  nextEntry: T,
+  getId: (entry: T) => string,
+): T[] {
+  return sortTrashEntries([
+    nextEntry,
+    ...entries.filter((entry) => getId(entry) !== getId(nextEntry)),
+  ]);
 }
 
 function upsertById<T extends { id: string }>(items: T[], nextItem: T): T[] {

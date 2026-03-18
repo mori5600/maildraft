@@ -4,7 +4,7 @@ use serde_json::Map;
 
 use crate::app::logging::{LogEntry, LogLevel};
 use crate::modules::{
-    store::{SaveTemplateResult, StoreSnapshot},
+    store::{DeleteTemplateResult, SaveTemplateResult},
     templates::TemplateInput,
 };
 
@@ -67,13 +67,25 @@ impl AppState {
         }
     }
 
-    pub fn delete_template(&self, id: &str) -> AppResult<StoreSnapshot> {
+    pub fn delete_template(&self, id: &str) -> AppResult<DeleteTemplateResult> {
         let started_at = Instant::now();
+        let timestamp = timestamp();
 
-        match self.mutate_store(|store| {
-            store.delete_template(id, &timestamp());
-        }) {
-            Ok(snapshot) => {
+        let result = (|| {
+            let mut store = self.store.lock().map_err(|error| error.to_string())?;
+            let trashed_template = store
+                .delete_template(id, &timestamp)
+                .ok_or_else(|| "指定したテンプレートが見つかりませんでした。".to_string())?;
+            store.ensure_consistency();
+            self.persist_locked_store(&store)?;
+
+            let snapshot_context = snapshot_counts_context(&store);
+
+            Ok((DeleteTemplateResult { trashed_template }, snapshot_context))
+        })();
+
+        match result {
+            Ok((deleted_template, snapshot_context)) => {
                 self.log_event(LogEntry {
                     level: LogLevel::Info,
                     event_name: "template.trash",
@@ -81,9 +93,9 @@ impl AppState {
                     result: "success",
                     duration_ms: Some(elapsed_millis(started_at)),
                     error_code: None,
-                    safe_context: snapshot_counts_context(&snapshot),
+                    safe_context: snapshot_context,
                 });
-                Ok(snapshot)
+                Ok(deleted_template)
             }
             Err(error) => {
                 self.log_event(LogEntry {
@@ -92,7 +104,7 @@ impl AppState {
                     module: "templates",
                     result: "failure",
                     duration_ms: Some(elapsed_millis(started_at)),
-                    error_code: Some("STORE_WRITE_FAILED"),
+                    error_code: Some("TEMPLATE_NOT_FOUND"),
                     safe_context: Map::new(),
                 });
                 Err(error)

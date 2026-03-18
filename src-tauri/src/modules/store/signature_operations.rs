@@ -25,22 +25,24 @@ impl StoreSnapshot {
         self.signatures.push(Signature::new(input, timestamp));
     }
 
-    pub fn delete_signature(&mut self, id: &str, timestamp: &str) {
+    pub fn delete_signature(&mut self, id: &str, timestamp: &str) -> Option<TrashedSignature> {
         let Some(index) = self
             .signatures
             .iter()
             .position(|signature| signature.id == id)
         else {
-            return;
+            return None;
         };
 
         let signature = self.signatures.remove(index);
         self.trash
             .signatures
             .retain(|entry| entry.signature.id != id);
-        self.trash.signatures.push(TrashedSignature {
+        let trashed_signature = TrashedSignature {
             signature,
             deleted_at: timestamp.to_string(),
-        });
+        };
+        self.trash.signatures.push(trashed_signature.clone());
+        Some(trashed_signature)
     }
 }

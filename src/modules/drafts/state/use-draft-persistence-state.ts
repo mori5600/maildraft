@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import {
+  applyDeletedDraftResult,
   applySavedDraftResult,
   getDefaultSignatureId,
   pickDraftInput,
@@ -174,7 +175,8 @@ export function useDraftPersistenceState({
 
     try {
       onClearError();
-      const nextSnapshot = await maildraftApi.deleteDraft(selectedDraftId);
+      const deletedDraft = await maildraftApi.deleteDraft(selectedDraftId);
+      const nextSnapshot = applyDeletedDraftResult(snapshotRef.current, deletedDraft);
       onSnapshotChange(nextSnapshot);
       const nextSelectedId = nextSnapshot.drafts[0]?.id ?? null;
       setSelectedDraftId(nextSelectedId);

@@ -8,7 +8,10 @@ use crate::app::{
 use crate::modules::{
     drafts::DraftInput,
     signatures::SignatureInput,
-    store::{SaveDraftResult, SaveSignatureResult, SaveTemplateResult, StoreSnapshot},
+    store::{
+        DeleteDraftResult, DeleteSignatureResult, DeleteTemplateResult, SaveDraftResult,
+        SaveSignatureResult, SaveTemplateResult, StoreSnapshot,
+    },
     templates::TemplateInput,
     variable_presets::VariablePresetInput,
 };
@@ -25,11 +28,11 @@ fn save_draft_impl(state: &AppState, input: DraftInput) -> Result<SaveDraftResul
     state.save_draft(input)
 }
 
-fn delete_draft_impl(state: &AppState, id: String) -> Result<StoreSnapshot, String> {
+fn delete_draft_impl(state: &AppState, id: String) -> Result<DeleteDraftResult, String> {
     state.delete_draft(&id)
 }
 
-fn restore_draft_from_trash_impl(state: &AppState, id: String) -> Result<StoreSnapshot, String> {
+fn restore_draft_from_trash_impl(state: &AppState, id: String) -> Result<SaveDraftResult, String> {
     state.restore_draft_from_trash(&id)
 }
 
@@ -66,11 +69,14 @@ fn delete_variable_preset_impl(state: &AppState, id: String) -> Result<StoreSnap
     state.delete_variable_preset(&id)
 }
 
-fn delete_template_impl(state: &AppState, id: String) -> Result<StoreSnapshot, String> {
+fn delete_template_impl(state: &AppState, id: String) -> Result<DeleteTemplateResult, String> {
     state.delete_template(&id)
 }
 
-fn restore_template_from_trash_impl(state: &AppState, id: String) -> Result<StoreSnapshot, String> {
+fn restore_template_from_trash_impl(
+    state: &AppState,
+    id: String,
+) -> Result<SaveTemplateResult, String> {
     state.restore_template_from_trash(&id)
 }
 
@@ -88,14 +94,14 @@ fn save_signature_impl(
     state.save_signature(input)
 }
 
-fn delete_signature_impl(state: &AppState, id: String) -> Result<StoreSnapshot, String> {
+fn delete_signature_impl(state: &AppState, id: String) -> Result<DeleteSignatureResult, String> {
     state.delete_signature(&id)
 }
 
 fn restore_signature_from_trash_impl(
     state: &AppState,
     id: String,
-) -> Result<StoreSnapshot, String> {
+) -> Result<SaveSignatureResult, String> {
     state.restore_signature_from_trash(&id)
 }
 
@@ -164,7 +170,7 @@ pub(crate) fn save_draft(
 pub(crate) fn delete_draft(
     state: tauri::State<'_, AppState>,
     id: String,
-) -> Result<StoreSnapshot, String> {
+) -> Result<DeleteDraftResult, String> {
     delete_draft_impl(&state, id)
 }
 
@@ -172,7 +178,7 @@ pub(crate) fn delete_draft(
 pub(crate) fn restore_draft_from_trash(
     state: tauri::State<'_, AppState>,
     id: String,
-) -> Result<StoreSnapshot, String> {
+) -> Result<SaveDraftResult, String> {
     restore_draft_from_trash_impl(&state, id)
 }
 
@@ -221,7 +227,7 @@ pub(crate) fn delete_variable_preset(
 pub(crate) fn delete_template(
     state: tauri::State<'_, AppState>,
     id: String,
-) -> Result<StoreSnapshot, String> {
+) -> Result<DeleteTemplateResult, String> {
     delete_template_impl(&state, id)
 }
 
@@ -229,7 +235,7 @@ pub(crate) fn delete_template(
 pub(crate) fn restore_template_from_trash(
     state: tauri::State<'_, AppState>,
     id: String,
-) -> Result<StoreSnapshot, String> {
+) -> Result<SaveTemplateResult, String> {
     restore_template_from_trash_impl(&state, id)
 }
 
@@ -253,7 +259,7 @@ pub(crate) fn save_signature(
 pub(crate) fn delete_signature(
     state: tauri::State<'_, AppState>,
     id: String,
-) -> Result<StoreSnapshot, String> {
+) -> Result<DeleteSignatureResult, String> {
     delete_signature_impl(&state, id)
 }
 
@@ -261,7 +267,7 @@ pub(crate) fn delete_signature(
 pub(crate) fn restore_signature_from_trash(
     state: tauri::State<'_, AppState>,
     id: String,
-) -> Result<StoreSnapshot, String> {
+) -> Result<SaveSignatureResult, String> {
     restore_signature_from_trash_impl(&state, id)
 }
 
@@ -369,14 +375,11 @@ mod tests {
         assert_eq!(saved.draft.id, "draft-command");
 
         let trashed = delete_draft_impl(&state, "draft-command".to_string()).expect("trash draft");
-        assert_eq!(trashed.trash.drafts.len(), 1);
+        assert_eq!(trashed.trashed_draft.draft.id, "draft-command");
 
         let restored =
             restore_draft_from_trash_impl(&state, "draft-command".to_string()).expect("restore");
-        assert!(restored
-            .drafts
-            .iter()
-            .any(|draft| draft.id == "draft-command"));
+        assert_eq!(restored.draft.id, "draft-command");
 
         let updated = save_draft_impl(
             &state,
@@ -478,10 +481,7 @@ mod tests {
         let restored_template =
             restore_template_from_trash_impl(&state, "template-command".to_string())
                 .expect("restore template");
-        assert!(restored_template
-            .templates
-            .iter()
-            .any(|template| template.id == "template-command"));
+        assert_eq!(restored_template.template.id, "template-command");
 
         delete_template_impl(&state, "template-command".to_string()).expect("trash template");
         let removed_template =
