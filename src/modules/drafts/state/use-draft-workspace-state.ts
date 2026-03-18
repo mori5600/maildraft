@@ -48,6 +48,7 @@ export function useDraftWorkspaceState({
 }: DraftWorkspaceStateOptions) {
   const [draftSearchQuery, setDraftSearchQuery] = useState("");
   const [draftSort, setDraftSort] = useState<DraftSortOption>("recent");
+  const deferredDraftSearchQuery = useDeferredValue(draftSearchQuery);
 
   const persistenceState = useDraftPersistenceState({
     onClearError,
@@ -113,7 +114,7 @@ export function useDraftWorkspaceState({
     () =>
       sortDrafts(
         snapshot.drafts.filter((draft) =>
-          matchesSearchQuery(draftSearchQuery, [
+          matchesSearchQuery(deferredDraftSearchQuery, [
             draft.title,
             draft.subject,
             draft.recipient,
@@ -125,7 +126,7 @@ export function useDraftWorkspaceState({
         ),
         draftSort,
       ),
-    [draftSearchQuery, draftSort, snapshot.drafts],
+    [deferredDraftSearchQuery, draftSort, snapshot.drafts],
   );
   const variablePresetState = useDraftVariablePresetsState({
     draftForm,
@@ -174,14 +175,6 @@ export function useDraftWorkspaceState({
     }));
   }
 
-  function changeDraftSearchQuery(value: string) {
-    setDraftSearchQuery(value);
-  }
-
-  function changeDraftSort(value: DraftSortOption) {
-    setDraftSort(value);
-  }
-
   async function copyPreview() {
     try {
       onClearError();
@@ -226,8 +219,8 @@ export function useDraftWorkspaceState({
       onApplyVariablePreset: variablePresetState.applyVariablePreset,
       onChangeDraft: changeDraft,
       onChangeDraftVariable: changeDraftVariable,
-      onChangeSearchQuery: changeDraftSearchQuery,
-      onChangeSort: changeDraftSort,
+      onChangeSearchQuery: setDraftSearchQuery,
+      onChangeSort: setDraftSort,
       onChangeVariablePresetName: variablePresetState.changeVariablePresetName,
       onCopyPreview: copyPreview,
       onCreateDraft: createDraft,

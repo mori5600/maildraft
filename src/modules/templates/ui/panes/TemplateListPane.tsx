@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 import { TEMPLATE_SORT_OPTIONS, type TemplateSortOption } from "../../../../shared/lib/list-sort";
 import { truncate } from "../../../../shared/lib/text";
 import { formatStoredTime } from "../../../../shared/lib/time";
@@ -17,7 +19,7 @@ interface TemplateListPaneProps {
   onChangeSort: (value: TemplateSortOption) => void;
 }
 
-export function TemplateListPane({
+export const TemplateListPane = memo(function TemplateListPane({
   templates,
   totalTemplateCount,
   selectedTemplateId,
@@ -134,4 +136,4 @@ export function TemplateListPane({
       </div>
     </Panel>
   );
-}
+});

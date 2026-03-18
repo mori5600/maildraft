@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import { getDefaultSignatureId, pickDraftInput } from "../../../shared/lib/store-snapshot";
@@ -65,33 +65,36 @@ export function useDraftPersistenceState({
       snapshotRef,
     });
 
-  function hydrateSnapshot(nextSnapshot: StoreSnapshot) {
+  const hydrateSnapshot = useCallback((nextSnapshot: StoreSnapshot) => {
     const initial = createInitialDraftState(nextSnapshot);
 
     setSelectedDraftId(initial.selectedDraftId);
     setDraftForm(initial.draftForm);
     setDraftAutoSaveState(initial.autoSaveState);
     onResetVariablePresetSelection();
-  }
+  }, [onResetVariablePresetSelection, setDraftAutoSaveState]);
 
-  function openDraftById(draftId: string, sourceSnapshot = snapshotRef.current) {
-    const draft = sourceSnapshot.drafts.find((item) => item.id === draftId);
-    if (!draft) {
-      return;
-    }
+  const openDraftById = useCallback(
+    (draftId: string, sourceSnapshot = snapshotRef.current) => {
+      const draft = sourceSnapshot.drafts.find((item) => item.id === draftId);
+      if (!draft) {
+        return;
+      }
 
-    setSelectedDraftId(draftId);
-    setDraftForm(toDraftInput(draft));
-    setDraftAutoSaveState("saved");
-    onResetVariablePresetSelection();
-  }
+      setSelectedDraftId(draftId);
+      setDraftForm(toDraftInput(draft));
+      setDraftAutoSaveState("saved");
+      onResetVariablePresetSelection();
+    },
+    [onResetVariablePresetSelection, setDraftAutoSaveState],
+  );
 
-  function openDraftInput(input: DraftInput) {
+  const openDraftInput = useCallback((input: DraftInput) => {
     setSelectedDraftId(null);
     setDraftForm(input);
     setDraftAutoSaveState("idle");
     onResetVariablePresetSelection();
-  }
+  }, [onResetVariablePresetSelection, setDraftAutoSaveState]);
 
   useEffect(() => {
     if (!selectedDraftId) {
@@ -109,28 +112,28 @@ export function useDraftPersistenceState({
     onResetVariablePresetSelection();
   }, [onResetVariablePresetSelection, selectedDraftId, setDraftAutoSaveState, snapshot]);
 
-  function createDraft() {
+  const createDraft = useCallback(() => {
     flushPendingDraft();
     openDraftInput(createEmptyDraft(getDefaultSignatureId(snapshotRef.current)));
     onNotice("新しい下書きを作成しています。");
-  }
+  }, [flushPendingDraft, onNotice, openDraftInput, snapshotRef]);
 
-  function selectDraft(id: string) {
+  const selectDraft = useCallback((id: string) => {
     if (selectedDraftIdRef.current !== id) {
       flushPendingDraft();
     }
 
     openDraftById(id);
-  }
+  }, [flushPendingDraft, openDraftById]);
 
-  function toggleDraftPinned() {
+  const toggleDraftPinned = useCallback(() => {
     setDraftForm((current) => ({
       ...current,
       isPinned: !current.isPinned,
     }));
-  }
+  }, []);
 
-  async function duplicateDraft() {
+  const duplicateDraft = useCallback(async () => {
     if (!selectedDraftId) {
       return;
     }
@@ -148,9 +151,17 @@ export function useDraftPersistenceState({
     } catch (duplicateError) {
       onError(toDraftWorkspaceErrorMessage(duplicateError));
     }
-  }
+  }, [
+    draftForm,
+    onClearError,
+    onError,
+    onNotice,
+    onSnapshotChange,
+    selectedDraftId,
+    setDraftAutoSaveState,
+  ]);
 
-  async function deleteDraft() {
+  const deleteDraft = useCallback(async () => {
     if (!selectedDraftId) {
       createDraft();
       return;
@@ -168,9 +179,17 @@ export function useDraftPersistenceState({
     } catch (deleteError) {
       onError(toDraftWorkspaceErrorMessage(deleteError));
     }
-  }
+  }, [
+    createDraft,
+    onClearError,
+    onError,
+    onNotice,
+    onSnapshotChange,
+    selectedDraftId,
+    setDraftAutoSaveState,
+  ]);
 
-  async function restoreDraftHistory(historyId: string) {
+  const restoreDraftHistory = useCallback(async (historyId: string) => {
     const draftId = selectedDraftId ?? draftForm.id;
 
     try {
@@ -184,7 +203,15 @@ export function useDraftPersistenceState({
     } catch (restoreError) {
       onError(toDraftWorkspaceErrorMessage(restoreError));
     }
-  }
+  }, [
+    draftForm.id,
+    onClearError,
+    onError,
+    onNotice,
+    onSnapshotChange,
+    selectedDraftId,
+    setDraftAutoSaveState,
+  ]);
 
   return {
     createDraft,

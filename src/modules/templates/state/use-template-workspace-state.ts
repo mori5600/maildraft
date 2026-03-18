@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useMemo, useState } from "react";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import { sortTemplates,type TemplateSortOption } from "../../../shared/lib/list-sort";
@@ -90,6 +90,7 @@ export function useTemplateWorkspaceState({
   const [templateForm, setTemplateForm] = useState<TemplateInput>(initialTemplateState.templateForm);
   const [templateSearchQuery, setTemplateSearchQuery] = useState("");
   const [templateSort, setTemplateSort] = useState<TemplateSortOption>("recent");
+  const deferredTemplateSearchQuery = useDeferredValue(templateSearchQuery);
 
   const selectedTemplateSignature = useMemo(
     () =>
@@ -108,7 +109,7 @@ export function useTemplateWorkspaceState({
     () =>
       sortTemplates(
         snapshot.templates.filter((template) =>
-          matchesSearchQuery(templateSearchQuery, [
+          matchesSearchQuery(deferredTemplateSearchQuery, [
             template.name,
             template.subject,
             template.recipient,
@@ -119,7 +120,7 @@ export function useTemplateWorkspaceState({
         ),
         templateSort,
       ),
-    [snapshot.templates, templateSearchQuery, templateSort],
+    [deferredTemplateSearchQuery, snapshot.templates, templateSort],
   );
 
   function hydrateTemplateState(
@@ -138,7 +139,7 @@ export function useTemplateWorkspaceState({
     }));
   }
 
-  function selectTemplate(templateId: string) {
+  const selectTemplate = useCallback((templateId: string) => {
     onFlushDraft();
 
     const template = findTemplate(snapshot, templateId);
@@ -149,15 +150,15 @@ export function useTemplateWorkspaceState({
     setSelectedTemplateId(templateId);
     setTemplateForm(toTemplateInput(template));
     onViewChange("templates");
-  }
+  }, [onFlushDraft, onViewChange, snapshot]);
 
-  function createTemplate() {
+  const createTemplate = useCallback(() => {
     onFlushDraft();
     setSelectedTemplateId(null);
     setTemplateForm(createEmptyTemplate(getDefaultSignatureId(snapshot)));
     onViewChange("templates");
     onNotice("新しいテンプレートを作成しています。");
-  }
+  }, [onFlushDraft, onNotice, onViewChange, snapshot]);
 
   function changeTemplate<K extends keyof TemplateInput>(field: K, value: TemplateInput[K]) {
     setTemplateForm((current) => ({

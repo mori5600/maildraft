@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 import { DRAFT_SORT_OPTIONS, type DraftSortOption } from "../../../../shared/lib/list-sort";
 import { truncate } from "../../../../shared/lib/text";
 import { formatStoredTime } from "../../../../shared/lib/time";
@@ -18,7 +20,7 @@ interface DraftListPaneProps {
   onChangeSort: (value: DraftSortOption) => void;
 }
 
-export function DraftListPane({
+export const DraftListPane = memo(function DraftListPane({
   drafts,
   totalDraftCount,
   selectedDraftId,
@@ -133,4 +135,4 @@ export function DraftListPane({
       </div>
     </Panel>
   );
-}
+});

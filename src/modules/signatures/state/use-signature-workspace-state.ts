@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useMemo, useState } from "react";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import { type SignatureSortOption, sortSignatures } from "../../../shared/lib/list-sort";
@@ -85,16 +85,17 @@ export function useSignatureWorkspaceState({
   );
   const [signatureSearchQuery, setSignatureSearchQuery] = useState("");
   const [signatureSort, setSignatureSort] = useState<SignatureSortOption>("recent");
+  const deferredSignatureSearchQuery = useDeferredValue(signatureSearchQuery);
 
   const filteredSignatures = useMemo(
     () =>
       sortSignatures(
         snapshot.signatures.filter((signature) =>
-          matchesSearchQuery(signatureSearchQuery, [signature.name, signature.body]),
+          matchesSearchQuery(deferredSignatureSearchQuery, [signature.name, signature.body]),
         ),
         signatureSort,
       ),
-    [signatureSearchQuery, signatureSort, snapshot.signatures],
+    [deferredSignatureSearchQuery, signatureSort, snapshot.signatures],
   );
 
   function hydrateSignatureState(
@@ -106,7 +107,7 @@ export function useSignatureWorkspaceState({
     setSignatureForm(nextState.signatureForm);
   }
 
-  function selectSignature(signatureId: string) {
+  const selectSignature = useCallback((signatureId: string) => {
     onFlushDraft();
 
     const signature = findSignature(snapshot, signatureId);
@@ -117,15 +118,15 @@ export function useSignatureWorkspaceState({
     setSelectedSignatureId(signatureId);
     setSignatureForm(toSignatureInput(signature));
     onViewChange("signatures");
-  }
+  }, [onFlushDraft, onViewChange, snapshot]);
 
-  function createSignature() {
+  const createSignature = useCallback(() => {
     onFlushDraft();
     setSelectedSignatureId(null);
     setSignatureForm(createEmptySignature(snapshot.signatures.length === 0));
     onViewChange("signatures");
     onNotice("新しい署名を作成しています。");
-  }
+  }, [onFlushDraft, onNotice, onViewChange, snapshot.signatures.length]);
 
   function changeSignature<K extends keyof SignatureInput>(field: K, value: SignatureInput[K]) {
     setSignatureForm((current) => ({

@@ -159,7 +159,7 @@ export function useDraftAutoSave({
     };
   }, [draftForm, draftIsDirty, draftShouldPersist, persistDraft]);
 
-  function flushPendingDraft() {
+  const flushPendingDraft = useCallback(() => {
     if (!shouldAutoPersistDraft(draftFormRef.current, snapshotRef.current)) {
       return;
     }
@@ -168,9 +168,9 @@ export function useDraftAutoSave({
       input: draftFormRef.current,
       mode: "auto",
     });
-  }
+  }, [draftFormRef, persistDraft, snapshotRef]);
 
-  function setDraftAutoSaveState(nextState: DraftAutoSaveState) {
+  const setDraftAutoSaveState = useCallback((nextState: DraftAutoSaveState) => {
     if (nextState === "error" || nextState === "saving") {
       setTransientDraftAutoSaveState({
         draftRevision: serializeDraftRevision(draftFormRef.current),
@@ -180,14 +180,14 @@ export function useDraftAutoSave({
     }
 
     setTransientDraftAutoSaveState(null);
-  }
+  }, [draftFormRef]);
 
-  async function saveDraft() {
+  const saveDraft = useCallback(async () => {
     await persistDraft({
       input: draftForm,
       mode: "manual",
     });
-  }
+  }, [draftForm, persistDraft]);
 
   return {
     draftAutoSaveState,

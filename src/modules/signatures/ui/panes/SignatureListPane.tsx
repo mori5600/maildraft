@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 import {
   SIGNATURE_SORT_OPTIONS,
   type SignatureSortOption,
@@ -19,7 +21,7 @@ interface SignatureListPaneProps {
   onChangeSort: (value: SignatureSortOption) => void;
 }
 
-export function SignatureListPane({
+export const SignatureListPane = memo(function SignatureListPane({
   signatures,
   totalSignatureCount,
   selectedSignatureId,
@@ -136,4 +138,4 @@ export function SignatureListPane({
       </div>
     </Panel>
   );
-}
+});
