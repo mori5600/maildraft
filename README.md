@@ -127,3 +127,7 @@ cargo test --manifest-path src-tauri/Cargo.toml
 
 - データは外部サービスへ送信しません。
 - 診断ログは本文や宛先を記録しない設計です。
+
+## 開発メモ
+
+- コメント方針は [docs/comment-style.md](docs/comment-style.md) を参照してください。

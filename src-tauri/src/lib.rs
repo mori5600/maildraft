@@ -1,4 +1,5 @@
 //! Tauri entrypoint and backend wiring for MailDraft.
+#![warn(rustdoc::broken_intra_doc_links)]
 
 mod app;
 mod commands;

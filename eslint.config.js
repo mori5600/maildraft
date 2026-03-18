@@ -4,6 +4,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import tailwind from "eslint-plugin-tailwindcss";
+import tsdoc from "eslint-plugin-tsdoc";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
@@ -35,6 +36,7 @@ export default tseslint.config(
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
       "simple-import-sort": simpleImportSort,
+      tsdoc,
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
@@ -43,6 +45,7 @@ export default tseslint.config(
       "simple-import-sort/imports": "error",
       "tailwindcss/no-custom-classname": "off",
       "tailwindcss/no-contradicting-classname": "off",
+      "tsdoc/syntax": "warn",
     },
   },
   eslintConfigPrettier,
