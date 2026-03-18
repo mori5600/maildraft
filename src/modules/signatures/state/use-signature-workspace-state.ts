@@ -2,7 +2,11 @@ import { useCallback, useDeferredValue, useMemo, useState } from "react";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import { type SignatureSortOption, sortSignatures } from "../../../shared/lib/list-sort";
-import { matchesSearchQuery } from "../../../shared/lib/search";
+import {
+  buildSearchHaystack,
+  createSearchTokens,
+  matchesSearchTokens,
+} from "../../../shared/lib/search";
 import type { StoreSnapshot, WorkspaceView } from "../../../shared/types/store";
 import { buildTrashItemKey } from "../../trash/model";
 import {
@@ -86,16 +90,30 @@ export function useSignatureWorkspaceState({
   const [signatureSearchQuery, setSignatureSearchQuery] = useState("");
   const [signatureSort, setSignatureSort] = useState<SignatureSortOption>("recent");
   const deferredSignatureSearchQuery = useDeferredValue(signatureSearchQuery);
+  const signatureSearchTokens = useMemo(
+    () => createSearchTokens(deferredSignatureSearchQuery),
+    [deferredSignatureSearchQuery],
+  );
+  const signatureSearchIndex = useMemo(
+    () =>
+      snapshot.signatures.map((signature) => ({
+        haystack: buildSearchHaystack([signature.name, signature.body]),
+        signature,
+      })),
+    [snapshot.signatures],
+  );
 
   const filteredSignatures = useMemo(
     () =>
       sortSignatures(
-        snapshot.signatures.filter((signature) =>
-          matchesSearchQuery(deferredSignatureSearchQuery, [signature.name, signature.body]),
-        ),
+        signatureSearchTokens.length === 0
+          ? snapshot.signatures
+          : signatureSearchIndex
+              .filter(({ haystack }) => matchesSearchTokens(signatureSearchTokens, haystack))
+              .map(({ signature }) => signature),
         signatureSort,
       ),
-    [deferredSignatureSearchQuery, signatureSort, snapshot.signatures],
+    [signatureSearchIndex, signatureSearchTokens, signatureSort, snapshot.signatures],
   );
 
   function hydrateSignatureState(

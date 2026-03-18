@@ -2,7 +2,11 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 
 import { copyPlainText } from "../../../shared/lib/clipboard";
 import { type DraftSortOption, sortDrafts } from "../../../shared/lib/list-sort";
-import { matchesSearchQuery } from "../../../shared/lib/search";
+import {
+  buildSearchHaystack,
+  createSearchTokens,
+  matchesSearchTokens,
+} from "../../../shared/lib/search";
 import { pickKnownSignatureId, templateExists } from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot } from "../../../shared/types/store";
 import {
@@ -110,23 +114,37 @@ export function useDraftWorkspaceState({
     () => snapshot.draftHistory.filter((entry) => entry.draftId === draftForm.id),
     [draftForm.id, snapshot.draftHistory],
   );
+  const draftSearchTokens = useMemo(
+    () => createSearchTokens(deferredDraftSearchQuery),
+    [deferredDraftSearchQuery],
+  );
+  const draftSearchIndex = useMemo(
+    () =>
+      snapshot.drafts.map((draft) => ({
+        draft,
+        haystack: buildSearchHaystack([
+          draft.title,
+          draft.subject,
+          draft.recipient,
+          draft.opening,
+          draft.body,
+          draft.closing,
+          ...Object.values(draft.variableValues),
+        ]),
+      })),
+    [snapshot.drafts],
+  );
   const filteredDrafts = useMemo(
     () =>
       sortDrafts(
-        snapshot.drafts.filter((draft) =>
-          matchesSearchQuery(deferredDraftSearchQuery, [
-            draft.title,
-            draft.subject,
-            draft.recipient,
-            draft.opening,
-            draft.body,
-            draft.closing,
-            ...Object.values(draft.variableValues),
-          ]),
-        ),
+        draftSearchTokens.length === 0
+          ? snapshot.drafts
+          : draftSearchIndex
+              .filter(({ haystack }) => matchesSearchTokens(draftSearchTokens, haystack))
+              .map(({ draft }) => draft),
         draftSort,
       ),
-    [deferredDraftSearchQuery, draftSort, snapshot.drafts],
+    [draftSearchIndex, draftSearchTokens, draftSort, snapshot.drafts],
   );
   const variablePresetState = useDraftVariablePresetsState({
     draftForm,

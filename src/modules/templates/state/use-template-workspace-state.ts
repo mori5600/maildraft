@@ -1,8 +1,12 @@
 import { useCallback, useDeferredValue, useMemo, useState } from "react";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
-import { sortTemplates,type TemplateSortOption } from "../../../shared/lib/list-sort";
-import { matchesSearchQuery } from "../../../shared/lib/search";
+import { sortTemplates, type TemplateSortOption } from "../../../shared/lib/list-sort";
+import {
+  buildSearchHaystack,
+  createSearchTokens,
+  matchesSearchTokens,
+} from "../../../shared/lib/search";
 import { getDefaultSignatureId, pickKnownSignatureId } from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot, WorkspaceView } from "../../../shared/types/store";
 import {
@@ -105,22 +109,36 @@ export function useTemplateWorkspaceState({
     () => renderTemplatePreview(templateForm, selectedTemplateSignature),
     [selectedTemplateSignature, templateForm],
   );
+  const templateSearchTokens = useMemo(
+    () => createSearchTokens(deferredTemplateSearchQuery),
+    [deferredTemplateSearchQuery],
+  );
+  const templateSearchIndex = useMemo(
+    () =>
+      snapshot.templates.map((template) => ({
+        haystack: buildSearchHaystack([
+          template.name,
+          template.subject,
+          template.recipient,
+          template.opening,
+          template.body,
+          template.closing,
+        ]),
+        template,
+      })),
+    [snapshot.templates],
+  );
   const filteredTemplates = useMemo(
     () =>
       sortTemplates(
-        snapshot.templates.filter((template) =>
-          matchesSearchQuery(deferredTemplateSearchQuery, [
-            template.name,
-            template.subject,
-            template.recipient,
-            template.opening,
-            template.body,
-            template.closing,
-          ]),
-        ),
+        templateSearchTokens.length === 0
+          ? snapshot.templates
+          : templateSearchIndex
+              .filter(({ haystack }) => matchesSearchTokens(templateSearchTokens, haystack))
+              .map(({ template }) => template),
         templateSort,
       ),
-    [deferredTemplateSearchQuery, snapshot.templates, templateSort],
+    [snapshot.templates, templateSearchIndex, templateSearchTokens, templateSort],
   );
 
   function hydrateTemplateState(

@@ -185,15 +185,35 @@ export function draftInputsEqual(left: DraftInput, right: DraftInput | null): bo
   );
 }
 
+export function draftMatchesPersistedDraft(left: DraftInput, right: Draft | null): boolean {
+  if (!right) {
+    return false;
+  }
+
+  return (
+    left.id === right.id &&
+    left.title === right.title &&
+    left.isPinned === right.isPinned &&
+    left.subject === right.subject &&
+    left.recipient === right.recipient &&
+    left.opening === right.opening &&
+    left.body === right.body &&
+    left.closing === right.closing &&
+    left.templateId === right.templateId &&
+    left.signatureId === right.signatureId &&
+    variableValuesEqual(left.variableValues, right.variableValues)
+  );
+}
+
 function variableValuesEqual(left: Record<string, string>, right: Record<string, string>): boolean {
-  const leftKeys = Object.keys(left).sort();
-  const rightKeys = Object.keys(right).sort();
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
 
   if (leftKeys.length !== rightKeys.length) {
     return false;
   }
 
-  return leftKeys.every((key, index) => key === rightKeys[index] && left[key] === right[key]);
+  return leftKeys.every((key) => left[key] === right[key]);
 }
 
 function withCopySuffix(value: string): string {

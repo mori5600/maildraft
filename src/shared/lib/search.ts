@@ -2,17 +2,29 @@ function normalizeSearchText(value: string): string {
   return value.normalize("NFKC").toLocaleLowerCase("ja-JP");
 }
 
+export function createSearchTokens(query: string): string[] {
+  const normalizedQuery = normalizeSearchText(query).trim();
+
+  return normalizedQuery ? normalizedQuery.split(/\s+/) : [];
+}
+
+export function buildSearchHaystack(values: Array<string | null | undefined>): string {
+  return values.map((value) => normalizeSearchText(value ?? "")).join("\n");
+}
+
+export function matchesSearchTokens(tokens: string[], haystack: string): boolean {
+  return tokens.every((token) => haystack.includes(token));
+}
+
 export function matchesSearchQuery(
   query: string,
   values: Array<string | null | undefined>,
 ): boolean {
-  const normalizedQuery = normalizeSearchText(query).trim();
+  const tokens = createSearchTokens(query);
 
-  if (!normalizedQuery) {
+  if (tokens.length === 0) {
     return true;
   }
 
-  const haystack = values.map((value) => normalizeSearchText(value ?? "")).join("\n");
-
-  return normalizedQuery.split(/\s+/).every((token) => haystack.includes(token));
+  return matchesSearchTokens(tokens, buildSearchHaystack(values));
 }

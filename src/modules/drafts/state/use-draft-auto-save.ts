@@ -4,6 +4,7 @@ import {
   type SetStateAction,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -12,8 +13,7 @@ import { pickDraftInput } from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot } from "../../../shared/types/store";
 import {
   type DraftInput,
-  draftInputsEqual,
-  toDraftInput,
+  draftMatchesPersistedDraft,
 } from "../model";
 import {
   type DraftAutoSaveState,
@@ -58,13 +58,12 @@ export function useDraftAutoSave({
   snapshot,
   snapshotRef,
 }: DraftAutoSaveOptions) {
-  const initialDraftRevision = serializeDraftRevision(draftForm);
   const [transientDraftAutoSaveState, setTransientDraftAutoSaveState] = useState<
     TransientDraftAutoSaveState | null
-  >(
+  >(() =>
     initialAutoSaveState === "error" || initialAutoSaveState === "saving"
       ? {
-          draftRevision: initialDraftRevision,
+          draftRevision: serializeDraftRevision(draftForm),
           kind: initialAutoSaveState,
         }
       : null,
@@ -126,12 +125,15 @@ export function useDraftAutoSave({
     ],
   );
 
-  const persistedDraft = snapshot.drafts.find((draft) => draft.id === draftForm.id) ?? null;
-  const persistedDraftInput = persistedDraft ? toDraftInput(persistedDraft) : null;
+  const persistedDraftIndex = useMemo(
+    () => new Map(snapshot.drafts.map((draft) => [draft.id, draft] as const)),
+    [snapshot.drafts],
+  );
+  const persistedDraft = persistedDraftIndex.get(draftForm.id) ?? null;
   const draftShouldPersist =
     selectedDraftId !== null || hasMeaningfulDraftContent(draftForm, snapshot);
-  const draftIsDirty = draftShouldPersist && !draftInputsEqual(draftForm, persistedDraftInput);
-  const draftRevision = serializeDraftRevision(draftForm);
+  const draftIsDirty = draftShouldPersist && !draftMatchesPersistedDraft(draftForm, persistedDraft);
+  const draftRevision = useMemo(() => serializeDraftRevision(draftForm), [draftForm]);
   const baseDraftAutoSaveState: DraftAutoSaveState = !draftShouldPersist
     ? "idle"
     : draftIsDirty

@@ -4,7 +4,7 @@ import {
   createEmptyDraft,
   draftHasMeaningfulContent,
   type DraftInput,
-  draftInputsEqual,
+  draftMatchesPersistedDraft,
   toDraftInput,
 } from "../model";
 
@@ -61,13 +61,12 @@ export function hasMeaningfulDraftContent(
 
 export function shouldAutoPersistDraft(input: DraftInput, snapshot: StoreSnapshot): boolean {
   const persistedDraft = snapshot.drafts.find((draft) => draft.id === input.id);
-  const persistedDraftInput = persistedDraft ? toDraftInput(persistedDraft) : null;
 
   if (!persistedDraft && !hasMeaningfulDraftContent(input, snapshot)) {
     return false;
   }
 
-  return !draftInputsEqual(input, persistedDraftInput);
+  return !draftMatchesPersistedDraft(input, persistedDraft ?? null);
 }
 
 export function toDraftWorkspaceErrorMessage(error: unknown): string {

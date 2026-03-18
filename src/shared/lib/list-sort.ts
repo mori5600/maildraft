@@ -24,6 +24,8 @@ export const SIGNATURE_SORT_OPTIONS: Array<{ value: SignatureSortOption; label: 
   { value: "name", label: "名前順" },
 ];
 
+const JA_TEXT_COLLATOR = new Intl.Collator("ja");
+
 export function sortDrafts(drafts: Draft[], sort: DraftSortOption): Draft[] {
   return [...drafts].sort(
     (left, right) =>
@@ -93,7 +95,7 @@ function compareSignature(left: Signature, right: Signature, sort: SignatureSort
 }
 
 function compareText(left: string, right: string): number {
-  return left.localeCompare(right, "ja");
+  return JA_TEXT_COLLATOR.compare(left, right);
 }
 
 function compareTimestamp(left: string, right: string): number {
