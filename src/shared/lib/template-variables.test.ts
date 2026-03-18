@@ -4,6 +4,7 @@ import {
   collectMissingVariableNames,
   extractVariableNames,
   resolveVariableTokens,
+  resolveVariableTokensWithNames,
 } from "./template-variables";
 
 describe("template-variables", () => {
@@ -24,6 +25,18 @@ describe("template-variables", () => {
         日付: " ",
       }),
     ).toBe("株式会社〇〇の佐藤様へ {{日付}} 送付");
+  });
+
+  it("resolves variables while collecting names in source order", () => {
+    expect(
+      resolveVariableTokensWithNames("{{会社名}}の{{担当者名}}様へ {{会社名}} 送付", {
+        会社名: "株式会社〇〇",
+        担当者名: "佐藤",
+      }),
+    ).toEqual({
+      resolvedText: "株式会社〇〇の佐藤様へ 株式会社〇〇 送付",
+      variableNames: ["会社名", "担当者名"],
+    });
   });
 
   it("collects missing variable names from empty values", () => {

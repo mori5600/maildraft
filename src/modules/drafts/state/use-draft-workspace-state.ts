@@ -10,10 +10,9 @@ import {
 import { pickKnownSignatureId, templateExists } from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot } from "../../../shared/types/store";
 import {
-  collectDraftChecks,
+  buildDraftRenderResult,
   collectDraftVariableNames,
   renderDraftPreview,
-  renderDraftSubject,
 } from "../../renderer/render-draft";
 import { findTrashSignature } from "../../trash/model";
 import { applyTemplateToDraft, type DraftInput } from "../model";
@@ -98,17 +97,9 @@ export function useDraftWorkspaceState({
     () => collectDraftVariableNames(draftForm, selectedDraftSignature),
     [draftForm, selectedDraftSignature],
   );
-  const draftChecks = useMemo(
-    () => collectDraftChecks(deferredDraftForm, deferredDraftSignature),
+  const draftRenderResult = useMemo(
+    () => buildDraftRenderResult(deferredDraftForm, deferredDraftSignature),
     [deferredDraftForm, deferredDraftSignature],
-  );
-  const draftPreviewText = useMemo(
-    () => renderDraftPreview(deferredDraftForm, deferredDraftSignature),
-    [deferredDraftForm, deferredDraftSignature],
-  );
-  const draftPreviewSubject = useMemo(
-    () => renderDraftSubject(deferredDraftForm),
-    [deferredDraftForm],
   );
   const draftHistory = useMemo(
     () => snapshot.draftHistory.filter((entry) => entry.draftId === draftForm.id),
@@ -229,7 +220,7 @@ export function useDraftWorkspaceState({
       canApplyVariablePreset: variablePresetState.canApplyVariablePreset,
       canDuplicate: selectedDraftId !== null,
       canSaveVariablePreset: variablePresetState.canSaveVariablePreset,
-      checks: draftChecks,
+      checks: draftRenderResult.checks,
       draftForm,
       draftHistory,
       drafts: filteredDrafts,
@@ -252,8 +243,8 @@ export function useDraftWorkspaceState({
       onSelectDraft: selectDraft,
       onSelectVariablePreset: variablePresetState.selectVariablePreset,
       onTogglePinned: toggleDraftPinned,
-      previewSubject: draftPreviewSubject,
-      previewText: draftPreviewText,
+      previewSubject: draftRenderResult.previewSubject,
+      previewText: draftRenderResult.previewText,
       searchQuery: draftSearchQuery,
       selectedDraftId,
       selectedVariablePresetId: variablePresetState.selectedVariablePresetId,

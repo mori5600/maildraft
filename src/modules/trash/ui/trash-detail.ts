@@ -1,7 +1,6 @@
 import { toDraftInput } from "../../drafts/model";
 import {
-  renderDraftPreview,
-  renderDraftSubject,
+  buildDraftRenderResult,
   renderTemplatePreview,
 } from "../../renderer/render-draft";
 import type { Signature } from "../../signatures/model";
@@ -24,9 +23,10 @@ export function buildTrashDetail(
   switch (item.kind) {
     case "draft": {
       const signature = findTrashSignature(signatures, trashedSignatures, item.draft.signatureId);
+      const draftRenderResult = buildDraftRenderResult(toDraftInput(item.draft), signature);
       return {
-        subject: renderDraftSubject(toDraftInput(item.draft)),
-        body: renderDraftPreview(toDraftInput(item.draft), signature),
+        subject: draftRenderResult.previewSubject,
+        body: draftRenderResult.previewText,
         meta: `${item.history.length} 件の履歴を保持`,
       };
     }

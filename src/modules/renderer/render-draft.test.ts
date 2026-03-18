@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { DraftInput } from "../drafts/model";
 import type { Signature } from "../signatures/model";
 import {
+  buildDraftRenderResult,
   collectDraftChecks,
   collectDraftVariableNames,
   renderDraftPreview,
@@ -39,6 +40,21 @@ const signature: Signature = {
 };
 
 describe("render-draft", () => {
+  it("builds preview, subject, checks, and variable names together", () => {
+    expect(buildDraftRenderResult(baseDraft, signature)).toEqual({
+      checks: ["送信前チェックはすべて通っています。"],
+      previewSubject: "導入相談のお礼",
+      previewText: [
+        "株式会社〇〇\n佐藤 様",
+        "いつもお世話になっております。",
+        "導入相談 についてお時間をいただきありがとうございました。",
+        "引き続きよろしくお願いいたします。",
+        "株式会社△△\n山田 太郎",
+      ].join("\n\n"),
+      variableNames: ["案件名", "会社名", "担当者名"],
+    });
+  });
+
   it("renders preview text with resolved variables and joined sections", () => {
     expect(renderDraftPreview(baseDraft, signature)).toBe(
       [

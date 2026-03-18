@@ -4,7 +4,7 @@ import { formatStoredTime } from "../../../shared/lib/time";
 import { visualizeWhitespace } from "../../../shared/lib/whitespace";
 import { PreviewOverlay } from "../../../shared/ui/PreviewOverlay";
 import { Button } from "../../../shared/ui/primitives";
-import { renderDraftPreview, renderDraftSubject } from "../../renderer/render-draft";
+import { buildDraftRenderResult } from "../../renderer/render-draft";
 import type { Signature } from "../../signatures/model";
 import { type DraftHistoryEntry, draftLabel, toDraftInputFromHistory } from "../model";
 
@@ -34,14 +34,24 @@ export function DraftHistoryOverlay({
     () => historyEntries.find((entry) => entry.id === activeHistoryId) ?? historyEntries[0] ?? null,
     [activeHistoryId, historyEntries],
   );
-  const selectedDraftInput = selectedEntry ? toDraftInputFromHistory(selectedEntry) : null;
-  const selectedSignature = selectedEntry
-    ? signatures.find((signature) => signature.id === selectedEntry.signatureId)
-    : undefined;
-  const previewSubject = selectedDraftInput ? renderDraftSubject(selectedDraftInput) : "件名未設定";
-  const previewText = selectedDraftInput
-    ? renderDraftPreview(selectedDraftInput, selectedSignature)
-    : "復元できる履歴がありません。";
+  const selectedDraftInput = useMemo(
+    () => (selectedEntry ? toDraftInputFromHistory(selectedEntry) : null),
+    [selectedEntry],
+  );
+  const selectedSignature = useMemo(
+    () =>
+      selectedEntry
+        ? signatures.find((signature) => signature.id === selectedEntry.signatureId)
+        : undefined,
+    [selectedEntry, signatures],
+  );
+  const draftRenderResult = useMemo(
+    () =>
+      selectedDraftInput ? buildDraftRenderResult(selectedDraftInput, selectedSignature) : null,
+    [selectedDraftInput, selectedSignature],
+  );
+  const previewSubject = draftRenderResult?.previewSubject ?? "件名未設定";
+  const previewText = draftRenderResult?.previewText ?? "復元できる履歴がありません。";
   const previewBodyText = showWhitespace ? visualizeWhitespace(previewText) : previewText;
 
   return (
