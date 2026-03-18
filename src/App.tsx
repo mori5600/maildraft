@@ -1,5 +1,6 @@
 import "./App.css";
 
+import { ArrowPathIcon } from "@heroicons/react/24/outline";
 import { useRef } from "react";
 
 import { useMaildraftApp } from "./app/state/use-maildraft-app";
@@ -39,9 +40,14 @@ function App() {
             <h1 className="mt-3 text-lg font-medium text-(--color-text-strong)">
               ローカルワークスペースを起動しています
             </h1>
-            <p className="mt-2 text-sm text-(--color-text-muted)">
-              下書き、テンプレート、署名を読み込み中です。
-            </p>
+            <div className="mt-2 flex items-center gap-2 text-sm text-(--color-text-muted)">
+              <ArrowPathIcon
+                aria-hidden="true"
+                className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none"
+                strokeWidth={1.8}
+              />
+              <p>下書き、テンプレート、署名を読み込み中です。</p>
+            </div>
           </Panel>
         </div>
       </main>
