@@ -47,6 +47,15 @@ export function CodeEditor({
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const compartmentsRef = useRef(createCodeEditorCompartments());
+  const initialConfigRef = useRef({
+    ariaLabel,
+    autoFocus,
+    contentClassName,
+    disabled,
+    placeholder,
+    readOnly,
+    value,
+  });
   const applyingExternalValueRef = useRef(false);
   const emitChange = useEffectEvent((nextValue: string) => {
     if (applyingExternalValueRef.current && nextValue === value) {
@@ -69,6 +78,7 @@ export function CodeEditor({
       return;
     }
 
+    const initialConfig = initialConfigRef.current;
     const extensions: Extension[] = [
       ...createCodeEditorBaseExtensions(emitChange),
       EditorView.domEventHandlers({
@@ -82,30 +92,36 @@ export function CodeEditor({
         },
       }),
       compartmentsRef.current.accessibility.of(
-        createCodeEditorAccessibilityExtension({ disabled }),
+        createCodeEditorAccessibilityExtension({ disabled: initialConfig.disabled }),
       ),
       compartmentsRef.current.contentAttributes.of(
-        createCodeEditorContentAttributesExtension({ ariaLabel, contentClassName }),
+        createCodeEditorContentAttributesExtension({
+          ariaLabel: initialConfig.ariaLabel,
+          contentClassName: initialConfig.contentClassName,
+        }),
       ),
       compartmentsRef.current.editable.of(
-        createCodeEditorEditableExtension({ disabled, readOnly }),
+        createCodeEditorEditableExtension({
+          disabled: initialConfig.disabled,
+          readOnly: initialConfig.readOnly,
+        }),
       ),
       compartmentsRef.current.placeholder.of(
-        createCodeEditorPlaceholderExtension(placeholder),
+        createCodeEditorPlaceholderExtension(initialConfig.placeholder),
       ),
     ];
 
     const view = new EditorView({
       parent: containerRef.current,
       state: EditorState.create({
-        doc: value,
+        doc: initialConfig.value,
         extensions,
       }),
     });
 
     viewRef.current = view;
 
-    if (autoFocus) {
+    if (initialConfig.autoFocus) {
       view.focus();
     }
 
@@ -113,15 +129,7 @@ export function CodeEditor({
       view.destroy();
       viewRef.current = null;
     };
-  }, [
-    ariaLabel,
-    autoFocus,
-    contentClassName,
-    disabled,
-    placeholder,
-    readOnly,
-    value,
-  ]);
+  }, []);
 
   useEffect(() => {
     const view = viewRef.current;

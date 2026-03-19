@@ -1,6 +1,8 @@
 import { EditorSelection } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { CodeEditor } from "./CodeEditor";
@@ -79,5 +81,24 @@ describe("CodeEditor", () => {
     fireEvent.keyDown(view.contentDOM, { key: "f", ctrlKey: true });
 
     expect(screen.getByRole("textbox", { name: /find/i })).toBeInTheDocument();
+  });
+
+  it("keeps focus through controlled Enter input", async () => {
+    const user = userEvent.setup();
+
+    function ControlledEditor() {
+      const [value, setValue] = useState("alpha");
+
+      return <CodeEditor ariaLabel="本文" value={value} onChange={setValue} />;
+    }
+
+    render(<ControlledEditor />);
+
+    const textbox = screen.getByRole("textbox", { name: "本文" });
+    await user.click(textbox);
+    await user.keyboard("{End}{Enter}beta");
+
+    expect(textbox).toHaveFocus();
+    expect(getEditorView("本文").state.doc.toString()).toContain("\n");
   });
 });

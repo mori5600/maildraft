@@ -86,6 +86,11 @@ describe("draft UI", () => {
 
     await user.type(screen.getByDisplayValue("4/12 打ち合わせお礼"), "追記");
     expect(handleChangeDraft).toHaveBeenCalled();
+    const bodyEditor = screen.getByRole("textbox", { name: "本文" });
+    await user.click(bodyEditor);
+    await user.keyboard("{Enter}追記");
+    expect(bodyEditor).toHaveFocus();
+    expect(handleChangeDraft).toHaveBeenCalledWith("body", expect.stringContaining("追記"));
     await user.selectOptions(screen.getAllByRole("combobox")[0], "template-1");
     expect(handleApplyTemplate).toHaveBeenCalledWith("template-1");
     await user.click(screen.getByRole("button", { name: "固定" }));
@@ -94,6 +99,28 @@ describe("draft UI", () => {
     expect(handleDuplicateDraft).toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "保存" }));
     expect(handleSaveDraft).toHaveBeenCalled();
+  });
+
+  it("falls back to textarea for the draft body when whitespace is visible", () => {
+    render(
+      <DraftEditorPane
+        autoSaveLabel="自動保存済み"
+        canDuplicate
+        draftForm={createDraftInput()}
+        selectedDraftId="draft-input-1"
+        showWhitespace
+        signatures={[createSignature()]}
+        templates={[createTemplate()]}
+        onApplyTemplate={vi.fn()}
+        onChangeDraft={vi.fn()}
+        onDeleteDraft={vi.fn(async () => {})}
+        onDuplicateDraft={vi.fn(async () => {})}
+        onSaveDraft={vi.fn(async () => {})}
+        onTogglePinned={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByDisplayValue("本日はありがとうございました。{{相手名}}")).toBeInTheDocument();
   });
 
   it("handles draft preview pane actions", async () => {

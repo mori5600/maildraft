@@ -1,3 +1,4 @@
+import { CodeEditor } from "../../../../shared/ui/code-editor/CodeEditor";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Field, Input, Panel, Select, Textarea } from "../../../../shared/ui/primitives";
 import type { Signature } from "../../../signatures/model";
@@ -169,17 +170,28 @@ export function DraftEditorPane({
             />
           </Field>
 
-          <Field label="本文">
-            <Textarea
-              className="min-h-70"
-              enableSelectNextOccurrence
-              placeholder="本文"
-              rows={12}
-              showWhitespace={showWhitespace}
-              textClassName="mail-compose-text"
-              value={draftForm.body}
-              onChange={(event) => onChangeDraft("body", event.currentTarget.value)}
-            />
+          <Field label="本文" wrapWithLabel={showWhitespace}>
+            {showWhitespace ? (
+              <Textarea
+                className="min-h-70"
+                enableSelectNextOccurrence
+                placeholder="本文"
+                rows={12}
+                showWhitespace
+                textClassName="mail-compose-text"
+                value={draftForm.body}
+                onChange={(event) => onChangeDraft("body", event.currentTarget.value)}
+              />
+            ) : (
+              <CodeEditor
+                ariaLabel="本文"
+                className="min-h-70"
+                contentClassName="mail-compose-text"
+                placeholder="本文"
+                value={draftForm.body}
+                onChange={(value) => onChangeDraft("body", value)}
+              />
+            )}
           </Field>
 
           <Field label="結び">

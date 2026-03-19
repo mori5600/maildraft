@@ -505,9 +505,10 @@ export function Field({
   label,
   hint,
   children,
-}: PropsWithChildren<{ label: string; hint?: string }>) {
-  return (
-    <label className="flex flex-col gap-1.5">
+  wrapWithLabel = true,
+}: PropsWithChildren<{ label: string; hint?: string; wrapWithLabel?: boolean }>) {
+  const body = (
+    <>
       <div className="flex items-baseline justify-between gap-2">
         <div className="text-[10px] font-medium tracking-[0.14em] text-(--color-text-subtle) uppercase">
           {label}
@@ -515,6 +516,16 @@ export function Field({
         {hint ? <div className="text-[11px] text-(--color-text-hint)">{hint}</div> : null}
       </div>
       {children}
+    </>
+  );
+
+  if (!wrapWithLabel) {
+    return <div className="flex flex-col gap-1.5">{body}</div>;
+  }
+
+  return (
+    <label className="flex flex-col gap-1.5">
+      {body}
     </label>
   );
 }
