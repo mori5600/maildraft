@@ -101,7 +101,7 @@ describe("draft UI", () => {
     expect(handleSaveDraft).toHaveBeenCalled();
   });
 
-  it("falls back to textarea for the draft body when whitespace is visible", () => {
+  it("keeps the draft body in CodeMirror when whitespace is visible", () => {
     render(
       <DraftEditorPane
         autoSaveLabel="自動保存済み"
@@ -120,7 +120,7 @@ describe("draft UI", () => {
       />,
     );
 
-    expect(screen.getByDisplayValue("本日はありがとうございました。{{相手名}}")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "本文" })).toBeInTheDocument();
   });
 
   it("handles draft preview pane actions", async () => {

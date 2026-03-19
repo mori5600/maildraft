@@ -44,6 +44,17 @@ export const codeEditorTheme = EditorView.theme({
   ".cm-selectionMatch-main": {
     backgroundColor: "var(--color-selection)",
   },
+  ".cm-maildraft-whitespace": {
+    color: "transparent",
+    position: "relative",
+  },
+  ".cm-maildraft-whitespace::before": {
+    content: "attr(data-marker)",
+    color: "var(--color-text-overlay)",
+    inset: 0,
+    pointerEvents: "none",
+    position: "absolute",
+  },
   ".cm-panels": {
     backgroundColor: "var(--color-panel-bg)",
     color: "var(--color-text)",

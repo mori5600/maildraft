@@ -83,6 +83,18 @@ describe("CodeEditor", () => {
     expect(screen.getByRole("textbox", { name: /find/i })).toBeInTheDocument();
   });
 
+  it("renders visible whitespace markers without changing the document", () => {
+    render(
+      <CodeEditor ariaLabel="本文" showWhitespace value={"A B\u3000C"} onChange={vi.fn()} />,
+    );
+
+    const view = getEditorView("本文");
+
+    expect(view.state.doc.toString()).toBe("A B\u3000C");
+    expect(view.dom.querySelector('[data-marker="·"]')).not.toBeNull();
+    expect(view.dom.querySelector('[data-marker="□"]')).not.toBeNull();
+  });
+
   it("keeps focus through controlled Enter input", async () => {
     const user = userEvent.setup();
 

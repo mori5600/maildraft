@@ -9,6 +9,7 @@ import {
   createCodeEditorContentAttributesExtension,
   createCodeEditorEditableExtension,
   createCodeEditorPlaceholderExtension,
+  createCodeEditorWhitespaceExtension,
 } from "./extensions";
 
 function cn(...classNames: Array<string | false | null | undefined>): string {
@@ -30,6 +31,7 @@ export function CodeEditor({
   onFocus,
   placeholder,
   readOnly = false,
+  showWhitespace = false,
   value,
 }: {
   ariaLabel?: string;
@@ -42,6 +44,7 @@ export function CodeEditor({
   onFocus?: () => void;
   placeholder?: string;
   readOnly?: boolean;
+  showWhitespace?: boolean;
   value: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -54,6 +57,7 @@ export function CodeEditor({
     disabled,
     placeholder,
     readOnly,
+    showWhitespace,
     value,
   });
   const applyingExternalValueRef = useRef(false);
@@ -108,6 +112,9 @@ export function CodeEditor({
       ),
       compartmentsRef.current.placeholder.of(
         createCodeEditorPlaceholderExtension(initialConfig.placeholder),
+      ),
+      compartmentsRef.current.whitespace.of(
+        createCodeEditorWhitespaceExtension(initialConfig.showWhitespace),
       ),
     ];
 
@@ -182,6 +189,19 @@ export function CodeEditor({
       ),
     });
   }, [placeholder]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) {
+      return;
+    }
+
+    view.dispatch({
+      effects: compartmentsRef.current.whitespace.reconfigure(
+        createCodeEditorWhitespaceExtension(showWhitespace),
+      ),
+    });
+  }, [showWhitespace]);
 
   useEffect(() => {
     const view = viewRef.current;

@@ -1,7 +1,21 @@
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { highlightSelectionMatches, search, searchKeymap } from "@codemirror/search";
-import { Compartment, EditorState, type Extension } from "@codemirror/state";
-import { drawSelection, EditorView, keymap, placeholder } from "@codemirror/view";
+import {
+  Compartment,
+  EditorState,
+  type Extension,
+  RangeSetBuilder,
+} from "@codemirror/state";
+import {
+  Decoration,
+  type DecorationSet,
+  drawSelection,
+  EditorView,
+  keymap,
+  placeholder,
+  ViewPlugin,
+  type ViewUpdate,
+} from "@codemirror/view";
 
 import { codeEditorTheme } from "./theme";
 
@@ -10,6 +24,7 @@ export interface CodeEditorCompartments {
   contentAttributes: Compartment;
   editable: Compartment;
   placeholder: Compartment;
+  whitespace: Compartment;
 }
 
 export interface CodeEditorAccessibilityOptions {
@@ -28,6 +43,7 @@ export function createCodeEditorCompartments(): CodeEditorCompartments {
     contentAttributes: new Compartment(),
     editable: new Compartment(),
     placeholder: new Compartment(),
+    whitespace: new Compartment(),
   };
 }
 
@@ -92,4 +108,60 @@ export function createCodeEditorAccessibilityExtension(
   }
 
   return Object.keys(attrs).length > 0 ? EditorView.editorAttributes.of(attrs) : [];
+}
+
+const visibleWhitespaceMarks = {
+  fullWidthSpace: Decoration.mark({
+    attributes: {
+      class: "cm-maildraft-whitespace",
+      "data-marker": "□",
+    },
+  }),
+  space: Decoration.mark({
+    attributes: {
+      class: "cm-maildraft-whitespace",
+      "data-marker": "·",
+    },
+  }),
+};
+
+function buildVisibleWhitespaceDecorations(view: EditorView): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+
+  for (const { from, to } of view.visibleRanges) {
+    const text = view.state.doc.sliceString(from, to);
+    for (let index = 0; index < text.length; index += 1) {
+      const character = text[index];
+      if (character === " ") {
+        builder.add(from + index, from + index + 1, visibleWhitespaceMarks.space);
+      } else if (character === "\u3000") {
+        builder.add(from + index, from + index + 1, visibleWhitespaceMarks.fullWidthSpace);
+      }
+    }
+  }
+
+  return builder.finish();
+}
+
+const visibleWhitespacePlugin = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet;
+
+    constructor(view: EditorView) {
+      this.decorations = buildVisibleWhitespaceDecorations(view);
+    }
+
+    update(update: ViewUpdate) {
+      if (update.docChanged || update.viewportChanged) {
+        this.decorations = buildVisibleWhitespaceDecorations(update.view);
+      }
+    }
+  },
+  {
+    decorations: (value) => value.decorations,
+  },
+);
+
+export function createCodeEditorWhitespaceExtension(showWhitespace: boolean): Extension {
+  return showWhitespace ? [visibleWhitespacePlugin] : [];
 }
