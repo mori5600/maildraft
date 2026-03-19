@@ -34,6 +34,7 @@ describe("signature UI", () => {
     );
 
     expect(screen.getByText("1 / 2件")).toBeInTheDocument();
+    expect(screen.getByText("Ctrl/Cmd+K")).toBeInTheDocument();
     expect(screen.getByTitle("固定")).toBeInTheDocument();
     expect(screen.getByText("既定")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "新規" }));

@@ -53,6 +53,7 @@ describe("template UI", () => {
     );
 
     expect(screen.getByText("1 / 4件")).toBeInTheDocument();
+    expect(screen.getByText("Ctrl/Cmd+K")).toBeInTheDocument();
     expect(screen.getByTitle("固定")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "新規" }));
     expect(handleCreateTemplate).toHaveBeenCalled();

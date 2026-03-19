@@ -48,10 +48,13 @@ export const DraftListPane = memo(function DraftListPane({
         title="下書き一覧"
       />
       <div className="border-b border-(--color-panel-border-strong) px-1.5 py-1.5">
-        <div className="grid gap-2 rounded-[7px] border border-(--color-panel-border-strong) bg-(--color-field-bg) px-2.5 py-2">
+        <div className="mail-list-search-panel grid gap-2 rounded-[7px] border border-(--color-panel-border-strong) px-2.5 py-2">
           <div className="grid gap-1.5">
-            <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-              検索
+            <div className="mail-list-search-heading">
+              <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
+                検索
+              </div>
+              <kbd className="mail-shortcut-badge">Ctrl/Cmd+K</kbd>
             </div>
             <div className="flex items-center gap-2">
               <Input
@@ -104,7 +107,7 @@ export const DraftListPane = memo(function DraftListPane({
               return (
                 <button
                   key={draft.id}
-                  className={`w-full rounded-[7px] border px-2.5 py-2 text-left transition-colors ${
+                  className={`mail-list-item w-full rounded-[7px] border px-2.5 py-2 text-left transition-colors ${
                     isActive
                       ? "border-(--color-list-active-border) bg-(--color-list-active-bg)"
                       : "border-transparent hover:border-(--color-list-hover-border) hover:bg-(--color-list-hover-bg)"

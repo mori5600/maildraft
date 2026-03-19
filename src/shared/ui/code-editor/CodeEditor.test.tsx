@@ -110,7 +110,9 @@ describe("CodeEditor", () => {
     await user.click(textbox);
     await user.keyboard("{End}{Enter}追記");
 
-    expect(getEditorView("件名").state.doc.toString()).toBe("件名 追記");
+    await waitFor(() => {
+      expect(getEditorView("件名").state.doc.toString()).toBe("件名 追記");
+    });
     expect(getEditorView("件名").state.doc.toString()).not.toContain("\n");
   });
 
