@@ -12,7 +12,7 @@
     "lint:tailwind": "node ./scripts/check-tailwind-canonical-classes.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage --pool forks",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "preview": "vite preview",

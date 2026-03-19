@@ -12,6 +12,7 @@ import {
   applySavedSignatureResult,
   applySavedTemplateResult,
   applyTrashMutationResult,
+  applyVariablePresetResult,
   getDefaultSignatureId,
   pickDraftInput,
   pickKnownSignatureId,
@@ -351,5 +352,24 @@ describe("store-snapshot helpers", () => {
       "signature-other",
     ]);
     expect(nextAfterEmptyTrash.trash.signatures).toHaveLength(0);
+  });
+
+  it("applies compact variable preset payloads without replacing unrelated collections", () => {
+    const nextSnapshot = applyVariablePresetResult(snapshot, {
+      variablePresets: [
+        {
+          id: "preset-2",
+          name: "B社向け",
+          values: { 相手名: "高橋様" },
+          createdAt: "10",
+          updatedAt: "20",
+        },
+      ],
+    });
+
+    expect(nextSnapshot.variablePresets.map((preset) => preset.id)).toEqual(["preset-2"]);
+    expect(nextSnapshot.drafts).toEqual(snapshot.drafts);
+    expect(nextSnapshot.templates).toEqual(snapshot.templates);
+    expect(nextSnapshot.trash).toEqual(snapshot.trash);
   });
 });

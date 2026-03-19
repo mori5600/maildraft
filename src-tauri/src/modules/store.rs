@@ -76,6 +76,13 @@ pub struct SaveSignatureResult {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct VariablePresetResult {
+    #[serde(default)]
+    pub variable_presets: Vec<VariablePreset>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DeleteSignatureResult {
     #[serde(default)]
     pub signatures: Vec<Signature>,

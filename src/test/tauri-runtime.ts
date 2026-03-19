@@ -1,6 +1,7 @@
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 
 import type { Draft, DraftInput } from "../modules/drafts/model";
+import type { VariablePresetInput } from "../modules/drafts/variable-presets";
 import type {
   LogEntrySnapshot,
   LoggingSettingsInput,
@@ -178,6 +179,40 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
         return cloneData({
           draft: snapshot.drafts[currentIndex],
           draftHistory: snapshot.draftHistory.filter((entry) => entry.draftId === draftId),
+        });
+      }
+      case "save_variable_preset": {
+        const input = (payload as { input: VariablePresetInput }).input;
+        const currentIndex = snapshot.variablePresets.findIndex((preset) => preset.id === input.id);
+        const previous = currentIndex >= 0 ? snapshot.variablePresets[currentIndex] : null;
+        const nextPreset = {
+          id: input.id,
+          name: input.name,
+          values: input.values,
+          createdAt: previous?.createdAt ?? String(Date.now()),
+          updatedAt: String(Date.now()),
+        };
+
+        if (currentIndex >= 0) {
+          snapshot.variablePresets[currentIndex] = nextPreset;
+        } else {
+          snapshot.variablePresets.unshift(nextPreset);
+        }
+
+        return cloneData({
+          variablePresets: snapshot.variablePresets,
+        });
+      }
+      case "delete_variable_preset": {
+        const id = (payload as { id: string }).id;
+        const currentIndex = snapshot.variablePresets.findIndex((preset) => preset.id === id);
+        if (currentIndex < 0) {
+          throw new Error("指定した変数値セットが見つかりませんでした。");
+        }
+
+        snapshot.variablePresets.splice(currentIndex, 1);
+        return cloneData({
+          variablePresets: snapshot.variablePresets,
         });
       }
       default:

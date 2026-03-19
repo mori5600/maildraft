@@ -11,6 +11,7 @@ use crate::modules::{
     store::{
         DeleteDraftResult, DeleteSignatureResult, DeleteTemplateResult, SaveDraftResult,
         SaveSignatureResult, SaveTemplateResult, StoreSnapshot, TrashMutationResult,
+        VariablePresetResult,
     },
     templates::TemplateInput,
     variable_presets::VariablePresetInput,
@@ -61,11 +62,11 @@ fn save_template_impl(
 fn save_variable_preset_impl(
     state: &AppState,
     input: VariablePresetInput,
-) -> Result<StoreSnapshot, String> {
+) -> Result<VariablePresetResult, String> {
     state.save_variable_preset(input)
 }
 
-fn delete_variable_preset_impl(state: &AppState, id: String) -> Result<StoreSnapshot, String> {
+fn delete_variable_preset_impl(state: &AppState, id: String) -> Result<VariablePresetResult, String> {
     state.delete_variable_preset(&id)
 }
 
@@ -211,7 +212,7 @@ pub(crate) fn save_template(
 pub(crate) fn save_variable_preset(
     state: tauri::State<'_, AppState>,
     input: VariablePresetInput,
-) -> Result<StoreSnapshot, String> {
+) -> Result<VariablePresetResult, String> {
     save_variable_preset_impl(&state, input)
 }
 
@@ -219,7 +220,7 @@ pub(crate) fn save_variable_preset(
 pub(crate) fn delete_variable_preset(
     state: tauri::State<'_, AppState>,
     id: String,
-) -> Result<StoreSnapshot, String> {
+) -> Result<VariablePresetResult, String> {
     delete_variable_preset_impl(&state, id)
 }
 

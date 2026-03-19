@@ -41,6 +41,10 @@ export interface SaveSignatureResult {
   signatures: Signature[];
 }
 
+export interface VariablePresetResult {
+  variablePresets: VariablePreset[];
+}
+
 export interface DeleteSignatureResult {
   signatures: Signature[];
   trashedSignature: TrashedSignature;

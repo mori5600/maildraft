@@ -20,6 +20,7 @@ import type {
   StartupNoticeSnapshot,
   StoreSnapshot,
   TrashMutationResult,
+  VariablePresetResult,
 } from "../types/store";
 
 /** Tauri command wrapper. Save commands may return compact payloads. */
@@ -53,11 +54,11 @@ export const maildraftApi = {
   },
 
   saveVariablePreset(input: VariablePresetInput) {
-    return invoke<StoreSnapshot>("save_variable_preset", { input });
+    return invoke<VariablePresetResult>("save_variable_preset", { input });
   },
 
   deleteVariablePreset(id: string) {
-    return invoke<StoreSnapshot>("delete_variable_preset", { id });
+    return invoke<VariablePresetResult>("delete_variable_preset", { id });
   },
 
   saveTemplate(input: TemplateInput) {

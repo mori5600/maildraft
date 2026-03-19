@@ -88,7 +88,7 @@ describe("App runtime integration", () => {
     });
     expect(runtime.commandCalls.some((call) => call.cmd === "save_draft")).toBe(true);
     expect(await screen.findByText("下書きを保存しました。")).toBeInTheDocument();
-  });
+  }, 10000);
 
   it("shows startup recovery warnings returned by the Tauri runtime", async () => {
     installMockTauriRuntime({

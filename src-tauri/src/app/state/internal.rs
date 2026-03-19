@@ -13,17 +13,6 @@ use super::{
 };
 
 impl AppState {
-    pub(super) fn mutate_store<F>(&self, mutator: F) -> AppResult<StoreSnapshot>
-    where
-        F: FnOnce(&mut StoreSnapshot),
-    {
-        let mut store = self.store.lock().map_err(|error| error.to_string())?;
-        mutator(&mut store);
-        store.ensure_consistency();
-        self.persist_locked_store(&store)?;
-        Ok(store.clone())
-    }
-
     pub(super) fn persist_current_store(&self) -> AppResult<()> {
         let store = self.store.lock().map_err(|error| error.to_string())?;
         self.persist_locked_store(&store)

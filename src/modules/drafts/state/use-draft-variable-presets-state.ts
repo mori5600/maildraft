@@ -1,8 +1,9 @@
 import { confirm } from "@tauri-apps/plugin-dialog";
 import type { Dispatch, SetStateAction } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
+import { applyVariablePresetResult } from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot } from "../../../shared/types/store";
 import type { DraftInput } from "../model";
 import type { VariablePresetInput } from "../variable-presets";
@@ -36,13 +37,21 @@ export function useDraftVariablePresetsState({
 }: DraftVariablePresetsStateOptions) {
   const [selectedVariablePresetId, setSelectedVariablePresetId] = useState<string | null>(null);
   const [variablePresetName, setVariablePresetName] = useState("");
+  const snapshotRef = useRef(snapshot);
+
+  useEffect(() => {
+    snapshotRef.current = snapshot;
+  }, [snapshot]);
+
   const resolvedSelectedVariablePresetId =
     selectedVariablePresetId !== null &&
     snapshot.variablePresets.some((preset) => preset.id === selectedVariablePresetId)
       ? selectedVariablePresetId
       : null;
   const resolvedVariablePresetName =
-    resolvedSelectedVariablePresetId === null ? "" : variablePresetName;
+    selectedVariablePresetId !== null && resolvedSelectedVariablePresetId === null
+      ? ""
+      : variablePresetName;
 
   const selectedVariablePreset = useMemo(
     () =>
@@ -114,7 +123,8 @@ export function useDraftVariablePresetsState({
 
     try {
       onClearError();
-      const nextSnapshot = await maildraftApi.saveVariablePreset(input);
+      const savedVariablePreset = await maildraftApi.saveVariablePreset(input);
+      const nextSnapshot = applyVariablePresetResult(snapshotRef.current, savedVariablePreset);
       onSnapshotChange(nextSnapshot);
       setSelectedVariablePresetId(input.id);
       setVariablePresetName(input.name);
@@ -149,7 +159,8 @@ export function useDraftVariablePresetsState({
 
     try {
       onClearError();
-      const nextSnapshot = await maildraftApi.deleteVariablePreset(selectedVariablePreset.id);
+      const deletedVariablePreset = await maildraftApi.deleteVariablePreset(selectedVariablePreset.id);
+      const nextSnapshot = applyVariablePresetResult(snapshotRef.current, deletedVariablePreset);
       onSnapshotChange(nextSnapshot);
       resetVariablePresetSelection();
       onNotice("変数値セットを削除しました。");

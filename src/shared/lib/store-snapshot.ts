@@ -18,6 +18,7 @@ import type {
   SaveTemplateResult,
   StoreSnapshot,
   TrashMutationResult,
+  VariablePresetResult,
 } from "../types/store";
 import { sortDrafts, sortSignatures, sortTemplates } from "./list-sort";
 
@@ -270,6 +271,17 @@ export function applyTrashMutationResult(
     draftHistory: mutation.draftHistory ?? snapshot.draftHistory,
     templates: mutation.templates ?? snapshot.templates,
     trash: mutation.trash,
+  };
+}
+
+/** Replaces variable presets without touching unrelated collections. */
+export function applyVariablePresetResult(
+  snapshot: StoreSnapshot,
+  result: VariablePresetResult,
+): StoreSnapshot {
+  return {
+    ...snapshot,
+    variablePresets: result.variablePresets,
   };
 }
 
