@@ -32,6 +32,14 @@ function toErrorMessage(error: unknown): string {
   return "処理に失敗しました。";
 }
 
+/**
+ * Owns logging settings, backup import/export flow, and recent log loading for the settings view.
+ *
+ * @remarks
+ * Backup import replaces the full store snapshot through `onBackupImported` and then rehydrates
+ * logging settings from the imported payload. Export, import, and recent-log refresh each expose
+ * dedicated pending flags so the settings UI can gate duplicate actions.
+ */
 export function useSettingsWorkspaceState({
   onBackupImported,
   onClearError,

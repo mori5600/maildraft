@@ -24,6 +24,14 @@ interface DraftPersistenceStateOptions {
   snapshot: StoreSnapshot;
 }
 
+/**
+ * Owns draft selection, draft form state, and draft persistence side effects.
+ *
+ * @remarks
+ * This hook is the write boundary for draft save, delete, duplicate, history restore, and
+ * autosave. Compact backend payloads are patched into the current snapshot instead of forcing a
+ * full reload. Full snapshot replacement still rehydrates the selected draft and autosave state.
+ */
 export function useDraftPersistenceState({
   onClearError,
   onError,

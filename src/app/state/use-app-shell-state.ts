@@ -8,6 +8,14 @@ import {
 } from "../../shared/lib/theme";
 import type { StoreSnapshot, WorkspaceView } from "../../shared/types/store";
 
+/**
+ * Owns app-level shell state shared across workspaces.
+ *
+ * @remarks
+ * The shell keeps the current snapshot, active workspace, theme, loading state, and user-facing
+ * status messages together. Error and warning messages are mutually exclusive so the shell never
+ * shows both states at once.
+ */
 export function useAppShellState(initialSnapshot: StoreSnapshot) {
   const [snapshot, setSnapshot] = useState<StoreSnapshot>(initialSnapshot);
   const [isLoading, setIsLoading] = useState(true);

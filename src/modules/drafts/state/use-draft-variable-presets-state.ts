@@ -25,6 +25,14 @@ interface DraftVariablePresetsStateOptions {
   snapshot: StoreSnapshot;
 }
 
+/**
+ * Coordinates variable preset selection, application, and persistence for the active draft form.
+ *
+ * @remarks
+ * Preset selection is resolved against the current snapshot on every render so deleted presets do
+ * not leave stale local state behind. Save and delete operations patch only the preset collection
+ * into the current snapshot.
+ */
 export function useDraftVariablePresetsState({
   draftForm,
   draftVariableNames,

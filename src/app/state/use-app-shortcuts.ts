@@ -58,6 +58,13 @@ function runPinShortcut(actions: ShortcutActionSet, view: WorkspaceView) {
   }
 }
 
+/**
+ * Registers app-wide keyboard shortcuts against the current workspace and loading state.
+ *
+ * @remarks
+ * The DOM listener is attached once. Mutable refs keep the latest view, loading flag, and action
+ * set available without rebinding the listener on every render.
+ */
 export function useAppShortcuts({ actions, isLoading, view }: AppShortcutsOptions) {
   const viewRef = useRef(view);
   const isLoadingRef = useRef(isLoading);

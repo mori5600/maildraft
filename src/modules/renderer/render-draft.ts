@@ -15,6 +15,13 @@ export interface DraftRenderResult {
   variableNames: string[];
 }
 
+/**
+ * Builds the derived preview, validation messages, and variable list for one draft form.
+ *
+ * @remarks
+ * Variable resolution runs once per section and the collected names are reused for both checks and
+ * preview output. This keeps editor updates consistent while avoiding duplicate token parsing.
+ */
 export function buildDraftRenderResult(
   draft: DraftInput,
   signature: Signature | undefined,
