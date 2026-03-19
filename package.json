@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage --pool forks",
+    "perf:backup": "node ./scripts/generate-performance-backup.mjs",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "preview": "vite preview",

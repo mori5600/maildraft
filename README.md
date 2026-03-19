@@ -103,6 +103,8 @@ Rust 側のテストも含めて確認する場合:
 cargo test --manifest-path src-tauri/Cargo.toml
 ```
 
+性能確認用の大きいバックアップと手順は [docs/performance-checklist.md](docs/performance-checklist.md) を参照してください。
+
 ## ディレクトリ構成
 
 ### フロントエンド
@@ -134,3 +136,4 @@ cargo test --manifest-path src-tauri/Cargo.toml
 ## 開発メモ
 
 - コメント方針は [docs/comment-style.md](docs/comment-style.md) を参照してください。
+- 性能確認手順は [docs/performance-checklist.md](docs/performance-checklist.md) を参照してください。
