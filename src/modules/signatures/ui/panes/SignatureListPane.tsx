@@ -1,3 +1,4 @@
+import { FlagIcon } from "@heroicons/react/20/solid";
 import { memo } from "react";
 
 import {
@@ -117,8 +118,12 @@ export const SignatureListPane = memo(function SignatureListPane({
                       {signature.name}
                     </div>
                     {signature.isPinned ? (
-                      <span className="rounded-md border border-(--color-panel-border-strong) bg-(--color-field-bg) px-1.5 py-0.5 text-[9px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-                        固定
+                      <span
+                        aria-label="固定"
+                        className="inline-flex rounded-md border border-(--color-panel-border-strong) bg-(--color-field-bg) p-1 text-(--color-text-subtle)"
+                        title="固定"
+                      >
+                        <FlagIcon aria-hidden="true" className="h-3.5 w-3.5" />
                       </span>
                     ) : null}
                     {signature.isDefault ? (

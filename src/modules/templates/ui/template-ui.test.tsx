@@ -26,7 +26,7 @@ describe("template UI", () => {
         searchQuery="礼"
         selectedTemplateId="template-1"
         sort="recent"
-        templates={[createTemplate()]}
+        templates={[createTemplate({ isPinned: true })]}
         totalTemplateCount={4}
         onChangeSearchQuery={handleChangeSearchQuery}
         onChangeSort={handleChangeSort}
@@ -36,6 +36,7 @@ describe("template UI", () => {
     );
 
     expect(screen.getByText("1 / 4件")).toBeInTheDocument();
+    expect(screen.getByTitle("固定")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "新規" }));
     expect(handleCreateTemplate).toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "消去" }));

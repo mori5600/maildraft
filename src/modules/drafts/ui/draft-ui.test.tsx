@@ -34,7 +34,7 @@ describe("draft UI", () => {
     const handleChangeSort = vi.fn();
     render(
       <DraftListPane
-        drafts={[createDraft()]}
+        drafts={[createDraft({ isPinned: true })]}
         searchQuery="礼"
         selectedDraftId="draft-1"
         sort="recent"
@@ -47,6 +47,7 @@ describe("draft UI", () => {
     );
 
     expect(screen.getByText("1 / 3件")).toBeInTheDocument();
+    expect(screen.getByTitle("固定")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "新規" }));
     expect(handleCreateDraft).toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "消去" }));
