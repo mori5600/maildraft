@@ -75,7 +75,6 @@ export function TemplateEditorPane({
           <div className="grid gap-3 md:grid-cols-2">
             <Field label="名前">
               <Input
-                enableSelectNextOccurrence
                 showWhitespace={showWhitespace}
                 value={templateForm.name}
                 onChange={(event) => onChangeTemplate("name", event.currentTarget.value)}
@@ -83,7 +82,6 @@ export function TemplateEditorPane({
             </Field>
             <Field label="件名">
               <Input
-                enableSelectNextOccurrence
                 showWhitespace={showWhitespace}
                 value={templateForm.subject}
                 onChange={(event) => onChangeTemplate("subject", event.currentTarget.value)}

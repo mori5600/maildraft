@@ -83,7 +83,6 @@ export function DraftEditorPane({
           <div className="grid gap-3 md:grid-cols-2">
             <Field label="一覧名">
               <Input
-                enableSelectNextOccurrence
                 placeholder="4/12 打ち合わせお礼"
                 showWhitespace={showWhitespace}
                 value={draftForm.title}
@@ -92,7 +91,6 @@ export function DraftEditorPane({
             </Field>
             <Field label="件名">
               <Input
-                enableSelectNextOccurrence
                 placeholder="件名"
                 showWhitespace={showWhitespace}
                 value={draftForm.subject}
