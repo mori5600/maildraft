@@ -185,4 +185,110 @@ describe("draft persistence state", () => {
     expect(onNotice).toHaveBeenCalledWith("下書きを複製しました。");
     randomUuidSpy.mockRestore();
   });
+
+  it("restores draft history through a compact save payload", async () => {
+    const snapshot = createStoreSnapshot({
+      drafts: [
+        createDraft({
+          id: "draft-restore",
+          title: "復元対象",
+          subject: "更新後の件名",
+          body: "更新後の本文",
+          updatedAt: "20",
+        }),
+      ],
+      draftHistory: [
+        createDraftHistoryEntry({
+          id: "history-old",
+          draftId: "draft-restore",
+          title: "復元対象",
+          subject: "元の件名",
+          body: "元の本文",
+          recordedAt: "10",
+        }),
+        createDraftHistoryEntry({
+          id: "history-new",
+          draftId: "draft-restore",
+          title: "復元対象",
+          subject: "更新後の件名",
+          body: "更新後の本文",
+          recordedAt: "20",
+        }),
+      ],
+      templates: [createTemplate()],
+      signatures: [createSignature({ id: "signature-1", isDefault: true })],
+      trash: {
+        drafts: [],
+        templates: [],
+        signatures: [],
+      },
+    });
+    const restoredDraft = createDraft({
+      id: "draft-restore",
+      title: "復元対象",
+      subject: "元の件名",
+      body: "元の本文",
+      updatedAt: "30",
+    });
+    const restoredHistory = [
+      createDraftHistoryEntry({
+        id: "history-restored",
+        draftId: "draft-restore",
+        title: "復元対象",
+        subject: "元の件名",
+        body: "元の本文",
+        recordedAt: "30",
+      }),
+      createDraftHistoryEntry({
+        id: "history-old",
+        draftId: "draft-restore",
+        title: "復元対象",
+        subject: "元の件名",
+        body: "元の本文",
+        recordedAt: "10",
+      }),
+    ];
+    const onSnapshotChange = vi.fn();
+    const onNotice = vi.fn();
+
+    const restoreDraftHistorySpy = vi
+      .spyOn(maildraftApi, "restoreDraftHistory")
+      .mockResolvedValue({
+        draft: restoredDraft,
+        draftHistory: restoredHistory,
+      });
+
+    const { result } = renderHook(() =>
+      useDraftPersistenceState({
+        onClearError: vi.fn(),
+        onError: vi.fn(),
+        onNotice,
+        onResetVariablePresetSelection: vi.fn(),
+        onSnapshotChange,
+        snapshot,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.restoreDraftHistory("history-old");
+    });
+
+    await waitFor(() => {
+      expect(onSnapshotChange).toHaveBeenCalledTimes(1);
+    });
+
+    const nextSnapshot = onSnapshotChange.mock.calls[0][0];
+    expect(restoreDraftHistorySpy).toHaveBeenCalledWith("draft-restore", "history-old");
+    expect(nextSnapshot.drafts[0]).toMatchObject({
+      id: "draft-restore",
+      subject: "元の件名",
+      body: "元の本文",
+    });
+    expect(
+      nextSnapshot.draftHistory.map((entry: { id: string }) => entry.id),
+    ).toEqual(["history-restored", "history-old"]);
+    expect(result.current.draftForm.subject).toBe("元の件名");
+    expect(autoSaveMocks.setDraftAutoSaveState).toHaveBeenCalledWith("saved");
+    expect(onNotice).toHaveBeenCalledWith("履歴から下書きを復元しました。");
+  });
 });

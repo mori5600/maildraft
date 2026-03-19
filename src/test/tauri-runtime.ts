@@ -133,6 +133,53 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
           draftHistory: restored.history,
         });
       }
+      case "restore_draft_history": {
+        const { draftId, historyId } = payload as { draftId: string; historyId: string };
+        const currentIndex = snapshot.drafts.findIndex((draft) => draft.id === draftId);
+        const historyEntry = snapshot.draftHistory.find(
+          (entry) => entry.draftId === draftId && entry.id === historyId,
+        );
+        if (currentIndex < 0 || !historyEntry) {
+          throw new Error("指定した履歴が見つかりませんでした。");
+        }
+
+        const currentDraft = snapshot.drafts[currentIndex];
+        snapshot.draftHistory = [
+          {
+            id: crypto.randomUUID(),
+            draftId: currentDraft.id,
+            title: currentDraft.title,
+            subject: currentDraft.subject,
+            recipient: currentDraft.recipient,
+            opening: currentDraft.opening,
+            body: currentDraft.body,
+            closing: currentDraft.closing,
+            templateId: currentDraft.templateId,
+            signatureId: currentDraft.signatureId,
+            variableValues: currentDraft.variableValues,
+            recordedAt: String(Date.now()),
+          },
+          ...snapshot.draftHistory.filter((entry) => entry.draftId !== draftId),
+          ...snapshot.draftHistory.filter((entry) => entry.draftId === draftId),
+        ].sort((left, right) => Number(right.recordedAt) - Number(left.recordedAt));
+        snapshot.drafts[currentIndex] = {
+          ...currentDraft,
+          title: historyEntry.title,
+          subject: historyEntry.subject,
+          recipient: historyEntry.recipient,
+          opening: historyEntry.opening,
+          body: historyEntry.body,
+          closing: historyEntry.closing,
+          templateId: historyEntry.templateId,
+          signatureId: historyEntry.signatureId,
+          variableValues: historyEntry.variableValues,
+          updatedAt: String(Date.now()),
+        };
+        return cloneData({
+          draft: snapshot.drafts[currentIndex],
+          draftHistory: snapshot.draftHistory.filter((entry) => entry.draftId === draftId),
+        });
+      }
       default:
         throw new Error(`Unhandled mocked Tauri command: ${cmd}`);
     }

@@ -201,7 +201,8 @@ export function useDraftPersistenceState({
 
     try {
       onClearError();
-      const nextSnapshot = await maildraftApi.restoreDraftHistory(draftId, historyId);
+      const restoredDraft = await maildraftApi.restoreDraftHistory(draftId, historyId);
+      const nextSnapshot = applySavedDraftResult(snapshotRef.current, restoredDraft);
       onSnapshotChange(nextSnapshot);
       setSelectedDraftId(draftId);
       setDraftForm(pickDraftInput(nextSnapshot, draftId));

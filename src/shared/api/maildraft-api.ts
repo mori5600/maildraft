@@ -49,7 +49,7 @@ export const maildraftApi = {
   },
 
   restoreDraftHistory(draftId: string, historyId: string) {
-    return invoke<StoreSnapshot>("restore_draft_history", { draftId, historyId });
+    return invoke<SaveDraftResult>("restore_draft_history", { draftId, historyId });
   },
 
   saveVariablePreset(input: VariablePresetInput) {

@@ -47,7 +47,7 @@ fn restore_draft_history_impl(
     state: &AppState,
     draft_id: String,
     history_id: String,
-) -> Result<StoreSnapshot, String> {
+) -> Result<SaveDraftResult, String> {
     state.restore_draft_history(&draft_id, &history_id)
 }
 
@@ -195,7 +195,7 @@ pub(crate) fn restore_draft_history(
     state: tauri::State<'_, AppState>,
     draft_id: String,
     history_id: String,
-) -> Result<StoreSnapshot, String> {
+) -> Result<SaveDraftResult, String> {
     restore_draft_history_impl(&state, draft_id, history_id)
 }
 
@@ -407,12 +407,12 @@ mod tests {
         let restored_history =
             restore_draft_history_impl(&state, "draft-command".to_string(), history.id.clone())
                 .expect("restore history");
-        let restored_draft = restored_history
-            .drafts
-            .iter()
-            .find(|draft| draft.id == "draft-command")
-            .expect("restored draft");
+        let restored_draft = &restored_history.draft;
         assert_eq!(restored_draft.subject, "ご確認ください");
+        assert!(restored_history
+            .draft_history
+            .iter()
+            .any(|entry| entry.draft_id == "draft-command"));
 
         delete_draft_impl(&state, "draft-command".to_string()).expect("trash again");
         let permanently_deleted =

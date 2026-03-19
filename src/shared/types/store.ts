@@ -19,7 +19,7 @@ export interface StoreSnapshot {
   trash: TrashSnapshot;
 }
 
-/** `save_draft` returns this payload instead of a full snapshot. */
+/** `save_draft` and `restore_draft_history` return this payload instead of a full snapshot. */
 export interface SaveDraftResult {
   draft: Draft;
   draftHistory: DraftHistoryEntry[];
