@@ -27,8 +27,12 @@ export const codeEditorTheme = EditorView.theme({
   },
   ".cm-content": {
     minHeight: "inherit",
+    outline: "none",
     padding: "8px 12px",
     caretColor: "var(--color-text-strong)",
+  },
+  ".cm-content:focus, .cm-content:focus-visible": {
+    outline: "none",
   },
   "&.cm-maildraft-single-line > .cm-scroller > .cm-content": {
     minHeight: "auto",
