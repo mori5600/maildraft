@@ -137,3 +137,4 @@ cargo test --manifest-path src-tauri/Cargo.toml
 
 - コメント方針は [docs/comment-style.md](docs/comment-style.md) を参照してください。
 - 性能確認手順は [docs/performance-checklist.md](docs/performance-checklist.md) を参照してください。
+- リリース手順は [docs/release-checklist.md](docs/release-checklist.md) を参照してください。
