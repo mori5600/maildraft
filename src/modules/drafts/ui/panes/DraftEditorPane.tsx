@@ -82,6 +82,7 @@ export function DraftEditorPane({
           <div className="grid gap-3 md:grid-cols-2">
             <Field label="一覧名">
               <Input
+                enableSelectNextOccurrence
                 placeholder="4/12 打ち合わせお礼"
                 showWhitespace={showWhitespace}
                 value={draftForm.title}
@@ -90,6 +91,7 @@ export function DraftEditorPane({
             </Field>
             <Field label="件名">
               <Input
+                enableSelectNextOccurrence
                 placeholder="件名"
                 showWhitespace={showWhitespace}
                 value={draftForm.subject}
@@ -144,6 +146,7 @@ export function DraftEditorPane({
           <Field label="宛名メモ" hint="社名や担当者など">
             <Textarea
               className="min-h-24"
+              enableSelectNextOccurrence
               placeholder={"株式会社〇〇\n営業部\n佐藤 様"}
               rows={3}
               showWhitespace={showWhitespace}
@@ -156,6 +159,7 @@ export function DraftEditorPane({
           <Field label="書き出し">
             <Textarea
               className="min-h-33"
+              enableSelectNextOccurrence
               placeholder={"いつもお世話になっております。\n株式会社△△の田中です。"}
               rows={5}
               showWhitespace={showWhitespace}
@@ -168,6 +172,7 @@ export function DraftEditorPane({
           <Field label="本文">
             <Textarea
               className="min-h-70"
+              enableSelectNextOccurrence
               placeholder="本文"
               rows={12}
               showWhitespace={showWhitespace}
@@ -180,6 +185,7 @@ export function DraftEditorPane({
           <Field label="結び">
             <Textarea
               className="min-h-33"
+              enableSelectNextOccurrence
               placeholder="引き続きよろしくお願いいたします。"
               rows={5}
               showWhitespace={showWhitespace}

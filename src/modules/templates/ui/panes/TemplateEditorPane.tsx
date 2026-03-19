@@ -74,6 +74,7 @@ export function TemplateEditorPane({
           <div className="grid gap-3 md:grid-cols-2">
             <Field label="名前">
               <Input
+                enableSelectNextOccurrence
                 showWhitespace={showWhitespace}
                 value={templateForm.name}
                 onChange={(event) => onChangeTemplate("name", event.currentTarget.value)}
@@ -81,6 +82,7 @@ export function TemplateEditorPane({
             </Field>
             <Field label="件名">
               <Input
+                enableSelectNextOccurrence
                 showWhitespace={showWhitespace}
                 value={templateForm.subject}
                 onChange={(event) => onChangeTemplate("subject", event.currentTarget.value)}
@@ -117,6 +119,7 @@ export function TemplateEditorPane({
           <Field label="宛名メモ" hint="社名や担当者など">
             <Textarea
               className="min-h-24"
+              enableSelectNextOccurrence
               placeholder={"株式会社〇〇\n営業部\n佐藤 様"}
               rows={3}
               showWhitespace={showWhitespace}
@@ -129,6 +132,7 @@ export function TemplateEditorPane({
           <Field label="書き出し">
             <Textarea
               className="min-h-33"
+              enableSelectNextOccurrence
               rows={5}
               showWhitespace={showWhitespace}
               textClassName="mail-compose-text"
@@ -140,6 +144,7 @@ export function TemplateEditorPane({
           <Field label="本文">
             <Textarea
               className="min-h-70"
+              enableSelectNextOccurrence
               rows={12}
               showWhitespace={showWhitespace}
               textClassName="mail-compose-text"
@@ -151,6 +156,7 @@ export function TemplateEditorPane({
           <Field label="結び">
             <Textarea
               className="min-h-33"
+              enableSelectNextOccurrence
               rows={5}
               showWhitespace={showWhitespace}
               textClassName="mail-compose-text"

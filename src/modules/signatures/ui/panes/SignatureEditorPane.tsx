@@ -65,6 +65,7 @@ export function SignatureEditorPane({
         <div className="grid gap-3">
           <Field label="名前">
             <Input
+              enableSelectNextOccurrence
               showWhitespace={showWhitespace}
               value={signatureForm.name}
               onChange={(event) => onChangeSignature("name", event.currentTarget.value)}
@@ -84,6 +85,7 @@ export function SignatureEditorPane({
           <Field label="本文">
             <Textarea
               className="min-h-80"
+              enableSelectNextOccurrence
               rows={14}
               showWhitespace={showWhitespace}
               textClassName="mail-signature-edit-text"
