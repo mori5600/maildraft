@@ -86,6 +86,15 @@ impl AppState {
         }
     }
 
+    /// Moves one draft to trash and persists the updated store.
+    ///
+    /// The response returns only the trashed draft. Active draft history remains available through
+    /// the existing snapshot until the frontend applies the trash mutation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the draft does not exist, the store lock cannot be acquired, or
+    /// persistence fails.
     pub fn delete_draft(&self, id: &str) -> AppResult<DeleteDraftResult> {
         let started_at = Instant::now();
 
@@ -132,6 +141,15 @@ impl AppState {
         }
     }
 
+    /// Replaces the current draft contents with one saved history entry and persists the result.
+    ///
+    /// The response mirrors `save_draft`: it returns the restored draft plus the active history for
+    /// that draft so the frontend can patch the current snapshot without a full reload.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the history entry does not exist, the store lock cannot be acquired, or
+    /// persistence fails.
     pub fn restore_draft_history(
         &self,
         draft_id: &str,

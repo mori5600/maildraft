@@ -13,6 +13,15 @@ use super::{
 };
 
 impl AppState {
+    /// Restores one draft from trash and persists the updated store.
+    ///
+    /// The response mirrors `save_draft`: it returns the restored draft plus the active history for
+    /// that draft so the frontend can patch the current snapshot without a full reload.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the trash item does not exist, the store lock cannot be acquired, or
+    /// persistence fails.
     pub fn restore_draft_from_trash(&self, id: &str) -> AppResult<SaveDraftResult> {
         let started_at = Instant::now();
 
@@ -63,6 +72,15 @@ impl AppState {
         }
     }
 
+    /// Restores one template from trash and persists the updated store.
+    ///
+    /// The response returns only the restored template. Consistency fixes may still rewrite draft
+    /// references before persistence.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the trash item does not exist, the store lock cannot be acquired, or
+    /// persistence fails.
     pub fn restore_template_from_trash(&self, id: &str) -> AppResult<SaveTemplateResult> {
         let started_at = Instant::now();
 
@@ -107,6 +125,15 @@ impl AppState {
         }
     }
 
+    /// Restores one signature from trash and persists the updated store.
+    ///
+    /// The response returns the full active signature list because consistency fixes may update
+    /// default-signature state beyond the restored item.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the trash item does not exist, the store lock cannot be acquired, or
+    /// persistence fails.
     pub fn restore_signature_from_trash(&self, id: &str) -> AppResult<SaveSignatureResult> {
         let started_at = Instant::now();
 
@@ -151,6 +178,15 @@ impl AppState {
         }
     }
 
+    /// Permanently deletes one trashed draft and persists the updated store.
+    ///
+    /// The returned mutation updates only the trash collection because removing a trashed draft
+    /// does not rewrite active drafts, templates, or history.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the trash item does not exist, the store lock cannot be acquired, or
+    /// persistence fails.
     pub fn permanently_delete_draft_from_trash(&self, id: &str) -> AppResult<TrashMutationResult> {
         self.permanently_delete_item_from_trash("draft", |store| {
             store.permanently_delete_draft_from_trash(id)
@@ -162,6 +198,15 @@ impl AppState {
         })
     }
 
+    /// Permanently deletes one trashed template and persists the updated store.
+    ///
+    /// The returned mutation includes active drafts and draft history because consistency fixes may
+    /// clear template references in active drafts.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the trash item does not exist, the store lock cannot be acquired, or
+    /// persistence fails.
     pub fn permanently_delete_template_from_trash(
         &self,
         id: &str,
@@ -176,6 +221,15 @@ impl AppState {
         })
     }
 
+    /// Permanently deletes one trashed signature and persists the updated store.
+    ///
+    /// The returned mutation includes active drafts, draft history, and templates because
+    /// consistency fixes may clear signature references and recalculate default-signature state.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the trash item does not exist, the store lock cannot be acquired, or
+    /// persistence fails.
     pub fn permanently_delete_signature_from_trash(
         &self,
         id: &str,
@@ -190,6 +244,14 @@ impl AppState {
         })
     }
 
+    /// Permanently deletes all trash items and persists the updated store.
+    ///
+    /// Optional fields in the returned mutation are present only when emptying trash rewrites the
+    /// corresponding active collections after consistency fixes.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store lock cannot be acquired or persistence fails.
     pub fn empty_trash(&self) -> AppResult<TrashMutationResult> {
         let started_at = Instant::now();
 
