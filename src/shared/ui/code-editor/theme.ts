@@ -4,16 +4,15 @@ export const codeEditorTheme = EditorView.theme({
   "&": {
     height: "100%",
     minHeight: "inherit",
-    border: "1px solid var(--color-field-border)",
-    borderRadius: "7px",
-    backgroundColor: "var(--color-field-bg)",
+    border: "0",
+    borderRadius: "0",
+    backgroundColor: "transparent",
     color: "var(--color-text-strong)",
-    transition: "border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease",
+    transition: "color 150ms ease, background-color 150ms ease",
   },
   "&.cm-focused": {
     outline: "none",
-    borderColor: "var(--color-field-focus)",
-    boxShadow: "0 0 0 1px var(--color-field-focus), 0 0 0 4px var(--color-focus-ring)",
+    boxShadow: "none",
   },
   "&.cm-maildraft-single-line": {
     minHeight: "34px",

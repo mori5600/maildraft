@@ -208,6 +208,14 @@ export function CodeEditor({
   }, [normalizedValue]);
 
   return (
-    <div className={cn(singleLine ? "min-h-8.5" : "min-h-28", className)} ref={containerRef} />
+    <div
+      className={cn(
+        "mail-editor-frame w-full overflow-hidden rounded-[7px]",
+        singleLine ? "min-h-8.5" : "min-h-28",
+        className,
+      )}
+    >
+      <div ref={containerRef} style={{ minHeight: "inherit" }} />
+    </div>
   );
 }
