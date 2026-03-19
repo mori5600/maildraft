@@ -1,6 +1,6 @@
 import { CodeEditor } from "../../../../shared/ui/code-editor/CodeEditor";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
-import { Button, Field, Input, Panel, Select, Textarea } from "../../../../shared/ui/primitives";
+import { Button, Field, Input, Panel, Select } from "../../../../shared/ui/primitives";
 import type { Signature } from "../../../signatures/model";
 import type { Template } from "../../../templates/model";
 import type { DraftInput } from "../../model";
@@ -144,29 +144,27 @@ export function DraftEditorPane({
             </Field>
           </div>
 
-          <Field label="宛名メモ" hint="社名や担当者など">
-            <Textarea
+          <Field hint="社名や担当者など" label="宛名メモ" wrapWithLabel={false}>
+            <CodeEditor
+              ariaLabel="宛名メモ"
               className="min-h-24"
-              enableSelectNextOccurrence
+              contentClassName="mail-compose-text"
               placeholder={"株式会社〇〇\n営業部\n佐藤 様"}
-              rows={3}
               showWhitespace={showWhitespace}
-              textClassName="mail-compose-text"
               value={draftForm.recipient}
-              onChange={(event) => onChangeDraft("recipient", event.currentTarget.value)}
+              onChange={(value) => onChangeDraft("recipient", value)}
             />
           </Field>
 
-          <Field label="書き出し">
-            <Textarea
+          <Field label="書き出し" wrapWithLabel={false}>
+            <CodeEditor
+              ariaLabel="書き出し"
               className="min-h-33"
-              enableSelectNextOccurrence
+              contentClassName="mail-compose-text"
               placeholder={"いつもお世話になっております。\n株式会社△△の田中です。"}
-              rows={5}
               showWhitespace={showWhitespace}
-              textClassName="mail-compose-text"
               value={draftForm.opening}
-              onChange={(event) => onChangeDraft("opening", event.currentTarget.value)}
+              onChange={(value) => onChangeDraft("opening", value)}
             />
           </Field>
 
@@ -182,16 +180,15 @@ export function DraftEditorPane({
             />
           </Field>
 
-          <Field label="結び">
-            <Textarea
+          <Field label="結び" wrapWithLabel={false}>
+            <CodeEditor
+              ariaLabel="結び"
               className="min-h-33"
-              enableSelectNextOccurrence
+              contentClassName="mail-compose-text"
               placeholder="引き続きよろしくお願いいたします。"
-              rows={5}
               showWhitespace={showWhitespace}
-              textClassName="mail-compose-text"
               value={draftForm.closing}
-              onChange={(event) => onChangeDraft("closing", event.currentTarget.value)}
+              onChange={(value) => onChangeDraft("closing", value)}
             />
           </Field>
         </div>

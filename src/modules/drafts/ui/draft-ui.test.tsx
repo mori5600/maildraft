@@ -86,6 +86,9 @@ describe("draft UI", () => {
 
     await user.type(screen.getByDisplayValue("4/12 打ち合わせお礼"), "追記");
     expect(handleChangeDraft).toHaveBeenCalled();
+    await user.click(screen.getByRole("textbox", { name: "宛名メモ" }));
+    await user.keyboard("追記");
+    expect(handleChangeDraft).toHaveBeenCalledWith("recipient", expect.stringContaining("追記"));
     const bodyEditor = screen.getByRole("textbox", { name: "本文" });
     await user.click(bodyEditor);
     await user.keyboard("{Enter}追記");
@@ -101,7 +104,7 @@ describe("draft UI", () => {
     expect(handleSaveDraft).toHaveBeenCalled();
   });
 
-  it("keeps the draft body in CodeMirror when whitespace is visible", () => {
+  it("keeps multiline draft fields in CodeMirror when whitespace is visible", () => {
     render(
       <DraftEditorPane
         autoSaveLabel="自動保存済み"
@@ -120,7 +123,10 @@ describe("draft UI", () => {
       />,
     );
 
+    expect(screen.getByRole("textbox", { name: "宛名メモ" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "書き出し" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "本文" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "結び" })).toBeInTheDocument();
   });
 
   it("handles draft preview pane actions", async () => {
