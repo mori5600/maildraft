@@ -85,7 +85,7 @@ export function DraftEditorPane({
               <CodeEditor
                 ariaLabel="一覧名"
                 className="min-h-8.5"
-                contentClassName="mail-field-text"
+                textClassName="mail-field-text"
                 placeholder="4/12 打ち合わせお礼"
                 singleLine
                 showWhitespace={showWhitespace}
@@ -97,7 +97,7 @@ export function DraftEditorPane({
               <CodeEditor
                 ariaLabel="件名"
                 className="min-h-8.5"
-                contentClassName="mail-field-text"
+                textClassName="mail-field-text"
                 placeholder="件名"
                 singleLine
                 showWhitespace={showWhitespace}
@@ -154,7 +154,7 @@ export function DraftEditorPane({
             <CodeEditor
               ariaLabel="宛名メモ"
               className="min-h-24"
-              contentClassName="mail-compose-text"
+              textClassName="mail-compose-text"
               placeholder={"株式会社〇〇\n営業部\n佐藤 様"}
               showWhitespace={showWhitespace}
               value={draftForm.recipient}
@@ -166,7 +166,7 @@ export function DraftEditorPane({
             <CodeEditor
               ariaLabel="書き出し"
               className="min-h-33"
-              contentClassName="mail-compose-text"
+              textClassName="mail-compose-text"
               placeholder={"いつもお世話になっております。\n株式会社△△の田中です。"}
               showWhitespace={showWhitespace}
               value={draftForm.opening}
@@ -178,7 +178,7 @@ export function DraftEditorPane({
             <CodeEditor
               ariaLabel="本文"
               className="min-h-70"
-              contentClassName="mail-compose-text"
+              textClassName="mail-compose-text"
               placeholder="本文"
               showWhitespace={showWhitespace}
               value={draftForm.body}
@@ -190,7 +190,7 @@ export function DraftEditorPane({
             <CodeEditor
               ariaLabel="結び"
               className="min-h-33"
-              contentClassName="mail-compose-text"
+              textClassName="mail-compose-text"
               placeholder="引き続きよろしくお願いいたします。"
               showWhitespace={showWhitespace}
               value={draftForm.closing}

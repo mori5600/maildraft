@@ -21,7 +21,7 @@ describe("shared UI components", () => {
         <Field hint="補足" label="件名">
           <Input showWhitespace value={"A B"} onChange={handleChange} />
         </Field>
-        <Textarea showWhitespace value={"1 2"} onChange={handleChange} />
+        <Textarea value={"1 2"} onChange={handleChange} />
         <Select aria-label="選択" defaultValue="a">
           <option value="a">A</option>
           <option value="b">B</option>

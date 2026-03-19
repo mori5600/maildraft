@@ -14,9 +14,6 @@ export const codeEditorTheme = EditorView.theme({
     outline: "none",
     borderColor: "var(--color-field-focus)",
   },
-  "&[aria-disabled='true']": {
-    opacity: "0.6",
-  },
   "&.cm-maildraft-single-line": {
     minHeight: "34px",
   },

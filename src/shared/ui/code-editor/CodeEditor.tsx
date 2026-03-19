@@ -3,11 +3,10 @@ import { EditorView } from "@codemirror/view";
 import { useEffect, useEffectEvent, useRef } from "react";
 
 import {
-  createCodeEditorAccessibilityExtension,
   createCodeEditorBaseExtensions,
   createCodeEditorCompartments,
   createCodeEditorContentAttributesExtension,
-  createCodeEditorEditableExtension,
+  createCodeEditorEditorAttributesExtension,
   createCodeEditorLayoutExtension,
   createCodeEditorPlaceholderExtension,
   createCodeEditorWhitespaceExtension,
@@ -17,65 +16,56 @@ function cn(...classNames: Array<string | false | null | undefined>): string {
   return classNames.filter(Boolean).join(" ");
 }
 
-function normalizeEditorValue(value: string, singleLine: boolean): string {
-  if (!singleLine) {
-    return value;
-  }
-
-  return value.replace(/\r\n|\r|\n/g, " ");
+function normalizeEditorText(value: string, singleLine: boolean): string {
+  return singleLine ? value.replace(/\r\n|\r|\n/g, " ") : value;
 }
 
 /**
- * Wraps CodeMirror as a controlled multiline editor while leaving selection
- * and history inside the editor state.
+ * Defines the controlled contract for the shared CodeMirror editor.
+ *
+ * @remarks
+ * `singleLine` keeps title-like fields on one line by normalizing pasted and external newlines into
+ * spaces before the value is persisted back to application state.
  */
+export interface CodeEditorProps {
+  ariaLabel?: string;
+  className?: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  showWhitespace?: boolean;
+  singleLine?: boolean;
+  textClassName?: string;
+  value: string;
+}
+
+/** Renders the shared CodeMirror editor used by draft, template, and signature forms. */
 export function CodeEditor({
   ariaLabel,
-  autoFocus = false,
   className,
-  contentClassName = "mail-editor-text",
-  disabled = false,
-  onBlur,
+  textClassName = "mail-editor-text",
   onChange,
-  onFocus,
   placeholder,
-  readOnly = false,
   showWhitespace = false,
   singleLine = false,
   value,
-}: {
-  ariaLabel?: string;
-  autoFocus?: boolean;
-  className?: string;
-  contentClassName?: string;
-  disabled?: boolean;
-  onBlur?: () => void;
-  onChange: (value: string) => void;
-  onFocus?: () => void;
-  placeholder?: string;
-  readOnly?: boolean;
-  showWhitespace?: boolean;
-  singleLine?: boolean;
-  value: string;
-}) {
+}: CodeEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const compartmentsRef = useRef(createCodeEditorCompartments());
-  const normalizedValue = normalizeEditorValue(value, singleLine);
+  const normalizedValue = normalizeEditorText(value, singleLine);
+  const normalizedPlaceholder =
+    typeof placeholder === "string" ? normalizeEditorText(placeholder, singleLine) : placeholder;
   const initialConfigRef = useRef({
     ariaLabel,
-    autoFocus,
-    contentClassName,
-    disabled,
-    placeholder,
-    readOnly,
+    normalizedPlaceholder,
+    normalizedValue,
     showWhitespace,
     singleLine,
-    value: normalizedValue,
+    textClassName,
   });
   const applyingExternalValueRef = useRef(false);
   const emitChange = useEffectEvent((nextValue: string) => {
-    const normalizedNextValue = normalizeEditorValue(nextValue, singleLine);
+    const normalizedNextValue = normalizeEditorText(nextValue, singleLine);
 
     if (applyingExternalValueRef.current && normalizedNextValue === normalizedValue) {
       applyingExternalValueRef.current = false;
@@ -85,13 +75,6 @@ export function CodeEditor({
     applyingExternalValueRef.current = false;
     onChange(normalizedNextValue);
   });
-  const emitFocus = useEffectEvent(() => {
-    onFocus?.();
-  });
-  const emitBlur = useEffectEvent(() => {
-    onBlur?.();
-  });
-
   useEffect(() => {
     if (!containerRef.current || viewRef.current) {
       return;
@@ -100,39 +83,22 @@ export function CodeEditor({
     const initialConfig = initialConfigRef.current;
     const extensions: Extension[] = [
       ...createCodeEditorBaseExtensions(emitChange),
-      EditorView.domEventHandlers({
-        blur: () => {
-          emitBlur();
-          return false;
-        },
-        focus: () => {
-          emitFocus();
-          return false;
-        },
-      }),
-      compartmentsRef.current.accessibility.of(
-        createCodeEditorAccessibilityExtension({
-          disabled: initialConfig.disabled,
+      compartmentsRef.current.editorAttributes.of(
+        createCodeEditorEditorAttributesExtension({
           singleLine: initialConfig.singleLine,
         }),
       ),
       compartmentsRef.current.contentAttributes.of(
         createCodeEditorContentAttributesExtension({
           ariaLabel: initialConfig.ariaLabel,
-          contentClassName: initialConfig.contentClassName,
-        }),
-      ),
-      compartmentsRef.current.editable.of(
-        createCodeEditorEditableExtension({
-          disabled: initialConfig.disabled,
-          readOnly: initialConfig.readOnly,
+          textClassName: initialConfig.textClassName,
         }),
       ),
       compartmentsRef.current.layout.of(
         createCodeEditorLayoutExtension({ singleLine: initialConfig.singleLine }),
       ),
       compartmentsRef.current.placeholder.of(
-        createCodeEditorPlaceholderExtension(initialConfig.placeholder),
+        createCodeEditorPlaceholderExtension(initialConfig.normalizedPlaceholder),
       ),
       compartmentsRef.current.whitespace.of(
         createCodeEditorWhitespaceExtension(initialConfig.showWhitespace),
@@ -142,16 +108,12 @@ export function CodeEditor({
     const view = new EditorView({
       parent: containerRef.current,
       state: EditorState.create({
-        doc: initialConfig.value,
+        doc: initialConfig.normalizedValue,
         extensions,
       }),
     });
 
     viewRef.current = view;
-
-    if (initialConfig.autoFocus) {
-      view.focus();
-    }
 
     return () => {
       view.destroy();
@@ -166,11 +128,11 @@ export function CodeEditor({
     }
 
     view.dispatch({
-      effects: compartmentsRef.current.accessibility.reconfigure(
-        createCodeEditorAccessibilityExtension({ disabled, singleLine }),
+      effects: compartmentsRef.current.editorAttributes.reconfigure(
+        createCodeEditorEditorAttributesExtension({ singleLine }),
       ),
     });
-  }, [disabled, singleLine]);
+  }, [singleLine]);
 
   useEffect(() => {
     const view = viewRef.current;
@@ -180,23 +142,10 @@ export function CodeEditor({
 
     view.dispatch({
       effects: compartmentsRef.current.contentAttributes.reconfigure(
-        createCodeEditorContentAttributesExtension({ ariaLabel, contentClassName }),
+        createCodeEditorContentAttributesExtension({ ariaLabel, textClassName }),
       ),
     });
-  }, [ariaLabel, contentClassName]);
-
-  useEffect(() => {
-    const view = viewRef.current;
-    if (!view) {
-      return;
-    }
-
-    view.dispatch({
-      effects: compartmentsRef.current.editable.reconfigure(
-        createCodeEditorEditableExtension({ disabled, readOnly }),
-      ),
-    });
-  }, [disabled, readOnly]);
+  }, [ariaLabel, textClassName]);
 
   useEffect(() => {
     const view = viewRef.current;
@@ -219,10 +168,10 @@ export function CodeEditor({
 
     view.dispatch({
       effects: compartmentsRef.current.placeholder.reconfigure(
-        createCodeEditorPlaceholderExtension(placeholder),
+        createCodeEditorPlaceholderExtension(normalizedPlaceholder),
       ),
     });
-  }, [placeholder]);
+  }, [normalizedPlaceholder]);
 
   useEffect(() => {
     const view = viewRef.current;

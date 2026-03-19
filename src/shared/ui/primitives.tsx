@@ -27,8 +27,8 @@ function toDisplayText(value: unknown): string {
   return String(value);
 }
 
-function visualizeSegment(value: string, showWhitespace: boolean): string {
-  return showWhitespace ? visualizeWhitespace(value) : value;
+function visualizeSegment(value: string): string {
+  return visualizeWhitespace(value);
 }
 
 export function Panel({
@@ -151,7 +151,7 @@ export function Input({
               transform: `translateX(${-scrollLeft}px)`,
             }}
           >
-            {visualizeSegment(overlayText, true) || " "}
+            {visualizeSegment(overlayText) || " "}
           </div>
         </div>
       ) : null}
@@ -177,62 +177,22 @@ export function Input({
 
 export function Textarea({
   className,
-  onChange,
-  showWhitespace = false,
   textClassName,
-  value,
-  placeholder,
-  onScroll,
   ...props
 }: TextareaHTMLAttributes<HTMLTextAreaElement> & {
-  showWhitespace?: boolean;
   textClassName?: string;
 }) {
-  const [scrollTop, setScrollTop] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
   const resolvedTextClassName = textClassName ?? "mail-editor-text";
-  const displayValue = toDisplayText(value);
-  const deferredDisplayValue = useDeferredValue(displayValue);
-  const overlayText = deferredDisplayValue || (typeof placeholder === "string" ? placeholder : "");
 
   return (
-    <div className="relative">
-      {showWhitespace ? (
-        <div
-          aria-hidden="true"
-          className={cn(
-            "pointer-events-none absolute inset-0 overflow-hidden rounded-[7px] px-3 py-2 text-(--color-text-overlay)",
-            resolvedTextClassName,
-          )}
-        >
-          <pre
-            className="min-h-full wrap-break-word whitespace-pre-wrap"
-            style={{
-              transform: `translate(${-scrollLeft}px, ${-scrollTop}px)`,
-            }}
-          >
-            {visualizeSegment(overlayText, true) || " "}
-          </pre>
-        </div>
-      ) : null}
-      <textarea
-        className={cn(
-          "min-h-28 w-full rounded-[7px] border border-(--color-field-border) bg-(--color-field-bg) px-3 py-2 text-(--color-text-strong) transition-colors outline-none placeholder:text-(--color-text-placeholder) focus:border-(--color-field-focus)",
-          resolvedTextClassName,
-          showWhitespace && "text-transparent caret-(--color-text-strong)",
-          className,
-        )}
-        placeholder={showWhitespace ? "" : placeholder}
-        value={value}
-        onChange={onChange}
-        onScroll={(event) => {
-          setScrollTop(event.currentTarget.scrollTop);
-          setScrollLeft(event.currentTarget.scrollLeft);
-          onScroll?.(event);
-        }}
-        {...props}
-      />
-    </div>
+    <textarea
+      className={cn(
+        "min-h-28 w-full rounded-[7px] border border-(--color-field-border) bg-(--color-field-bg) px-3 py-2 text-(--color-text-strong) transition-colors outline-none placeholder:text-(--color-text-placeholder) focus:border-(--color-field-focus)",
+        resolvedTextClassName,
+        className,
+      )}
+      {...props}
+    />
   );
 }
 

@@ -77,7 +77,7 @@ export function TemplateEditorPane({
               <CodeEditor
                 ariaLabel="名前"
                 className="min-h-8.5"
-                contentClassName="mail-field-text"
+                textClassName="mail-field-text"
                 singleLine
                 showWhitespace={showWhitespace}
                 value={templateForm.name}
@@ -88,7 +88,7 @@ export function TemplateEditorPane({
               <CodeEditor
                 ariaLabel="件名"
                 className="min-h-8.5"
-                contentClassName="mail-field-text"
+                textClassName="mail-field-text"
                 singleLine
                 showWhitespace={showWhitespace}
                 value={templateForm.subject}
@@ -127,7 +127,7 @@ export function TemplateEditorPane({
             <CodeEditor
               ariaLabel="宛名メモ"
               className="min-h-24"
-              contentClassName="mail-compose-text"
+              textClassName="mail-compose-text"
               placeholder={"株式会社〇〇\n営業部\n佐藤 様"}
               showWhitespace={showWhitespace}
               value={templateForm.recipient}
@@ -139,7 +139,7 @@ export function TemplateEditorPane({
             <CodeEditor
               ariaLabel="書き出し"
               className="min-h-33"
-              contentClassName="mail-compose-text"
+              textClassName="mail-compose-text"
               showWhitespace={showWhitespace}
               value={templateForm.opening}
               onChange={(value) => onChangeTemplate("opening", value)}
@@ -150,7 +150,7 @@ export function TemplateEditorPane({
             <CodeEditor
               ariaLabel="本文"
               className="min-h-70"
-              contentClassName="mail-compose-text"
+              textClassName="mail-compose-text"
               showWhitespace={showWhitespace}
               value={templateForm.body}
               onChange={(value) => onChangeTemplate("body", value)}
@@ -161,7 +161,7 @@ export function TemplateEditorPane({
             <CodeEditor
               ariaLabel="結び"
               className="min-h-33"
-              contentClassName="mail-compose-text"
+              textClassName="mail-compose-text"
               showWhitespace={showWhitespace}
               value={templateForm.closing}
               onChange={(value) => onChangeTemplate("closing", value)}

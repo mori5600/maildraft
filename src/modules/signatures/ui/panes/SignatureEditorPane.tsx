@@ -68,7 +68,7 @@ export function SignatureEditorPane({
             <CodeEditor
               ariaLabel="名前"
               className="min-h-8.5"
-              contentClassName="mail-field-text"
+              textClassName="mail-field-text"
               singleLine
               showWhitespace={showWhitespace}
               value={signatureForm.name}
@@ -90,7 +90,7 @@ export function SignatureEditorPane({
             <CodeEditor
               ariaLabel="本文"
               className="min-h-80"
-              contentClassName="mail-signature-edit-text"
+              textClassName="mail-signature-edit-text"
               showWhitespace={showWhitespace}
               value={signatureForm.body}
               onChange={(value) => onChangeSignature("body", value)}

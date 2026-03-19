@@ -20,30 +20,26 @@ import {
 import { codeEditorTheme } from "./theme";
 
 export interface CodeEditorCompartments {
-  accessibility: Compartment;
   contentAttributes: Compartment;
-  editable: Compartment;
+  editorAttributes: Compartment;
   layout: Compartment;
   placeholder: Compartment;
   whitespace: Compartment;
 }
 
-export interface CodeEditorAccessibilityOptions {
-  ariaLabel?: string;
-  disabled?: boolean;
-  singleLine?: boolean;
-}
-
 export interface CodeEditorContentAttributeOptions {
   ariaLabel?: string;
-  contentClassName?: string;
+  textClassName?: string;
+}
+
+export interface CodeEditorEditorAttributeOptions {
+  singleLine?: boolean;
 }
 
 export function createCodeEditorCompartments(): CodeEditorCompartments {
   return {
-    accessibility: new Compartment(),
     contentAttributes: new Compartment(),
-    editable: new Compartment(),
+    editorAttributes: new Compartment(),
     layout: new Compartment(),
     placeholder: new Compartment(),
     whitespace: new Compartment(),
@@ -69,15 +65,6 @@ export function createCodeEditorBaseExtensions(
   ];
 }
 
-export function createCodeEditorEditableExtension(options: {
-  disabled?: boolean;
-  readOnly?: boolean;
-}): Extension {
-  const editable = !options.readOnly && !options.disabled;
-
-  return [EditorState.readOnly.of(!editable), EditorView.editable.of(editable)];
-}
-
 export function createCodeEditorPlaceholderExtension(
   placeholderText?: string,
 ): Extension {
@@ -93,32 +80,23 @@ export function createCodeEditorContentAttributesExtension(
     attrs["aria-label"] = options.ariaLabel;
   }
 
-  if (options.contentClassName) {
-    attrs.class = options.contentClassName;
+  if (options.textClassName) {
+    attrs.class = options.textClassName;
   }
 
   return Object.keys(attrs).length > 0 ? EditorView.contentAttributes.of(attrs) : [];
 }
 
-export function createCodeEditorAccessibilityExtension(
-  options: CodeEditorAccessibilityOptions,
+export function createCodeEditorEditorAttributesExtension(
+  options: CodeEditorEditorAttributeOptions,
 ): Extension {
-  const attrs: Record<string, string> = {};
   const classNames: string[] = [];
-
-  if (options.disabled) {
-    attrs["aria-disabled"] = "true";
-  }
 
   if (options.singleLine) {
     classNames.push("cm-maildraft-single-line");
   }
 
-  if (classNames.length > 0) {
-    attrs.class = classNames.join(" ");
-  }
-
-  return Object.keys(attrs).length > 0 ? EditorView.editorAttributes.of(attrs) : [];
+  return classNames.length > 0 ? EditorView.editorAttributes.of({ class: classNames.join(" ") }) : [];
 }
 
 export function createCodeEditorLayoutExtension(options: { singleLine?: boolean }): Extension {
