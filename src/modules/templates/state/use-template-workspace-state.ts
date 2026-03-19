@@ -66,6 +66,13 @@ function toErrorMessage(error: unknown): string {
   return "処理に失敗しました。";
 }
 
+/**
+ * Resolves the template that should back the editing form for the current snapshot.
+ *
+ * @remarks
+ * The preferred template is used only while it remains active. When it disappears, the state
+ * falls back to the first active template or to a new empty form.
+ */
 export function buildTemplateEditingState(
   snapshot: StoreSnapshot,
   preferredTemplateId: string | null = null,
@@ -81,6 +88,14 @@ export function buildTemplateEditingState(
   };
 }
 
+/**
+ * Coordinates template selection, editing, and persistence against the current store snapshot.
+ *
+ * @remarks
+ * Selection always falls back to an existing active template, or to a new empty form when no
+ * active template remains. Save and delete operations patch compact backend payloads into the
+ * current snapshot instead of replacing the full store.
+ */
 export function useTemplateWorkspaceState({
   onClearError,
   onError,

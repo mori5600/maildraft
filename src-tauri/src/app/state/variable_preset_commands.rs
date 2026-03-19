@@ -22,6 +22,14 @@ impl AppState {
         }
     }
 
+    /// Saves one variable preset and persists the updated store.
+    ///
+    /// The response returns only the preset collection because this operation does not require a
+    /// full snapshot refresh on the frontend.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store lock cannot be acquired or persistence fails.
     pub fn save_variable_preset(&self, input: VariablePresetInput) -> AppResult<VariablePresetResult> {
         let started_at = Instant::now();
         let safe_context = variable_preset_context(&input);
@@ -64,6 +72,14 @@ impl AppState {
         }
     }
 
+    /// Deletes one variable preset and persists the updated store.
+    ///
+    /// The response returns only the remaining preset collection.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the preset does not exist, the store lock cannot be acquired, or
+    /// persistence fails.
     pub fn delete_variable_preset(&self, id: &str) -> AppResult<VariablePresetResult> {
         let started_at = Instant::now();
         let result = (|| {

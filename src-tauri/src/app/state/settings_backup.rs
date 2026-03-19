@@ -12,10 +12,22 @@ use super::{
 };
 
 impl AppState {
+    /// Returns the current logging settings snapshot.
+    ///
+    /// This does not touch the store or log files.
     pub fn load_logging_settings(&self) -> AppResult<LoggingSettingsSnapshot> {
         self.logging_settings_snapshot()
     }
 
+    /// Exports the current store snapshot and app settings to a backup file.
+    ///
+    /// The backup is normalized before serialization so the written document reflects the same
+    /// consistency rules as the running store.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store or settings lock cannot be acquired, serialization fails, or
+    /// the target path cannot be written.
     pub fn export_backup(&self, path: &str) -> AppResult<String> {
         let started_at = Instant::now();
         let snapshot = {
@@ -59,6 +71,15 @@ impl AppState {
         }
     }
 
+    /// Imports a backup file, replaces the in-memory store and settings, and persists both.
+    ///
+    /// This also prunes retained logs against the imported retention policy before returning the
+    /// refreshed logging snapshot.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the file cannot be read, the document is invalid, locks cannot be
+    /// acquired, persistence fails, or log pruning fails.
     pub fn import_backup(&self, path: &str) -> AppResult<ImportedBackupSnapshot> {
         let started_at = Instant::now();
         let content = fs::read_to_string(path).map_err(|error| error.to_string())?;
@@ -103,6 +124,13 @@ impl AppState {
         })
     }
 
+    /// Loads recent logs with a bounded item count.
+    ///
+    /// The requested limit is clamped to the range `1..=200` to keep the UI request predictable.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the settings lock cannot be acquired or log loading fails.
     pub fn load_recent_logs(&self, limit: Option<usize>) -> AppResult<Vec<LogEntrySnapshot>> {
         let logging_settings = {
             let settings = self.settings.lock().map_err(|error| error.to_string())?;
@@ -115,6 +143,14 @@ impl AppState {
             .map_err(|error| error.to_string())
     }
 
+    /// Saves logging settings and immediately applies the new retention policy.
+    ///
+    /// Persisted settings take effect before expired log files are pruned.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the settings lock cannot be acquired, persistence fails, log pruning
+    /// fails, or the refreshed snapshot cannot be loaded.
     pub fn save_logging_settings(
         &self,
         input: LoggingSettingsInput,
@@ -148,6 +184,11 @@ impl AppState {
         self.logger_snapshot(&next_settings)
     }
 
+    /// Deletes retained log files and returns the current logging settings snapshot.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if log deletion fails or the refreshed settings snapshot cannot be loaded.
     pub fn clear_logs(&self) -> AppResult<LoggingSettingsSnapshot> {
         self.logger.clear().map_err(|error| error.to_string())?;
         self.logging_settings_snapshot()

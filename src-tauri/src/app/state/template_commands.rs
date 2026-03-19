@@ -16,6 +16,15 @@ use super::{
 };
 
 impl AppState {
+    /// Saves one template and persists the updated store.
+    ///
+    /// The return payload contains only the saved template. Frontend callers patch it into the
+    /// current snapshot instead of replacing the full store.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store lock cannot be acquired, persistence fails, or the saved
+    /// template cannot be resolved after consistency fixes.
     pub fn save_template(&self, input: TemplateInput) -> AppResult<SaveTemplateResult> {
         let started_at = Instant::now();
         let safe_context = template_context(&input);
@@ -67,6 +76,15 @@ impl AppState {
         }
     }
 
+    /// Moves one template to trash and persists the updated store.
+    ///
+    /// The return payload contains only the trashed template. Consistency fixes may still rewrite
+    /// related draft references before persistence.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the template does not exist, the store lock cannot be acquired, or
+    /// persistence fails.
     pub fn delete_template(&self, id: &str) -> AppResult<DeleteTemplateResult> {
         let started_at = Instant::now();
         let timestamp = timestamp();

@@ -42,6 +42,16 @@ interface TrashWorkspaceStateOptions {
   snapshot: StoreSnapshot;
 }
 
+/**
+ * Coordinates trash selection and destructive trash actions against the current snapshot.
+ *
+ * @remarks
+ * Selection falls back to the first remaining trash item whenever the current item disappears.
+ * Restore routes the user back to the owning workspace. Permanent delete and empty trash patch
+ * compact backend payloads into the current snapshot instead of forcing a full reload. Signature
+ * mutations also notify external signature consumers because restoring or deleting a signature may
+ * change active default-signature state.
+ */
 export function useTrashWorkspaceState({
   onClearError,
   onDraftRestored,

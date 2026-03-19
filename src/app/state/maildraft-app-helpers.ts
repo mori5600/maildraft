@@ -94,6 +94,13 @@ export function buildWorkspaceSummaries(
   ];
 }
 
+/**
+ * Derives cross-workspace selection state after a full snapshot replacement.
+ *
+ * @remarks
+ * Bootstrap and backup import replace the entire store at once. The app shell uses this helper to
+ * reset template, signature, and trash selections to values that still exist in the new snapshot.
+ */
 export function buildHydratedWorkspaceState(snapshot: StoreSnapshot): HydratedWorkspaceState {
   const firstTemplate = snapshot.templates[0];
   const firstSignature = snapshot.signatures[0];

@@ -24,6 +24,15 @@ const EMPTY_SNAPSHOT: StoreSnapshot = {
   },
 };
 
+/**
+ * Wires the app shell to workspace hooks and shared imperative draft actions.
+ *
+ * @remarks
+ * Compact save and delete operations update individual workspaces in place, but bootstrap and
+ * backup import replace the full snapshot and therefore rehydrate template, signature, and trash
+ * selections together. Leaving the drafts view flushes pending draft state before the shell
+ * switches workspaces.
+ */
 export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandle | null>) {
   const shell = useAppShellState(EMPTY_SNAPSHOT);
 

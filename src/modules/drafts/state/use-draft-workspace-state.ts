@@ -23,6 +23,13 @@ import {
 import { useDraftPersistenceState } from "./use-draft-persistence-state";
 import { useDraftVariablePresetsState } from "./use-draft-variable-presets-state";
 
+/**
+ * Imperative draft actions exposed to the app shell through `forwardRef`.
+ *
+ * @remarks
+ * The handle is intentionally small. It exists for global navigation and save actions that must
+ * reach the current draft state without threading callbacks through unrelated screens.
+ */
 export interface DraftWorkspaceHandle {
   flushPendingDraft: () => void;
   createDraft: () => void;
@@ -42,6 +49,14 @@ interface DraftWorkspaceStateOptions {
   onSnapshotChange: (snapshot: StoreSnapshot) => void;
 }
 
+/**
+ * Coordinates draft editing, derived preview state, and draft-specific persistence helpers.
+ *
+ * @remarks
+ * The hook keeps draft form references valid when templates or signatures disappear from the
+ * active snapshot. Draft save, restore, and variable preset updates all patch compact backend
+ * payloads into the current snapshot instead of forcing a full reload.
+ */
 export function useDraftWorkspaceState({
   snapshot,
   onClearError,

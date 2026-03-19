@@ -58,6 +58,13 @@ function toErrorMessage(error: unknown): string {
   return "処理に失敗しました。";
 }
 
+/**
+ * Resolves the signature that should back the editing form for the current snapshot.
+ *
+ * @remarks
+ * The preferred signature is used only while it remains active. When it disappears, the state
+ * falls back to the first active signature or to a new empty form.
+ */
 export function buildSignatureEditingState(
   snapshot: StoreSnapshot,
   preferredSignatureId: string | null = null,
@@ -73,6 +80,15 @@ export function buildSignatureEditingState(
   };
 }
 
+/**
+ * Coordinates signature selection, editing, and persistence against the current store snapshot.
+ *
+ * @remarks
+ * Selection always falls back to an existing active signature, or to a new empty form when none
+ * remain. Save and delete operations may replace the active signature list because default
+ * signature consistency can affect more than the edited item. Callers should fan out
+ * `onSignatureSnapshotChange` to any workspace that keeps signature IDs in local form state.
+ */
 export function useSignatureWorkspaceState({
   onClearError,
   onError,

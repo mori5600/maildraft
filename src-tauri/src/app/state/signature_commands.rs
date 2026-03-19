@@ -16,6 +16,14 @@ use super::{
 };
 
 impl AppState {
+    /// Saves one signature and persists the updated store.
+    ///
+    /// The response returns the full active signature list because consistency fixes may update
+    /// default-signature state beyond the edited item.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store lock cannot be acquired or persistence fails.
     pub fn save_signature(&self, input: SignatureInput) -> AppResult<SaveSignatureResult> {
         let started_at = Instant::now();
         let safe_context = signature_context(&input);
@@ -61,6 +69,15 @@ impl AppState {
         }
     }
 
+    /// Moves one signature to trash and persists the updated store.
+    ///
+    /// The response includes both the trashed signature and the remaining active signatures because
+    /// consistency fixes may reassign default-signature state.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the signature does not exist, the store lock cannot be acquired, or
+    /// persistence fails.
     pub fn delete_signature(&self, id: &str) -> AppResult<DeleteSignatureResult> {
         let started_at = Instant::now();
         let timestamp = timestamp();
