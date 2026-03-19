@@ -81,3 +81,15 @@ pub struct DeleteSignatureResult {
     pub signatures: Vec<Signature>,
     pub trashed_signature: TrashedSignature,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrashMutationResult {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub drafts: Option<Vec<Draft>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub draft_history: Option<Vec<DraftHistoryEntry>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub templates: Option<Vec<Template>>,
+    pub trash: TrashSnapshot,
+}

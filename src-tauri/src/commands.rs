@@ -10,7 +10,7 @@ use crate::modules::{
     signatures::SignatureInput,
     store::{
         DeleteDraftResult, DeleteSignatureResult, DeleteTemplateResult, SaveDraftResult,
-        SaveSignatureResult, SaveTemplateResult, StoreSnapshot,
+        SaveSignatureResult, SaveTemplateResult, StoreSnapshot, TrashMutationResult,
     },
     templates::TemplateInput,
     variable_presets::VariablePresetInput,
@@ -39,7 +39,7 @@ fn restore_draft_from_trash_impl(state: &AppState, id: String) -> Result<SaveDra
 fn permanently_delete_draft_from_trash_impl(
     state: &AppState,
     id: String,
-) -> Result<StoreSnapshot, String> {
+) -> Result<TrashMutationResult, String> {
     state.permanently_delete_draft_from_trash(&id)
 }
 
@@ -83,7 +83,7 @@ fn restore_template_from_trash_impl(
 fn permanently_delete_template_from_trash_impl(
     state: &AppState,
     id: String,
-) -> Result<StoreSnapshot, String> {
+) -> Result<TrashMutationResult, String> {
     state.permanently_delete_template_from_trash(&id)
 }
 
@@ -108,11 +108,11 @@ fn restore_signature_from_trash_impl(
 fn permanently_delete_signature_from_trash_impl(
     state: &AppState,
     id: String,
-) -> Result<StoreSnapshot, String> {
+) -> Result<TrashMutationResult, String> {
     state.permanently_delete_signature_from_trash(&id)
 }
 
-fn empty_trash_impl(state: &AppState) -> Result<StoreSnapshot, String> {
+fn empty_trash_impl(state: &AppState) -> Result<TrashMutationResult, String> {
     state.empty_trash()
 }
 
@@ -186,7 +186,7 @@ pub(crate) fn restore_draft_from_trash(
 pub(crate) fn permanently_delete_draft_from_trash(
     state: tauri::State<'_, AppState>,
     id: String,
-) -> Result<StoreSnapshot, String> {
+) -> Result<TrashMutationResult, String> {
     permanently_delete_draft_from_trash_impl(&state, id)
 }
 
@@ -243,7 +243,7 @@ pub(crate) fn restore_template_from_trash(
 pub(crate) fn permanently_delete_template_from_trash(
     state: tauri::State<'_, AppState>,
     id: String,
-) -> Result<StoreSnapshot, String> {
+) -> Result<TrashMutationResult, String> {
     permanently_delete_template_from_trash_impl(&state, id)
 }
 
@@ -275,12 +275,12 @@ pub(crate) fn restore_signature_from_trash(
 pub(crate) fn permanently_delete_signature_from_trash(
     state: tauri::State<'_, AppState>,
     id: String,
-) -> Result<StoreSnapshot, String> {
+) -> Result<TrashMutationResult, String> {
     permanently_delete_signature_from_trash_impl(&state, id)
 }
 
 #[tauri::command]
-pub(crate) fn empty_trash(state: tauri::State<'_, AppState>) -> Result<StoreSnapshot, String> {
+pub(crate) fn empty_trash(state: tauri::State<'_, AppState>) -> Result<TrashMutationResult, String> {
     empty_trash_impl(&state)
 }
 
@@ -492,6 +492,8 @@ mod tests {
             .templates
             .iter()
             .all(|template| template.template.id != "template-command"));
+        assert!(removed_template.drafts.is_some());
+        assert!(removed_template.draft_history.is_some());
 
         delete_signature_impl(&state, "signature-command".to_string()).expect("trash signature");
         let restored_signature =
@@ -511,6 +513,9 @@ mod tests {
             .signatures
             .iter()
             .all(|signature| signature.signature.id != "signature-command"));
+        assert!(removed_signature.drafts.is_some());
+        assert!(removed_signature.draft_history.is_some());
+        assert!(removed_signature.templates.is_some());
     }
 
     #[test]
@@ -585,5 +590,6 @@ mod tests {
         assert!(emptied.trash.drafts.is_empty());
         assert!(emptied.trash.templates.is_empty());
         assert!(emptied.trash.signatures.is_empty());
+        assert!(emptied.drafts.is_some());
     }
 }

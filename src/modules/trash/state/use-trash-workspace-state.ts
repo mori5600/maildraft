@@ -6,6 +6,7 @@ import {
   applyRestoredDraftResult,
   applyRestoredSignatureResult,
   applyRestoredTemplateResult,
+  applyTrashMutationResult,
 } from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot, WorkspaceView } from "../../../shared/types/store";
 import {
@@ -137,20 +138,27 @@ export function useTrashWorkspaceState({
       onClearError();
 
       if (item.kind === "draft") {
-        const nextSnapshot = await maildraftApi.permanentlyDeleteDraftFromTrash(item.draft.id);
+        const deletedDraft = await maildraftApi.permanentlyDeleteDraftFromTrash(item.draft.id);
+        const nextSnapshot = applyTrashMutationResult(snapshotRef.current, deletedDraft);
         onSnapshotChange(nextSnapshot);
         onNotice("下書きを完全に削除しました。");
         return;
       }
 
       if (item.kind === "template") {
-        const nextSnapshot = await maildraftApi.permanentlyDeleteTemplateFromTrash(item.template.id);
+        const deletedTemplate = await maildraftApi.permanentlyDeleteTemplateFromTrash(
+          item.template.id,
+        );
+        const nextSnapshot = applyTrashMutationResult(snapshotRef.current, deletedTemplate);
         onSnapshotChange(nextSnapshot);
         onNotice("テンプレートを完全に削除しました。");
         return;
       }
 
-      const nextSnapshot = await maildraftApi.permanentlyDeleteSignatureFromTrash(item.signature.id);
+      const deletedSignature = await maildraftApi.permanentlyDeleteSignatureFromTrash(
+        item.signature.id,
+      );
+      const nextSnapshot = applyTrashMutationResult(snapshotRef.current, deletedSignature);
       onSnapshotChange(nextSnapshot);
       onSignatureSnapshotChange(nextSnapshot);
       onNotice("署名を完全に削除しました。");
@@ -173,7 +181,8 @@ export function useTrashWorkspaceState({
 
     try {
       onClearError();
-      const nextSnapshot = await maildraftApi.emptyTrash();
+      const emptiedTrash = await maildraftApi.emptyTrash();
+      const nextSnapshot = applyTrashMutationResult(snapshotRef.current, emptiedTrash);
       onSnapshotChange(nextSnapshot);
       onTrashSelectionChange(null);
       onSignatureSnapshotChange(nextSnapshot);

@@ -329,10 +329,16 @@ describe("trash workspace state", () => {
       isDefault: false,
       updatedAt: "20",
     });
-    const nextSnapshot = createStoreSnapshot({
-      drafts: [],
-      draftHistory: [],
-      templates: [createTemplate()],
+    const currentSnapshot = createStoreSnapshot({
+      drafts: [createDraft({ id: "draft-1", signatureId: "signature-trash" })],
+      draftHistory: [
+        createDraftHistoryEntry({
+          id: "history-1",
+          draftId: "draft-1",
+          signatureId: "signature-trash",
+        }),
+      ],
+      templates: [createTemplate({ id: "template-1", signatureId: "signature-trash" })],
       signatures: [createSignature({ id: "signature-1", isDefault: true })],
       trash: {
         drafts: [],
@@ -341,7 +347,7 @@ describe("trash workspace state", () => {
       },
     });
     const snapshot = {
-      ...nextSnapshot,
+      ...currentSnapshot,
       trash: {
         drafts: [],
         templates: [],
@@ -356,7 +362,25 @@ describe("trash workspace state", () => {
     const callbacks = createBaseCallbacks();
 
     confirmMock.mockResolvedValue(true);
-    vi.spyOn(maildraftApi, "permanentlyDeleteSignatureFromTrash").mockResolvedValue(nextSnapshot);
+    vi.spyOn(maildraftApi, "permanentlyDeleteSignatureFromTrash").mockResolvedValue({
+      drafts: currentSnapshot.drafts.map((draft) => ({
+        ...draft,
+        signatureId: null,
+      })),
+      draftHistory: currentSnapshot.draftHistory.map((entry) => ({
+        ...entry,
+        signatureId: null,
+      })),
+      templates: currentSnapshot.templates.map((template) => ({
+        ...template,
+        signatureId: null,
+      })),
+      trash: {
+        drafts: [],
+        templates: [],
+        signatures: [],
+      },
+    });
 
     const { result } = renderHook(() =>
       useTrashWorkspaceState({
@@ -371,8 +395,14 @@ describe("trash workspace state", () => {
     });
 
     await waitFor(() => {
-      expect(callbacks.onSnapshotChange).toHaveBeenCalledWith(nextSnapshot);
+      expect(callbacks.onSnapshotChange).toHaveBeenCalledTimes(1);
     });
+    const nextSnapshot = callbacks.onSnapshotChange.mock.calls[0][0];
+    expect(nextSnapshot.signatures.map((signature: { id: string }) => signature.id)).toEqual([
+      "signature-1",
+    ]);
+    expect(nextSnapshot.drafts[0]?.signatureId).toBeNull();
+    expect(nextSnapshot.templates[0]?.signatureId).toBeNull();
     expect(callbacks.onSignatureSnapshotChange).toHaveBeenCalledWith(nextSnapshot);
     expect(callbacks.onNotice).toHaveBeenCalledWith("署名を完全に削除しました。");
   });
@@ -391,8 +421,7 @@ describe("trash workspace state", () => {
         signatures: [],
       },
     });
-    const nextSnapshot = {
-      ...snapshot,
+    const nextTrash = {
       trash: {
         drafts: [],
         templates: [],
@@ -402,7 +431,7 @@ describe("trash workspace state", () => {
     const callbacks = createBaseCallbacks();
 
     confirmMock.mockResolvedValue(true);
-    vi.spyOn(maildraftApi, "permanentlyDeleteDraftFromTrash").mockResolvedValue(nextSnapshot);
+    vi.spyOn(maildraftApi, "permanentlyDeleteDraftFromTrash").mockResolvedValue(nextTrash);
 
     const { result } = renderHook(() =>
       useTrashWorkspaceState({
@@ -416,7 +445,12 @@ describe("trash workspace state", () => {
       await result.current.trashWorkspaceProps.onDeleteItemPermanently(result.current.trashItems[0]);
     });
 
+    const nextSnapshot = callbacks.onSnapshotChange.mock.calls[0][0];
     expect(callbacks.onSnapshotChange).toHaveBeenCalledWith(nextSnapshot);
+    expect(nextSnapshot.drafts.map((draft: { id: string }) => draft.id)).toEqual(
+      snapshot.drafts.map((draft) => draft.id),
+    );
+    expect(nextSnapshot.trash.drafts).toHaveLength(0);
     expect(callbacks.onNotice).toHaveBeenCalledWith("下書きを完全に削除しました。");
   });
 
@@ -433,8 +467,15 @@ describe("trash workspace state", () => {
         signatures: [],
       },
     });
-    const nextSnapshot = {
-      ...snapshot,
+    const nextTrash = {
+      drafts: snapshot.drafts.map((draft) => ({
+        ...draft,
+        templateId: null,
+      })),
+      draftHistory: snapshot.draftHistory.map((entry) => ({
+        ...entry,
+        templateId: null,
+      })),
       trash: {
         drafts: [],
         templates: [],
@@ -444,7 +485,7 @@ describe("trash workspace state", () => {
     const callbacks = createBaseCallbacks();
 
     confirmMock.mockResolvedValue(true);
-    vi.spyOn(maildraftApi, "permanentlyDeleteTemplateFromTrash").mockResolvedValue(nextSnapshot);
+    vi.spyOn(maildraftApi, "permanentlyDeleteTemplateFromTrash").mockResolvedValue(nextTrash);
 
     const { result } = renderHook(() =>
       useTrashWorkspaceState({
@@ -458,7 +499,12 @@ describe("trash workspace state", () => {
       await result.current.trashWorkspaceProps.onDeleteItemPermanently(result.current.trashItems[0]);
     });
 
+    const nextSnapshot = callbacks.onSnapshotChange.mock.calls[0][0];
     expect(callbacks.onSnapshotChange).toHaveBeenCalledWith(nextSnapshot);
+    expect(nextSnapshot.drafts[0]?.templateId).toBeNull();
+    expect(nextSnapshot.signatures.map((signature: { id: string }) => signature.id)).toEqual(
+      snapshot.signatures.map((signature) => signature.id),
+    );
     expect(callbacks.onNotice).toHaveBeenCalledWith("テンプレートを完全に削除しました。");
   });
 
@@ -513,8 +559,19 @@ describe("trash workspace state", () => {
         signatures: [],
       },
     });
-    const nextSnapshot = {
-      ...snapshot,
+    const nextPatch = {
+      drafts: snapshot.drafts.map((draft) => ({
+        ...draft,
+        signatureId: null,
+      })),
+      draftHistory: snapshot.draftHistory.map((entry) => ({
+        ...entry,
+        signatureId: null,
+      })),
+      templates: snapshot.templates.map((template) => ({
+        ...template,
+        signatureId: null,
+      })),
       trash: {
         drafts: [],
         templates: [],
@@ -524,7 +581,7 @@ describe("trash workspace state", () => {
     const callbacks = createBaseCallbacks();
 
     confirmMock.mockResolvedValue(true);
-    vi.spyOn(maildraftApi, "emptyTrash").mockResolvedValue(nextSnapshot);
+    vi.spyOn(maildraftApi, "emptyTrash").mockResolvedValue(nextPatch);
 
     const { result } = renderHook(() =>
       useTrashWorkspaceState({
@@ -539,8 +596,11 @@ describe("trash workspace state", () => {
     });
 
     await waitFor(() => {
-      expect(callbacks.onSnapshotChange).toHaveBeenCalledWith(nextSnapshot);
+      expect(callbacks.onSnapshotChange).toHaveBeenCalledTimes(1);
     });
+    const nextSnapshot = callbacks.onSnapshotChange.mock.calls[0][0];
+    expect(nextSnapshot.drafts[0]?.signatureId).toBeNull();
+    expect(nextSnapshot.templates[0]?.signatureId).toBeNull();
     expect(callbacks.onTrashSelectionChange).toHaveBeenCalledWith(null);
     expect(callbacks.onSignatureSnapshotChange).toHaveBeenCalledWith(nextSnapshot);
     expect(callbacks.onNotice).toHaveBeenCalledWith("ゴミ箱を空にしました。");

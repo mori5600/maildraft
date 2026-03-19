@@ -46,6 +46,13 @@ export interface DeleteSignatureResult {
   trashedSignature: TrashedSignature;
 }
 
+export interface TrashMutationResult {
+  drafts?: Draft[];
+  draftHistory?: DraftHistoryEntry[];
+  templates?: Template[];
+  trash: TrashSnapshot;
+}
+
 /** Startup notice shown after recovery or reset. */
 export interface StartupNoticeSnapshot {
   message: string;

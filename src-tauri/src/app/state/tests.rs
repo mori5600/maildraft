@@ -274,6 +274,22 @@ fn trash_operations_round_trip_and_persist_snapshot_changes() {
         .expect("restore template");
     assert_eq!(restored.template.id, "template-thanks");
 
+    state
+        .delete_template("template-thanks")
+        .expect("trash template again");
+    let removed_template = state
+        .permanently_delete_template_from_trash("template-thanks")
+        .expect("delete template permanently");
+    assert!(removed_template.trash.templates.is_empty());
+    assert_eq!(
+        removed_template
+            .drafts
+            .as_ref()
+            .and_then(|drafts| drafts.first())
+            .and_then(|draft| draft.template_id.as_deref()),
+        None
+    );
+
     let deleted = state
         .delete_signature("signature-default")
         .expect("trash signature");
@@ -284,6 +300,22 @@ fn trash_operations_round_trip_and_persist_snapshot_changes() {
         .permanently_delete_signature_from_trash("signature-default")
         .expect("delete signature permanently");
     assert!(deleted.trash.signatures.is_empty());
+    assert_eq!(
+        deleted
+            .drafts
+            .as_ref()
+            .and_then(|drafts| drafts.first())
+            .and_then(|draft| draft.signature_id.as_deref()),
+        None
+    );
+    assert_eq!(
+        deleted
+            .templates
+            .as_ref()
+            .and_then(|templates| templates.first())
+            .and_then(|template| template.signature_id.as_deref()),
+        None
+    );
     assert_eq!(
         state.restore_signature_from_trash("missing").unwrap_err(),
         "指定した項目がゴミ箱に見つかりませんでした。"

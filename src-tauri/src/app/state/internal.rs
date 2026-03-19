@@ -83,13 +83,15 @@ impl AppState {
         let _ = self.logger.record(logging_settings, entry);
     }
 
-    pub(super) fn permanently_delete_item_from_trash<F>(
+    pub(super) fn permanently_delete_item_from_trash<F, B, R>(
         &self,
         kind: &str,
         mutator: F,
-    ) -> AppResult<StoreSnapshot>
+        build_result: B,
+    ) -> AppResult<R>
     where
         F: FnOnce(&mut StoreSnapshot) -> bool,
+        B: FnOnce(&StoreSnapshot) -> R,
     {
         let started_at = Instant::now();
         let mut store = self.store.lock().map_err(|error| error.to_string())?;
@@ -109,7 +111,8 @@ impl AppState {
 
         store.ensure_consistency();
         self.persist_locked_store(&store)?;
-        let snapshot = store.clone();
+        let safe_context = merge_context(trash_kind_context(kind), snapshot_counts_context(&store));
+        let result = build_result(&store);
         drop(store);
 
         self.log_event(LogEntry {
@@ -119,12 +122,9 @@ impl AppState {
             result: "success",
             duration_ms: Some(elapsed_millis(started_at)),
             error_code: None,
-            safe_context: merge_context(
-                trash_kind_context(kind),
-                snapshot_counts_context(&snapshot),
-            ),
+            safe_context,
         });
 
-        Ok(snapshot)
+        Ok(result)
     }
 }

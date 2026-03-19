@@ -3,7 +3,9 @@ use std::time::Instant;
 use serde_json::Map;
 
 use crate::app::logging::{LogEntry, LogLevel};
-use crate::modules::store::{SaveDraftResult, SaveSignatureResult, SaveTemplateResult, StoreSnapshot};
+use crate::modules::store::{
+    SaveDraftResult, SaveSignatureResult, SaveTemplateResult, TrashMutationResult,
+};
 
 use super::{
     context::{elapsed_millis, merge_context, snapshot_counts_context, trash_kind_context},
@@ -149,31 +151,82 @@ impl AppState {
         }
     }
 
-    pub fn permanently_delete_draft_from_trash(&self, id: &str) -> AppResult<StoreSnapshot> {
+    pub fn permanently_delete_draft_from_trash(&self, id: &str) -> AppResult<TrashMutationResult> {
         self.permanently_delete_item_from_trash("draft", |store| {
             store.permanently_delete_draft_from_trash(id)
+        }, |store| TrashMutationResult {
+            drafts: None,
+            draft_history: None,
+            templates: None,
+            trash: store.trash.clone(),
         })
     }
 
-    pub fn permanently_delete_template_from_trash(&self, id: &str) -> AppResult<StoreSnapshot> {
+    pub fn permanently_delete_template_from_trash(
+        &self,
+        id: &str,
+    ) -> AppResult<TrashMutationResult> {
         self.permanently_delete_item_from_trash("template", |store| {
             store.permanently_delete_template_from_trash(id)
+        }, |store| TrashMutationResult {
+            drafts: Some(store.drafts.clone()),
+            draft_history: Some(store.draft_history.clone()),
+            templates: None,
+            trash: store.trash.clone(),
         })
     }
 
-    pub fn permanently_delete_signature_from_trash(&self, id: &str) -> AppResult<StoreSnapshot> {
+    pub fn permanently_delete_signature_from_trash(
+        &self,
+        id: &str,
+    ) -> AppResult<TrashMutationResult> {
         self.permanently_delete_item_from_trash("signature", |store| {
             store.permanently_delete_signature_from_trash(id)
+        }, |store| TrashMutationResult {
+            drafts: Some(store.drafts.clone()),
+            draft_history: Some(store.draft_history.clone()),
+            templates: Some(store.templates.clone()),
+            trash: store.trash.clone(),
         })
     }
 
-    pub fn empty_trash(&self) -> AppResult<StoreSnapshot> {
+    pub fn empty_trash(&self) -> AppResult<TrashMutationResult> {
         let started_at = Instant::now();
 
-        match self.mutate_store(|store| {
+        let result = (|| {
+            let mut store = self.store.lock().map_err(|error| error.to_string())?;
+            let had_trashed_templates = !store.trash.templates.is_empty();
+            let had_trashed_signatures = !store.trash.signatures.is_empty();
+
             store.empty_trash();
-        }) {
-            Ok(snapshot) => {
+            store.ensure_consistency();
+            self.persist_locked_store(&store)?;
+
+            Ok((
+                TrashMutationResult {
+                    drafts: if had_trashed_templates || had_trashed_signatures {
+                        Some(store.drafts.clone())
+                    } else {
+                        None
+                    },
+                    draft_history: if had_trashed_templates || had_trashed_signatures {
+                        Some(store.draft_history.clone())
+                    } else {
+                        None
+                    },
+                    templates: if had_trashed_signatures {
+                        Some(store.templates.clone())
+                    } else {
+                        None
+                    },
+                    trash: store.trash.clone(),
+                },
+                snapshot_counts_context(&store),
+            ))
+        })();
+
+        match result {
+            Ok((mutation, snapshot_context)) => {
                 self.log_event(LogEntry {
                     level: LogLevel::Info,
                     event_name: "trash.empty",
@@ -181,9 +234,9 @@ impl AppState {
                     result: "success",
                     duration_ms: Some(elapsed_millis(started_at)),
                     error_code: None,
-                    safe_context: snapshot_counts_context(&snapshot),
+                    safe_context: snapshot_context,
                 });
-                Ok(snapshot)
+                Ok(mutation)
             }
             Err(error) => {
                 self.log_event(LogEntry {

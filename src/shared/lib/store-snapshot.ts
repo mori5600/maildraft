@@ -17,6 +17,7 @@ import type {
   SaveSignatureResult,
   SaveTemplateResult,
   StoreSnapshot,
+  TrashMutationResult,
 } from "../types/store";
 import { sortDrafts, sortSignatures, sortTemplates } from "./list-sort";
 
@@ -255,6 +256,20 @@ export function applyRestoredSignatureResult(
         (entry) => entry.signature.id,
       ),
     },
+  };
+}
+
+/** Applies destructive trash updates without replacing unaffected collections. */
+export function applyTrashMutationResult(
+  snapshot: StoreSnapshot,
+  mutation: TrashMutationResult,
+): StoreSnapshot {
+  return {
+    ...snapshot,
+    drafts: mutation.drafts ?? snapshot.drafts,
+    draftHistory: mutation.draftHistory ?? snapshot.draftHistory,
+    templates: mutation.templates ?? snapshot.templates,
+    trash: mutation.trash,
   };
 }
 

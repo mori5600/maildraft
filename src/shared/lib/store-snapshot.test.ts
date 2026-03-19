@@ -11,6 +11,7 @@ import {
   applySavedDraftResult,
   applySavedSignatureResult,
   applySavedTemplateResult,
+  applyTrashMutationResult,
   getDefaultSignatureId,
   pickDraftInput,
   pickKnownSignatureId,
@@ -285,5 +286,70 @@ describe("store-snapshot helpers", () => {
         (entry) => entry.signature.id === "signature-other",
       ),
     ).toBe(false);
+  });
+
+  it("applies compact trash cleanup payloads without replacing unrelated collections", () => {
+    const nextAfterTemplateDelete = applyTrashMutationResult(snapshot, {
+      drafts: [
+        {
+          ...snapshot.drafts[0],
+          templateId: null,
+        },
+      ],
+      draftHistory: [
+        {
+          id: "draft-1-history",
+          draftId: "draft-1",
+          title: "下書き",
+          subject: "件名",
+          recipient: "",
+          opening: "",
+          body: "",
+          closing: "",
+          templateId: null,
+          signatureId: "signature-default",
+          variableValues: {},
+          recordedAt: "3",
+        },
+      ],
+      trash: {
+        ...snapshot.trash,
+        templates: [],
+      },
+    });
+    expect(nextAfterTemplateDelete.drafts[0]?.templateId).toBeNull();
+    expect(nextAfterTemplateDelete.draftHistory[0]?.templateId).toBeNull();
+    expect(nextAfterTemplateDelete.templates[0]?.id).toBe("template-1");
+    expect(nextAfterTemplateDelete.signatures[0]?.id).toBe("signature-default");
+    expect(nextAfterTemplateDelete.trash.templates).toHaveLength(0);
+
+    const nextAfterEmptyTrash = applyTrashMutationResult(snapshot, {
+      drafts: [
+        {
+          ...snapshot.drafts[0],
+          templateId: "template-1",
+          signatureId: null,
+        },
+      ],
+      draftHistory: [],
+      templates: [
+        {
+          ...snapshot.templates[0],
+          signatureId: null,
+        },
+      ],
+      trash: {
+        drafts: [],
+        templates: [],
+        signatures: [],
+      },
+    });
+    expect(nextAfterEmptyTrash.drafts[0]?.signatureId).toBeNull();
+    expect(nextAfterEmptyTrash.templates[0]?.signatureId).toBeNull();
+    expect(nextAfterEmptyTrash.signatures.map((signature) => signature.id)).toEqual([
+      "signature-default",
+      "signature-other",
+    ]);
+    expect(nextAfterEmptyTrash.trash.signatures).toHaveLength(0);
   });
 });

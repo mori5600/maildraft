@@ -19,6 +19,7 @@ import type {
   SaveTemplateResult,
   StartupNoticeSnapshot,
   StoreSnapshot,
+  TrashMutationResult,
 } from "../types/store";
 
 /** Tauri command wrapper. Save commands may return compact payloads. */
@@ -44,7 +45,7 @@ export const maildraftApi = {
   },
 
   permanentlyDeleteDraftFromTrash(id: string) {
-    return invoke<StoreSnapshot>("permanently_delete_draft_from_trash", { id });
+    return invoke<TrashMutationResult>("permanently_delete_draft_from_trash", { id });
   },
 
   restoreDraftHistory(draftId: string, historyId: string) {
@@ -72,7 +73,7 @@ export const maildraftApi = {
   },
 
   permanentlyDeleteTemplateFromTrash(id: string) {
-    return invoke<StoreSnapshot>("permanently_delete_template_from_trash", { id });
+    return invoke<TrashMutationResult>("permanently_delete_template_from_trash", { id });
   },
 
   saveSignature(input: SignatureInput) {
@@ -88,11 +89,11 @@ export const maildraftApi = {
   },
 
   permanentlyDeleteSignatureFromTrash(id: string) {
-    return invoke<StoreSnapshot>("permanently_delete_signature_from_trash", { id });
+    return invoke<TrashMutationResult>("permanently_delete_signature_from_trash", { id });
   },
 
   emptyTrash() {
-    return invoke<StoreSnapshot>("empty_trash");
+    return invoke<TrashMutationResult>("empty_trash");
   },
 
   loadLoggingSettings() {
