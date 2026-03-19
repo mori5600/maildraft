@@ -1,5 +1,6 @@
+import { CodeEditor } from "../../../../shared/ui/code-editor/CodeEditor";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
-import { Button, Field, Input, Panel, Select, Textarea } from "../../../../shared/ui/primitives";
+import { Button, Field, Input, Panel, Select } from "../../../../shared/ui/primitives";
 import type { Signature } from "../../../signatures/model";
 import type { TemplateInput } from "../../model";
 
@@ -116,52 +117,48 @@ export function TemplateEditorPane({
             </div>
           </div>
 
-          <Field label="宛名メモ" hint="社名や担当者など">
-            <Textarea
+          <Field hint="社名や担当者など" label="宛名メモ" wrapWithLabel={false}>
+            <CodeEditor
+              ariaLabel="宛名メモ"
               className="min-h-24"
-              enableSelectNextOccurrence
+              contentClassName="mail-compose-text"
               placeholder={"株式会社〇〇\n営業部\n佐藤 様"}
-              rows={3}
               showWhitespace={showWhitespace}
-              textClassName="mail-compose-text"
               value={templateForm.recipient}
-              onChange={(event) => onChangeTemplate("recipient", event.currentTarget.value)}
+              onChange={(value) => onChangeTemplate("recipient", value)}
             />
           </Field>
 
-          <Field label="書き出し">
-            <Textarea
+          <Field label="書き出し" wrapWithLabel={false}>
+            <CodeEditor
+              ariaLabel="書き出し"
               className="min-h-33"
-              enableSelectNextOccurrence
-              rows={5}
+              contentClassName="mail-compose-text"
               showWhitespace={showWhitespace}
-              textClassName="mail-compose-text"
               value={templateForm.opening}
-              onChange={(event) => onChangeTemplate("opening", event.currentTarget.value)}
+              onChange={(value) => onChangeTemplate("opening", value)}
             />
           </Field>
 
-          <Field label="本文">
-            <Textarea
+          <Field label="本文" wrapWithLabel={false}>
+            <CodeEditor
+              ariaLabel="本文"
               className="min-h-70"
-              enableSelectNextOccurrence
-              rows={12}
+              contentClassName="mail-compose-text"
               showWhitespace={showWhitespace}
-              textClassName="mail-compose-text"
               value={templateForm.body}
-              onChange={(event) => onChangeTemplate("body", event.currentTarget.value)}
+              onChange={(value) => onChangeTemplate("body", value)}
             />
           </Field>
 
-          <Field label="結び">
-            <Textarea
+          <Field label="結び" wrapWithLabel={false}>
+            <CodeEditor
+              ariaLabel="結び"
               className="min-h-33"
-              enableSelectNextOccurrence
-              rows={5}
+              contentClassName="mail-compose-text"
               showWhitespace={showWhitespace}
-              textClassName="mail-compose-text"
               value={templateForm.closing}
-              onChange={(event) => onChangeTemplate("closing", event.currentTarget.value)}
+              onChange={(value) => onChangeTemplate("closing", value)}
             />
           </Field>
         </div>

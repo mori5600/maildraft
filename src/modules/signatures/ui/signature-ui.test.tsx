@@ -76,12 +76,35 @@ describe("signature UI", () => {
 
     await user.type(screen.getByDisplayValue("営業署名"), "更新");
     expect(handleChangeSignature).toHaveBeenCalled();
+    const bodyEditor = screen.getByRole("textbox", { name: "本文" });
+    await user.click(bodyEditor);
+    await user.keyboard("{Enter}追記");
+    expect(bodyEditor).toHaveFocus();
+    expect(handleChangeSignature).toHaveBeenCalledWith("body", expect.stringContaining("追記"));
     await user.click(screen.getByRole("checkbox"));
     expect(handleChangeSignature).toHaveBeenCalledWith("isDefault", true);
     await user.click(screen.getByRole("button", { name: "保存" }));
     expect(handleSaveSignature).toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "拡大" }));
     expect(handleOpenPreview).toHaveBeenCalled();
+  });
+
+  it("keeps the signature body in CodeMirror when whitespace is visible", () => {
+    render(
+      <SignatureEditorPane
+        canDuplicate
+        selectedSignatureId="signature-input-1"
+        showWhitespace
+        signatureForm={createSignatureInput()}
+        onChangeSignature={vi.fn()}
+        onDeleteSignature={vi.fn(async () => {})}
+        onDuplicateSignature={vi.fn(async () => {})}
+        onSaveSignature={vi.fn(async () => {})}
+        onTogglePinned={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("textbox", { name: "本文" })).toBeInTheDocument();
   });
 
   it("connects signature workspace overlay", async () => {

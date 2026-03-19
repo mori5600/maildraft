@@ -83,6 +83,14 @@ describe("template UI", () => {
 
     await user.type(screen.getByDisplayValue("打ち合わせお礼"), "更新");
     expect(handleChangeTemplate).toHaveBeenCalled();
+    await user.click(screen.getByRole("textbox", { name: "宛名メモ" }));
+    await user.keyboard("追記");
+    expect(handleChangeTemplate).toHaveBeenCalledWith("recipient", expect.stringContaining("追記"));
+    const bodyEditor = screen.getByRole("textbox", { name: "本文" });
+    await user.click(bodyEditor);
+    await user.keyboard("{Enter}追記");
+    expect(bodyEditor).toHaveFocus();
+    expect(handleChangeTemplate).toHaveBeenCalledWith("body", expect.stringContaining("追記"));
     await user.click(screen.getByRole("button", { name: "固定" }));
     expect(handleTogglePinned).toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "複製" }));
@@ -92,6 +100,28 @@ describe("template UI", () => {
     await user.click(screen.getByRole("button", { name: "下書きを作成" }));
     expect(handleStartDraftFromTemplate).toHaveBeenCalled();
     expect(screen.getAllByText("件名").length).toBeGreaterThan(0);
+  });
+
+  it("keeps multiline template fields in CodeMirror when whitespace is visible", () => {
+    render(
+      <TemplateEditorPane
+        canDuplicate
+        selectedTemplateId="template-input-1"
+        showWhitespace
+        signatures={[createSignature()]}
+        templateForm={createTemplateInput()}
+        onChangeTemplate={vi.fn()}
+        onDeleteTemplate={vi.fn(async () => {})}
+        onDuplicateTemplate={vi.fn(async () => {})}
+        onSaveTemplate={vi.fn(async () => {})}
+        onTogglePinned={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("textbox", { name: "宛名メモ" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "書き出し" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "本文" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "結び" })).toBeInTheDocument();
   });
 
   it("connects template workspace overlay", async () => {

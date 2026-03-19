@@ -1,5 +1,6 @@
+import { CodeEditor } from "../../../../shared/ui/code-editor/CodeEditor";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
-import { Button, Field, Input, Panel, Textarea } from "../../../../shared/ui/primitives";
+import { Button, Field, Input, Panel } from "../../../../shared/ui/primitives";
 import type { SignatureInput } from "../../model";
 
 interface SignatureEditorPaneProps {
@@ -82,15 +83,14 @@ export function SignatureEditorPane({
             新規下書きで既定の署名として使う
           </label>
 
-          <Field label="本文">
-            <Textarea
+          <Field label="本文" wrapWithLabel={false}>
+            <CodeEditor
+              ariaLabel="本文"
               className="min-h-80"
-              enableSelectNextOccurrence
-              rows={14}
+              contentClassName="mail-signature-edit-text"
               showWhitespace={showWhitespace}
-              textClassName="mail-signature-edit-text"
               value={signatureForm.body}
-              onChange={(event) => onChangeSignature("body", event.currentTarget.value)}
+              onChange={(value) => onChangeSignature("body", value)}
             />
           </Field>
         </div>
