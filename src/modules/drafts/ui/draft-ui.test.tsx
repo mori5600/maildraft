@@ -196,6 +196,43 @@ describe("draft UI", () => {
     expect(handleChangeDraftVariable).toHaveBeenCalled();
   });
 
+  it("shows whitespace markers in draft variable inputs without changing their values", () => {
+    render(
+      <DraftPreviewPane
+        canApplyVariablePreset
+        canCopyPreview
+        canExpandPreview
+        canSaveVariablePreset
+        checks={[]}
+        draftForm={createDraftInput({ variableValues: { 相手名: "田 中" } })}
+        draftHistoryCount={1}
+        previewBodyText="本文プレビュー"
+        previewDescription="営業署名"
+        previewSubject="件名"
+        selectedVariablePresetId="preset-1"
+        showWhitespace
+        variableNames={["相手名"]}
+        variablePresetName="A 社向け"
+        variablePresets={[createVariablePreset()]}
+        onApplyVariablePreset={vi.fn()}
+        onChangeDraftVariable={vi.fn()}
+        onChangeVariablePresetName={vi.fn()}
+        onCopyPreview={vi.fn(async () => {})}
+        onCreateVariablePreset={vi.fn()}
+        onDeleteVariablePreset={vi.fn(async () => {})}
+        onOpenHistory={vi.fn()}
+        onOpenPreview={vi.fn()}
+        onSaveVariablePreset={vi.fn(async () => {})}
+        onSelectVariablePreset={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("A·社向け")).toBeInTheDocument();
+    expect(screen.getByText("田·中")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("A 社向け")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("田 中")).toBeInTheDocument();
+  });
+
   it("renders preview dialog content and history overlay", async () => {
     const user = userEvent.setup();
     const handleRestore = vi.fn(async () => {});

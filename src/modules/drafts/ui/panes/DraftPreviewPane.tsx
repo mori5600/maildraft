@@ -1,5 +1,6 @@
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
-import { Button, Field, Input, Panel, Select } from "../../../../shared/ui/primitives";
+import { Button, Field, Panel, Select } from "../../../../shared/ui/primitives";
+import { WhitespaceInput } from "../../../../shared/ui/WhitespaceInput";
 import type { DraftInput } from "../../model";
 import type { VariablePreset } from "../../variable-presets";
 import { DraftCheckList } from "./DraftCheckList";
@@ -125,7 +126,7 @@ export function DraftPreviewPane({
                       </Field>
 
                       <Field label="セット名">
-                        <Input
+                        <WhitespaceInput
                           placeholder="A社向け"
                           showWhitespace={showWhitespace}
                           value={variablePresetName}
@@ -168,7 +169,7 @@ export function DraftPreviewPane({
 
                 {variableNames.map((name) => (
                   <Field key={name} hint={`{{${name}}}`} label={name}>
-                    <Input
+                    <WhitespaceInput
                       placeholder={`{{${name}}} に入れる値`}
                       showWhitespace={showWhitespace}
                       value={draftForm.variableValues[name] ?? ""}

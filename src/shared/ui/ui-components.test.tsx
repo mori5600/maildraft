@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { PaneHeader } from "./PaneHeader";
 import { PreviewOverlay } from "./PreviewOverlay";
 import { Button, Field, Input, Panel, Pill, Select, Textarea } from "./primitives";
+import { WhitespaceInput } from "./WhitespaceInput";
 
 describe("shared UI components", () => {
   it("renders pane header and action", () => {
@@ -19,8 +20,9 @@ describe("shared UI components", () => {
     render(
       <Panel>
         <Field hint="補足" label="件名">
-          <Input showWhitespace value={"A B"} onChange={handleChange} />
+          <WhitespaceInput showWhitespace value={"A B"} onChange={handleChange} />
         </Field>
+        <Input aria-label="検索" value="検索語" onChange={handleChange} />
         <Textarea value={"1 2"} onChange={handleChange} />
         <Select aria-label="選択" defaultValue="a">
           <option value="a">A</option>
@@ -33,7 +35,9 @@ describe("shared UI components", () => {
 
     expect(screen.getByText("件名")).toBeInTheDocument();
     expect(screen.getByText("補足")).toBeInTheDocument();
+    expect(screen.getByText("A·B")).toBeInTheDocument();
     expect(screen.getByDisplayValue("A B")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("検索語")).toBeInTheDocument();
     expect(screen.getByDisplayValue("1 2")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "保存" })).toBeInTheDocument();
     expect(screen.getByText("注目")).toBeInTheDocument();

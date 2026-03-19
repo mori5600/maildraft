@@ -5,30 +5,10 @@ import {
   type PropsWithChildren,
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
-  useDeferredValue,
-  useState,
 } from "react";
-
-import { visualizeWhitespace } from "../lib/whitespace";
 
 function cn(...classNames: Array<string | false | null | undefined>): string {
   return classNames.filter(Boolean).join(" ");
-}
-
-function toDisplayText(value: unknown): string {
-  if (typeof value === "string") {
-    return value;
-  }
-
-  if (value == null) {
-    return "";
-  }
-
-  return String(value);
-}
-
-function visualizeSegment(value: string): string {
-  return visualizeWhitespace(value);
 }
 
 export function Panel({
@@ -119,59 +99,16 @@ export function Field({
 
 export function Input({
   className,
-  onChange,
-  onScroll,
-  showWhitespace = false,
-  textClassName,
-  value,
-  placeholder,
   ...props
-}: InputHTMLAttributes<HTMLInputElement> & {
-  showWhitespace?: boolean;
-  textClassName?: string;
-}) {
-  const displayValue = toDisplayText(value);
-  const deferredDisplayValue = useDeferredValue(displayValue);
-  const overlayText = deferredDisplayValue || (typeof placeholder === "string" ? placeholder : "");
-  const [scrollLeft, setScrollLeft] = useState(0);
-
+}: InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <div className="relative">
-      {showWhitespace ? (
-        <div
-          aria-hidden="true"
-          className={cn(
-            "pointer-events-none absolute inset-0 flex items-center overflow-hidden rounded-[7px] px-3 text-[13px] text-(--color-text-overlay)",
-            textClassName,
-          )}
-        >
-          <div
-            className="min-w-full whitespace-pre"
-            style={{
-              transform: `translateX(${-scrollLeft}px)`,
-            }}
-          >
-            {visualizeSegment(overlayText) || " "}
-          </div>
-        </div>
-      ) : null}
-      <input
-        className={cn(
-          "w-full rounded-[7px] border border-(--color-field-border) bg-(--color-field-bg) px-3 py-2 text-[13px] text-(--color-text-strong) transition-colors outline-none placeholder:text-(--color-text-placeholder) focus:border-(--color-field-focus)",
-          textClassName,
-          showWhitespace && "text-transparent caret-(--color-text-strong)",
-          className,
-        )}
-        placeholder={showWhitespace ? "" : placeholder}
-        value={value}
-        onChange={onChange}
-        onScroll={(event) => {
-          setScrollLeft(event.currentTarget.scrollLeft);
-          onScroll?.(event);
-        }}
-        {...props}
-      />
-    </div>
+    <input
+      className={cn(
+        "w-full rounded-[7px] border border-(--color-field-border) bg-(--color-field-bg) px-3 py-2 text-[13px] text-(--color-text-strong) transition-colors outline-none placeholder:text-(--color-text-placeholder) focus:border-(--color-field-focus)",
+        className,
+      )}
+      {...props}
+    />
   );
 }
 
