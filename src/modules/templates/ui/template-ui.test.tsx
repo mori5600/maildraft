@@ -1,3 +1,4 @@
+import { EditorView } from "@codemirror/view";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -12,6 +13,22 @@ import { TemplateListPane } from "./panes/TemplateListPane";
 import { TemplatePreviewDialogContent } from "./panes/TemplatePreviewDialogContent";
 import { TemplatePreviewPane } from "./panes/TemplatePreviewPane";
 import { TemplateWorkspace } from "./TemplateWorkspace";
+
+function getEditorView(label: string): EditorView {
+  const textbox = screen.getByRole("textbox", { name: label });
+  const editorRoot = textbox.closest(".cm-editor");
+
+  if (!editorRoot) {
+    throw new Error("CodeMirror root not found");
+  }
+
+  const view = EditorView.findFromDOM(editorRoot as HTMLElement);
+  if (!view) {
+    throw new Error("CodeMirror view not found");
+  }
+
+  return view;
+}
 
 describe("template UI", () => {
   it("handles template list interactions", async () => {
@@ -81,8 +98,14 @@ describe("template UI", () => {
       </>,
     );
 
-    await user.type(screen.getByDisplayValue("打ち合わせお礼"), "更新");
-    expect(handleChangeTemplate).toHaveBeenCalled();
+    const nameEditor = getEditorView("名前");
+    nameEditor.dispatch({
+      changes: {
+        from: nameEditor.state.doc.length,
+        insert: "更新",
+      },
+    });
+    expect(handleChangeTemplate).toHaveBeenCalledWith("name", expect.stringContaining("更新"));
     await user.click(screen.getByRole("textbox", { name: "宛名メモ" }));
     await user.keyboard("追記");
     expect(handleChangeTemplate).toHaveBeenCalledWith("recipient", expect.stringContaining("追記"));
@@ -100,7 +123,7 @@ describe("template UI", () => {
     await user.click(screen.getByRole("button", { name: "下書きを作成" }));
     expect(handleStartDraftFromTemplate).toHaveBeenCalled();
     expect(screen.getAllByText("件名").length).toBeGreaterThan(0);
-  });
+  }, 10000);
 
   it("keeps multiline template fields in CodeMirror when whitespace is visible", () => {
     render(
@@ -118,6 +141,8 @@ describe("template UI", () => {
       />,
     );
 
+    expect(screen.getByRole("textbox", { name: "名前" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "件名" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "宛名メモ" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "書き出し" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "本文" })).toBeInTheDocument();

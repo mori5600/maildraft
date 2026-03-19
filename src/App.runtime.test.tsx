@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { EditorView } from "@codemirror/view";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -47,6 +48,33 @@ function resetThemeStorage() {
   }
 }
 
+function getEditorView(label: string): EditorView {
+  const textbox = document.querySelector(`[aria-label="${label}"]`);
+
+  if (!(textbox instanceof HTMLElement)) {
+    throw new Error(`CodeMirror textbox not found for ${label}`);
+  }
+
+  const editorRoot = textbox.closest(".cm-editor");
+
+  if (!editorRoot) {
+    throw new Error(`CodeMirror root not found for ${label}`);
+  }
+
+  const view = EditorView.findFromDOM(editorRoot as HTMLElement);
+  if (!view) {
+    throw new Error(`CodeMirror view not found for ${label}`);
+  }
+
+  return view;
+}
+
+async function expectEditorText(label: string, value: string) {
+  await waitFor(() => {
+    expect(getEditorView(label).state.doc.toString()).toBe(value);
+  });
+}
+
 describe("App runtime integration", () => {
   beforeEach(() => {
     installLocalStorageMock();
@@ -71,15 +99,20 @@ describe("App runtime integration", () => {
 
     render(<App />);
 
-    expect(await screen.findByDisplayValue("4/12 打ち合わせお礼")).toBeInTheDocument();
+    await expectEditorText("一覧名", "4/12 打ち合わせお礼");
     expect(runtime.commandCalls.slice(0, 3).map((call) => call.cmd)).toEqual([
       "load_snapshot",
       "load_logging_settings",
       "load_startup_notice",
     ]);
 
-    fireEvent.change(screen.getByLabelText("件名"), {
-      target: { value: "統合テストの件名" },
+    const subjectView = getEditorView("件名");
+    subjectView.dispatch({
+      changes: {
+        from: 0,
+        to: subjectView.state.doc.length,
+        insert: "統合テストの件名",
+      },
     });
     await user.click(screen.getByRole("button", { name: "保存" }));
 
@@ -101,7 +134,7 @@ describe("App runtime integration", () => {
 
     render(<App />);
 
-    expect(await screen.findByDisplayValue("4/12 打ち合わせお礼")).toBeInTheDocument();
+    await expectEditorText("一覧名", "4/12 打ち合わせお礼");
     expect(
       await screen.findByText("ローカルデータを復旧できなかったため初期状態で起動しました。"),
     ).toBeInTheDocument();
@@ -115,7 +148,7 @@ describe("App runtime integration", () => {
     });
 
     render(<App />);
-    await screen.findByDisplayValue("4/12 打ち合わせお礼");
+    await expectEditorText("一覧名", "4/12 打ち合わせお礼");
 
     await user.click(screen.getByTitle("設定 (Ctrl/Cmd+5)"));
     await user.selectOptions(screen.getByLabelText(/記録レベル/), "standard");
@@ -163,7 +196,7 @@ describe("App runtime integration", () => {
     });
 
     render(<App />);
-    await screen.findByDisplayValue("現在の下書き");
+    await expectEditorText("一覧名", "現在の下書き");
 
     await user.click(screen.getByTitle("ゴミ箱 (Ctrl/Cmd+4)"));
     expect((await screen.findAllByText("削除した下書き")).length).toBeGreaterThan(0);
@@ -175,9 +208,7 @@ describe("App runtime integration", () => {
     });
     expect(runtime.commandCalls.some((call) => call.cmd === "restore_draft_from_trash")).toBe(true);
     expect(await screen.findByText("下書きをゴミ箱から復元しました。")).toBeInTheDocument();
-    await waitFor(() => {
-      expect(screen.getByLabelText("一覧名")).toHaveValue("削除した下書き");
-    });
+    await expectEditorText("一覧名", "削除した下書き");
   });
 
   it("keeps the draft list empty after deleting the last saved draft", async () => {
@@ -202,7 +233,7 @@ describe("App runtime integration", () => {
     });
 
     render(<App />);
-    expect(await screen.findByDisplayValue("最後の下書き")).toBeInTheDocument();
+    await expectEditorText("一覧名", "最後の下書き");
 
     await user.click(screen.getByRole("button", { name: "ゴミ箱へ移動" }));
 

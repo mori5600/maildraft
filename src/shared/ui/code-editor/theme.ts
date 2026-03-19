@@ -17,14 +17,25 @@ export const codeEditorTheme = EditorView.theme({
   "&[aria-disabled='true']": {
     opacity: "0.6",
   },
+  "&.cm-maildraft-single-line": {
+    minHeight: "34px",
+  },
   ".cm-scroller": {
     minHeight: "inherit",
     overflow: "auto",
+  },
+  "&.cm-maildraft-single-line > .cm-scroller": {
+    overflowX: "auto",
+    overflowY: "hidden",
   },
   ".cm-content": {
     minHeight: "inherit",
     padding: "8px 12px",
     caretColor: "var(--color-text-strong)",
+  },
+  "&.cm-maildraft-single-line > .cm-scroller > .cm-content": {
+    minHeight: "auto",
+    whiteSpace: "pre",
   },
   ".cm-line": {
     padding: "0",

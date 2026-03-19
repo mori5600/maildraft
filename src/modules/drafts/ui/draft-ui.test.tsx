@@ -84,8 +84,10 @@ describe("draft UI", () => {
       />,
     );
 
-    await user.type(screen.getByDisplayValue("4/12 打ち合わせお礼"), "追記");
-    expect(handleChangeDraft).toHaveBeenCalled();
+    const titleEditor = screen.getByRole("textbox", { name: "一覧名" });
+    await user.click(titleEditor);
+    await user.keyboard("{End}追記");
+    expect(handleChangeDraft).toHaveBeenCalledWith("title", expect.stringContaining("追記"));
     await user.click(screen.getByRole("textbox", { name: "宛名メモ" }));
     await user.keyboard("追記");
     expect(handleChangeDraft).toHaveBeenCalledWith("recipient", expect.stringContaining("追記"));
@@ -123,6 +125,8 @@ describe("draft UI", () => {
       />,
     );
 
+    expect(screen.getByRole("textbox", { name: "一覧名" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "件名" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "宛名メモ" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "書き出し" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "本文" })).toBeInTheDocument();

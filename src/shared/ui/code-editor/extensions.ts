@@ -23,6 +23,7 @@ export interface CodeEditorCompartments {
   accessibility: Compartment;
   contentAttributes: Compartment;
   editable: Compartment;
+  layout: Compartment;
   placeholder: Compartment;
   whitespace: Compartment;
 }
@@ -30,6 +31,7 @@ export interface CodeEditorCompartments {
 export interface CodeEditorAccessibilityOptions {
   ariaLabel?: string;
   disabled?: boolean;
+  singleLine?: boolean;
 }
 
 export interface CodeEditorContentAttributeOptions {
@@ -42,6 +44,7 @@ export function createCodeEditorCompartments(): CodeEditorCompartments {
     accessibility: new Compartment(),
     contentAttributes: new Compartment(),
     editable: new Compartment(),
+    layout: new Compartment(),
     placeholder: new Compartment(),
     whitespace: new Compartment(),
   };
@@ -54,7 +57,6 @@ export function createCodeEditorBaseExtensions(
     codeEditorTheme,
     EditorState.allowMultipleSelections.of(true),
     drawSelection(),
-    EditorView.lineWrapping,
     history(),
     search({ top: true }),
     highlightSelectionMatches({ minSelectionLength: 1 }),
@@ -102,12 +104,65 @@ export function createCodeEditorAccessibilityExtension(
   options: CodeEditorAccessibilityOptions,
 ): Extension {
   const attrs: Record<string, string> = {};
+  const classNames: string[] = [];
 
   if (options.disabled) {
     attrs["aria-disabled"] = "true";
   }
 
+  if (options.singleLine) {
+    classNames.push("cm-maildraft-single-line");
+  }
+
+  if (classNames.length > 0) {
+    attrs.class = classNames.join(" ");
+  }
+
   return Object.keys(attrs).length > 0 ? EditorView.editorAttributes.of(attrs) : [];
+}
+
+export function createCodeEditorLayoutExtension(options: { singleLine?: boolean }): Extension {
+  if (!options.singleLine) {
+    return [EditorView.lineWrapping];
+  }
+
+  const normalizeClipboardText = (text: string) => text.replace(/\r\n|\r|\n/g, " ");
+  const normalizeInputText = (text: string) => {
+    if (!/[\r\n]/.test(text)) {
+      return text;
+    }
+
+    return text.trim().length === 0 ? "" : normalizeClipboardText(text);
+  };
+
+  return [
+    EditorView.inputHandler.of((view, from, to, text) => {
+      const normalizedText = normalizeInputText(text);
+
+      if (normalizedText === text) {
+        return false;
+      }
+
+      view.dispatch({
+        changes: { from, to, insert: normalizedText },
+        selection: { anchor: from + normalizedText.length },
+      });
+      return true;
+    }),
+    EditorView.clipboardInputFilter.of((text) => normalizeClipboardText(text)),
+    keymap.of([
+      {
+        key: "Enter",
+        preventDefault: true,
+        run: () => true,
+      },
+      {
+        key: "Shift-Enter",
+        preventDefault: true,
+        run: () => true,
+      },
+    ]),
+  ];
 }
 
 const visibleWhitespaceMarks = {

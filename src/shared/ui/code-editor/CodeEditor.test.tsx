@@ -95,6 +95,47 @@ describe("CodeEditor", () => {
     expect(view.dom.querySelector('[data-marker="□"]')).not.toBeNull();
   });
 
+  it("keeps single-line editors on one line when Enter is pressed", async () => {
+    const user = userEvent.setup();
+
+    function ControlledEditor() {
+      const [value, setValue] = useState("件名");
+
+      return <CodeEditor ariaLabel="件名" singleLine value={value} onChange={setValue} />;
+    }
+
+    render(<ControlledEditor />);
+
+    const textbox = screen.getByRole("textbox", { name: "件名" });
+    await user.click(textbox);
+    await user.keyboard("{End}{Enter}追記");
+
+    expect(getEditorView("件名").state.doc.toString()).toBe("件名 追記");
+    expect(getEditorView("件名").state.doc.toString()).not.toContain("\n");
+  });
+
+  it("normalizes pasted newlines in single-line editors", async () => {
+    function ControlledEditor() {
+      const [value, setValue] = useState("件名");
+
+      return <CodeEditor ariaLabel="件名" singleLine value={value} onChange={setValue} />;
+    }
+
+    render(<ControlledEditor />);
+
+    const view = getEditorView("件名");
+    view.dispatch({
+      changes: {
+        from: view.state.doc.length,
+        insert: "\n追記",
+      },
+    });
+
+    await waitFor(() => {
+      expect(view.state.doc.toString()).toBe("件名 追記");
+    });
+  });
+
   it("keeps focus through controlled Enter input", async () => {
     const user = userEvent.setup();
 

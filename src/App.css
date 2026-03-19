@@ -227,6 +227,17 @@
   font-feature-settings: normal;
 }
 
+.mail-field-text {
+  font-family:
+    system-ui, -apple-system, "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: normal;
+  font-kerning: auto;
+  font-feature-settings: normal;
+}
+
 .mail-compose-text {
   font-family:
     system-ui, -apple-system, "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;

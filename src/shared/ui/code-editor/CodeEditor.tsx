@@ -8,12 +8,21 @@ import {
   createCodeEditorCompartments,
   createCodeEditorContentAttributesExtension,
   createCodeEditorEditableExtension,
+  createCodeEditorLayoutExtension,
   createCodeEditorPlaceholderExtension,
   createCodeEditorWhitespaceExtension,
 } from "./extensions";
 
 function cn(...classNames: Array<string | false | null | undefined>): string {
   return classNames.filter(Boolean).join(" ");
+}
+
+function normalizeEditorValue(value: string, singleLine: boolean): string {
+  if (!singleLine) {
+    return value;
+  }
+
+  return value.replace(/\r\n|\r|\n/g, " ");
 }
 
 /**
@@ -32,6 +41,7 @@ export function CodeEditor({
   placeholder,
   readOnly = false,
   showWhitespace = false,
+  singleLine = false,
   value,
 }: {
   ariaLabel?: string;
@@ -45,11 +55,13 @@ export function CodeEditor({
   placeholder?: string;
   readOnly?: boolean;
   showWhitespace?: boolean;
+  singleLine?: boolean;
   value: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const compartmentsRef = useRef(createCodeEditorCompartments());
+  const normalizedValue = normalizeEditorValue(value, singleLine);
   const initialConfigRef = useRef({
     ariaLabel,
     autoFocus,
@@ -58,17 +70,20 @@ export function CodeEditor({
     placeholder,
     readOnly,
     showWhitespace,
-    value,
+    singleLine,
+    value: normalizedValue,
   });
   const applyingExternalValueRef = useRef(false);
   const emitChange = useEffectEvent((nextValue: string) => {
-    if (applyingExternalValueRef.current && nextValue === value) {
+    const normalizedNextValue = normalizeEditorValue(nextValue, singleLine);
+
+    if (applyingExternalValueRef.current && normalizedNextValue === normalizedValue) {
       applyingExternalValueRef.current = false;
       return;
     }
 
     applyingExternalValueRef.current = false;
-    onChange(nextValue);
+    onChange(normalizedNextValue);
   });
   const emitFocus = useEffectEvent(() => {
     onFocus?.();
@@ -96,7 +111,10 @@ export function CodeEditor({
         },
       }),
       compartmentsRef.current.accessibility.of(
-        createCodeEditorAccessibilityExtension({ disabled: initialConfig.disabled }),
+        createCodeEditorAccessibilityExtension({
+          disabled: initialConfig.disabled,
+          singleLine: initialConfig.singleLine,
+        }),
       ),
       compartmentsRef.current.contentAttributes.of(
         createCodeEditorContentAttributesExtension({
@@ -109,6 +127,9 @@ export function CodeEditor({
           disabled: initialConfig.disabled,
           readOnly: initialConfig.readOnly,
         }),
+      ),
+      compartmentsRef.current.layout.of(
+        createCodeEditorLayoutExtension({ singleLine: initialConfig.singleLine }),
       ),
       compartmentsRef.current.placeholder.of(
         createCodeEditorPlaceholderExtension(initialConfig.placeholder),
@@ -146,10 +167,10 @@ export function CodeEditor({
 
     view.dispatch({
       effects: compartmentsRef.current.accessibility.reconfigure(
-        createCodeEditorAccessibilityExtension({ disabled }),
+        createCodeEditorAccessibilityExtension({ disabled, singleLine }),
       ),
     });
-  }, [disabled]);
+  }, [disabled, singleLine]);
 
   useEffect(() => {
     const view = viewRef.current;
@@ -184,6 +205,19 @@ export function CodeEditor({
     }
 
     view.dispatch({
+      effects: compartmentsRef.current.layout.reconfigure(
+        createCodeEditorLayoutExtension({ singleLine }),
+      ),
+    });
+  }, [singleLine]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) {
+      return;
+    }
+
+    view.dispatch({
       effects: compartmentsRef.current.placeholder.reconfigure(
         createCodeEditorPlaceholderExtension(placeholder),
       ),
@@ -210,7 +244,7 @@ export function CodeEditor({
     }
 
     const currentValue = view.state.doc.toString();
-    if (currentValue === value) {
+    if (currentValue === normalizedValue) {
       return;
     }
 
@@ -219,10 +253,12 @@ export function CodeEditor({
       changes: {
         from: 0,
         to: currentValue.length,
-        insert: value,
+        insert: normalizedValue,
       },
     });
-  }, [value]);
+  }, [normalizedValue]);
 
-  return <div className={cn("min-h-28", className)} ref={containerRef} />;
+  return (
+    <div className={cn(singleLine ? "min-h-8.5" : "min-h-28", className)} ref={containerRef} />
+  );
 }

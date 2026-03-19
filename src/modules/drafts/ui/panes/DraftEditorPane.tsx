@@ -1,6 +1,6 @@
 import { CodeEditor } from "../../../../shared/ui/code-editor/CodeEditor";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
-import { Button, Field, Input, Panel, Select } from "../../../../shared/ui/primitives";
+import { Button, Field, Panel, Select } from "../../../../shared/ui/primitives";
 import type { Signature } from "../../../signatures/model";
 import type { Template } from "../../../templates/model";
 import type { DraftInput } from "../../model";
@@ -81,20 +81,28 @@ export function DraftEditorPane({
       <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3.5">
         <div className="grid gap-3">
           <div className="grid gap-3 md:grid-cols-2">
-            <Field label="一覧名">
-              <Input
+            <Field label="一覧名" wrapWithLabel={false}>
+              <CodeEditor
+                ariaLabel="一覧名"
+                className="min-h-8.5"
+                contentClassName="mail-field-text"
                 placeholder="4/12 打ち合わせお礼"
+                singleLine
                 showWhitespace={showWhitespace}
                 value={draftForm.title}
-                onChange={(event) => onChangeDraft("title", event.currentTarget.value)}
+                onChange={(value) => onChangeDraft("title", value)}
               />
             </Field>
-            <Field label="件名">
-              <Input
+            <Field label="件名" wrapWithLabel={false}>
+              <CodeEditor
+                ariaLabel="件名"
+                className="min-h-8.5"
+                contentClassName="mail-field-text"
                 placeholder="件名"
+                singleLine
                 showWhitespace={showWhitespace}
                 value={draftForm.subject}
-                onChange={(event) => onChangeDraft("subject", event.currentTarget.value)}
+                onChange={(value) => onChangeDraft("subject", value)}
               />
             </Field>
           </div>

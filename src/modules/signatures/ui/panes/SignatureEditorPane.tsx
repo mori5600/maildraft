@@ -1,6 +1,6 @@
 import { CodeEditor } from "../../../../shared/ui/code-editor/CodeEditor";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
-import { Button, Field, Input, Panel } from "../../../../shared/ui/primitives";
+import { Button, Field, Panel } from "../../../../shared/ui/primitives";
 import type { SignatureInput } from "../../model";
 
 interface SignatureEditorPaneProps {
@@ -64,11 +64,15 @@ export function SignatureEditorPane({
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3.5">
         <div className="grid gap-3">
-          <Field label="名前">
-            <Input
+          <Field label="名前" wrapWithLabel={false}>
+            <CodeEditor
+              ariaLabel="名前"
+              className="min-h-8.5"
+              contentClassName="mail-field-text"
+              singleLine
               showWhitespace={showWhitespace}
               value={signatureForm.name}
-              onChange={(event) => onChangeSignature("name", event.currentTarget.value)}
+              onChange={(value) => onChangeSignature("name", value)}
             />
           </Field>
 

@@ -74,8 +74,10 @@ describe("signature UI", () => {
       </>,
     );
 
-    await user.type(screen.getByDisplayValue("営業署名"), "更新");
-    expect(handleChangeSignature).toHaveBeenCalled();
+    const nameEditor = screen.getByRole("textbox", { name: "名前" });
+    await user.click(nameEditor);
+    await user.keyboard("{End}更新");
+    expect(handleChangeSignature).toHaveBeenCalledWith("name", expect.stringContaining("更新"));
     const bodyEditor = screen.getByRole("textbox", { name: "本文" });
     await user.click(bodyEditor);
     await user.keyboard("{Enter}追記");
@@ -104,6 +106,7 @@ describe("signature UI", () => {
       />,
     );
 
+    expect(screen.getByRole("textbox", { name: "名前" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "本文" })).toBeInTheDocument();
   });
 

@@ -1,6 +1,6 @@
 import { CodeEditor } from "../../../../shared/ui/code-editor/CodeEditor";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
-import { Button, Field, Input, Panel, Select } from "../../../../shared/ui/primitives";
+import { Button, Field, Panel, Select } from "../../../../shared/ui/primitives";
 import type { Signature } from "../../../signatures/model";
 import type { TemplateInput } from "../../model";
 
@@ -73,18 +73,26 @@ export function TemplateEditorPane({
       <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3.5">
         <div className="grid gap-3">
           <div className="grid gap-3 md:grid-cols-2">
-            <Field label="名前">
-              <Input
+            <Field label="名前" wrapWithLabel={false}>
+              <CodeEditor
+                ariaLabel="名前"
+                className="min-h-8.5"
+                contentClassName="mail-field-text"
+                singleLine
                 showWhitespace={showWhitespace}
                 value={templateForm.name}
-                onChange={(event) => onChangeTemplate("name", event.currentTarget.value)}
+                onChange={(value) => onChangeTemplate("name", value)}
               />
             </Field>
-            <Field label="件名">
-              <Input
+            <Field label="件名" wrapWithLabel={false}>
+              <CodeEditor
+                ariaLabel="件名"
+                className="min-h-8.5"
+                contentClassName="mail-field-text"
+                singleLine
                 showWhitespace={showWhitespace}
                 value={templateForm.subject}
-                onChange={(event) => onChangeTemplate("subject", event.currentTarget.value)}
+                onChange={(value) => onChangeTemplate("subject", value)}
               />
             </Field>
           </div>
