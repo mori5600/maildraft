@@ -2,10 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  createSignature,
-  createSignatureInput,
-} from "../../../test/ui-fixtures";
+import { createSignature, createSignatureInput } from "../../../test/ui-fixtures";
 import { SignatureEditorPane } from "./panes/SignatureEditorPane";
 import { SignatureListPane } from "./panes/SignatureListPane";
 import { SignaturePreviewPane } from "./panes/SignaturePreviewPane";
@@ -57,6 +54,7 @@ describe("signature UI", () => {
     render(
       <>
         <SignatureEditorPane
+          autoSaveLabel="自動保存済み"
           canDuplicate
           selectedSignatureId="signature-input-1"
           showWhitespace={false}
@@ -95,6 +93,7 @@ describe("signature UI", () => {
   it("keeps the signature body in CodeMirror when whitespace is visible", () => {
     render(
       <SignatureEditorPane
+        autoSaveLabel="自動保存済み"
         canDuplicate
         selectedSignatureId="signature-input-1"
         showWhitespace
@@ -116,6 +115,7 @@ describe("signature UI", () => {
 
     render(
       <SignatureWorkspace
+        autoSaveLabel="自動保存済み"
         canDuplicate
         searchQuery=""
         selectedSignatureId="signature-1"

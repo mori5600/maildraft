@@ -4,7 +4,10 @@ import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import type { StoreSnapshot } from "../../../shared/types/store";
 import { buildTrashItemKey } from "../../trash/model";
-import { buildTemplateEditingState, useTemplateWorkspaceState } from "./use-template-workspace-state";
+import {
+  buildTemplateEditingState,
+  useTemplateWorkspaceState,
+} from "./use-template-workspace-state";
 
 const randomUuidSpy = vi
   .spyOn(crypto, "randomUUID")
@@ -62,6 +65,7 @@ const snapshot: StoreSnapshot = {
 
 describe("template workspace state", () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.clearAllMocks();
   });
 
@@ -202,6 +206,55 @@ describe("template workspace state", () => {
     expect(nextSnapshot.templates[0]?.name).toBe("更新済みテンプレート");
     expect(result.current.templateWorkspaceProps.selectedTemplateId).toBe("template-1");
     expect(onNotice).toHaveBeenCalledWith("テンプレートを保存しました。");
+  });
+
+  it("autosaves a dirty template after the debounce interval", async () => {
+    vi.useFakeTimers();
+
+    const savedTemplate = {
+      ...snapshot.templates[0],
+      subject: "自動保存の件名",
+      updatedAt: "3",
+    };
+    const onSnapshotChange = vi.fn();
+    const onNotice = vi.fn();
+    const saveTemplateSpy = vi.spyOn(maildraftApi, "saveTemplate").mockResolvedValue({
+      template: savedTemplate,
+    });
+
+    const { result } = renderHook(() =>
+      useTemplateWorkspaceState({
+        onClearError: vi.fn(),
+        onError: vi.fn(),
+        onFlushDraft: vi.fn(),
+        onNotice,
+        onOpenDraftInput: vi.fn(),
+        onSnapshotChange,
+        onTrashItemSelect: vi.fn(),
+        onViewChange: vi.fn(),
+        snapshot,
+      }),
+    );
+
+    act(() => {
+      result.current.templateWorkspaceProps.onChangeTemplate("subject", "自動保存の件名");
+    });
+
+    expect(result.current.templateWorkspaceProps.autoSaveLabel).toBe("未保存の変更があります");
+    expect(saveTemplateSpy).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(900);
+    });
+
+    expect(onSnapshotChange).toHaveBeenCalledTimes(1);
+    expect(saveTemplateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "template-1",
+        subject: "自動保存の件名",
+      }),
+    );
+    expect(onNotice).not.toHaveBeenCalled();
   });
 
   it("duplicates the active template through a compact save payload", async () => {

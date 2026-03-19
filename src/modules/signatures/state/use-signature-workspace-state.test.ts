@@ -47,6 +47,7 @@ const snapshot: StoreSnapshot = {
 
 describe("signature workspace state", () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.clearAllMocks();
   });
 
@@ -193,10 +194,65 @@ describe("signature workspace state", () => {
       }),
     );
     const nextSnapshot = onSnapshotChange.mock.calls[0][0];
-    expect(nextSnapshot.signatures.some((signature: { name: string }) => signature.name === "更新済み署名")).toBe(true);
+    expect(
+      nextSnapshot.signatures.some(
+        (signature: { name: string }) => signature.name === "更新済み署名",
+      ),
+    ).toBe(true);
     expect(result.current.signatureWorkspaceProps.selectedSignatureId).toBe("signature-1");
     expect(onSignatureSnapshotChange).toHaveBeenCalledWith(nextSnapshot);
     expect(onNotice).toHaveBeenCalledWith("署名を保存しました。");
+  });
+
+  it("autosaves a dirty signature after the debounce interval", async () => {
+    vi.useFakeTimers();
+
+    const savedSignature = {
+      ...snapshot.signatures[0],
+      body: "自動保存の本文",
+      updatedAt: "3",
+    };
+    const onSnapshotChange = vi.fn();
+    const onSignatureSnapshotChange = vi.fn();
+    const onNotice = vi.fn();
+    const saveSignatureSpy = vi.spyOn(maildraftApi, "saveSignature").mockResolvedValue({
+      signatures: [savedSignature, snapshot.signatures[1]],
+    });
+
+    const { result } = renderHook(() =>
+      useSignatureWorkspaceState({
+        onClearError: vi.fn(),
+        onError: vi.fn(),
+        onFlushDraft: vi.fn(),
+        onNotice,
+        onSignatureSnapshotChange,
+        onSnapshotChange,
+        onTrashItemSelect: vi.fn(),
+        onViewChange: vi.fn(),
+        snapshot,
+      }),
+    );
+
+    act(() => {
+      result.current.signatureWorkspaceProps.onChangeSignature("body", "自動保存の本文");
+    });
+
+    expect(result.current.signatureWorkspaceProps.autoSaveLabel).toBe("未保存の変更があります");
+    expect(saveSignatureSpy).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(900);
+    });
+
+    expect(onSnapshotChange).toHaveBeenCalledTimes(1);
+    expect(saveSignatureSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "signature-1",
+        body: "自動保存の本文",
+      }),
+    );
+    expect(onSignatureSnapshotChange).toHaveBeenCalledTimes(1);
+    expect(onNotice).not.toHaveBeenCalled();
   });
 
   it("duplicates the active signature through a compact save payload", async () => {

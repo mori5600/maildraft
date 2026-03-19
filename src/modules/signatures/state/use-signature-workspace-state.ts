@@ -20,6 +20,12 @@ import {
   type SignatureInput,
   toSignatureInput,
 } from "../model";
+import {
+  createInitialSignatureState,
+  formatSignatureAutoSaveState,
+  toSignatureWorkspaceErrorMessage,
+} from "./signature-workspace-helpers";
+import { useSignatureAutoSave } from "./use-signature-auto-save";
 
 export interface SignatureWorkspaceStateOptions {
   onClearError: () => void;
@@ -44,18 +50,6 @@ function findSignature(snapshot: StoreSnapshot, signatureId: string | null): Sig
   }
 
   return snapshot.signatures.find((signature) => signature.id === signatureId) ?? null;
-}
-
-function toErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (typeof error === "string") {
-    return error;
-  }
-
-  return "処理に失敗しました。";
 }
 
 /**
@@ -100,7 +94,7 @@ export function useSignatureWorkspaceState({
   onViewChange,
   snapshot,
 }: SignatureWorkspaceStateOptions) {
-  const [initialSignatureState] = useState(() => buildSignatureEditingState(snapshot));
+  const [initialSignatureState] = useState(() => createInitialSignatureState(snapshot));
   const [selectedSignatureId, setSelectedSignatureId] = useState<string | null>(
     initialSignatureState.selectedSignatureId,
   );
@@ -110,7 +104,17 @@ export function useSignatureWorkspaceState({
   const [signatureSearchQuery, setSignatureSearchQuery] = useState("");
   const [signatureSort, setSignatureSort] = useState<SignatureSortOption>("recent");
   const deferredSignatureSearchQuery = useDeferredValue(signatureSearchQuery);
+  const signatureFormRef = useRef(signatureForm);
+  const selectedSignatureIdRef = useRef(selectedSignatureId);
   const snapshotRef = useRef(snapshot);
+
+  useEffect(() => {
+    signatureFormRef.current = signatureForm;
+  }, [signatureForm]);
+
+  useEffect(() => {
+    selectedSignatureIdRef.current = selectedSignatureId;
+  }, [selectedSignatureId]);
 
   useEffect(() => {
     snapshotRef.current = snapshot;
@@ -141,6 +145,27 @@ export function useSignatureWorkspaceState({
     [signatureSearchIndex, signatureSearchTokens, signatureSort, snapshot.signatures],
   );
 
+  const {
+    flushPendingSignature,
+    saveSignature,
+    setSignatureAutoSaveState,
+    signatureAutoSaveState,
+  } = useSignatureAutoSave({
+    initialAutoSaveState: initialSignatureState.autoSaveState,
+    onClearError,
+    onError,
+    onNotice,
+    onSignatureSnapshotChange,
+    onSnapshotChange,
+    selectedSignatureId,
+    setSelectedSignatureId,
+    setSignatureForm,
+    signatureForm,
+    signatureFormRef,
+    snapshot,
+    snapshotRef,
+  });
+
   function hydrateSignatureState(
     nextSnapshot: StoreSnapshot,
     preferredSignatureId: string | null = null,
@@ -148,28 +173,45 @@ export function useSignatureWorkspaceState({
     const nextState = buildSignatureEditingState(nextSnapshot, preferredSignatureId);
     setSelectedSignatureId(nextState.selectedSignatureId);
     setSignatureForm(nextState.signatureForm);
+    setSignatureAutoSaveState(nextState.selectedSignatureId ? "saved" : "idle");
   }
 
-  const selectSignature = useCallback((signatureId: string) => {
-    onFlushDraft();
+  const selectSignature = useCallback(
+    (signatureId: string) => {
+      onFlushDraft();
+      if (selectedSignatureIdRef.current !== signatureId) {
+        flushPendingSignature();
+      }
 
-    const signature = findSignature(snapshot, signatureId);
-    if (!signature) {
-      return;
-    }
+      const signature = findSignature(snapshot, signatureId);
+      if (!signature) {
+        return;
+      }
 
-    setSelectedSignatureId(signatureId);
-    setSignatureForm(toSignatureInput(signature));
-    onViewChange("signatures");
-  }, [onFlushDraft, onViewChange, snapshot]);
+      setSelectedSignatureId(signatureId);
+      setSignatureForm(toSignatureInput(signature));
+      setSignatureAutoSaveState("saved");
+      onViewChange("signatures");
+    },
+    [flushPendingSignature, onFlushDraft, onViewChange, setSignatureAutoSaveState, snapshot],
+  );
 
   const createSignature = useCallback(() => {
     onFlushDraft();
+    flushPendingSignature();
     setSelectedSignatureId(null);
     setSignatureForm(createEmptySignature(snapshot.signatures.length === 0));
+    setSignatureAutoSaveState("idle");
     onViewChange("signatures");
     onNotice("新しい署名を作成しています。");
-  }, [onFlushDraft, onNotice, onViewChange, snapshot.signatures.length]);
+  }, [
+    flushPendingSignature,
+    onFlushDraft,
+    onNotice,
+    onViewChange,
+    setSignatureAutoSaveState,
+    snapshot.signatures.length,
+  ]);
 
   function changeSignature<K extends keyof SignatureInput>(field: K, value: SignatureInput[K]) {
     setSignatureForm((current) => ({
@@ -183,20 +225,6 @@ export function useSignatureWorkspaceState({
       ...current,
       isPinned: !current.isPinned,
     }));
-  }
-
-  async function saveSignature() {
-    try {
-      onClearError();
-      const savedSignature = await maildraftApi.saveSignature(signatureForm);
-      const nextSnapshot = applySavedSignatureResult(snapshotRef.current, savedSignature);
-      onSnapshotChange(nextSnapshot);
-      hydrateSignatureState(nextSnapshot, signatureForm.id);
-      onSignatureSnapshotChange(nextSnapshot);
-      onNotice("署名を保存しました。");
-    } catch (saveError) {
-      onError(toErrorMessage(saveError));
-    }
   }
 
   async function duplicateSignature() {
@@ -215,7 +243,7 @@ export function useSignatureWorkspaceState({
       onSignatureSnapshotChange(nextSnapshot);
       onNotice("署名を複製しました。");
     } catch (duplicateError) {
-      onError(toErrorMessage(duplicateError));
+      onError(toSignatureWorkspaceErrorMessage(duplicateError));
     }
   }
 
@@ -235,16 +263,18 @@ export function useSignatureWorkspaceState({
       onTrashItemSelect(buildTrashItemKey("signature", selectedSignatureId));
       onNotice("署名をゴミ箱に移動しました。");
     } catch (deleteError) {
-      onError(toErrorMessage(deleteError));
+      onError(toSignatureWorkspaceErrorMessage(deleteError));
     }
   }
 
   return {
     createSignature,
+    flushPendingSignature,
     hydrateSignatureState,
     saveSignature,
     toggleSignaturePinned,
     signatureWorkspaceProps: {
+      autoSaveLabel: formatSignatureAutoSaveState(signatureAutoSaveState),
       canDuplicate: selectedSignatureId !== null,
       onChangeSearchQuery: setSignatureSearchQuery,
       onChangeSignature: changeSignature,

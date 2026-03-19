@@ -9,11 +9,9 @@ interface TemplateEditorPaneProps {
   selectedTemplateId: string | null;
   templateForm: TemplateInput;
   showWhitespace: boolean;
+  autoSaveLabel: string;
   canDuplicate: boolean;
-  onChangeTemplate: <K extends keyof TemplateInput>(
-    field: K,
-    value: TemplateInput[K],
-  ) => void;
+  onChangeTemplate: <K extends keyof TemplateInput>(field: K, value: TemplateInput[K]) => void;
   onSaveTemplate: () => Promise<void>;
   onDeleteTemplate: () => Promise<void>;
   onDuplicateTemplate: () => Promise<void>;
@@ -25,6 +23,7 @@ export function TemplateEditorPane({
   selectedTemplateId,
   templateForm,
   showWhitespace,
+  autoSaveLabel,
   canDuplicate,
   onChangeTemplate,
   onSaveTemplate,
@@ -34,7 +33,7 @@ export function TemplateEditorPane({
 }: TemplateEditorPaneProps) {
   const hasMissingSignature = Boolean(
     templateForm.signatureId &&
-      !signatures.some((signature) => signature.id === templateForm.signatureId),
+    !signatures.some((signature) => signature.id === templateForm.signatureId),
   );
 
   return (
@@ -66,7 +65,7 @@ export function TemplateEditorPane({
             </Button>
           </div>
         }
-        description={`${templateForm.isPinned ? "固定・" : ""}${templateForm.name}`}
+        description={`${templateForm.isPinned ? "固定・" : ""}${templateForm.name}・${autoSaveLabel}`}
         title="テンプレート編集"
       />
 

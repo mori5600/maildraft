@@ -24,10 +24,12 @@ export interface TemplateInput {
   signatureId: string | null;
 }
 
+export const DEFAULT_TEMPLATE_NAME = "新しいテンプレート";
+
 export function createEmptyTemplate(defaultSignatureId: string | null): TemplateInput {
   return {
     id: crypto.randomUUID(),
-    name: "新しいテンプレート",
+    name: DEFAULT_TEMPLATE_NAME,
     isPinned: false,
     subject: "",
     recipient: "",
@@ -59,6 +61,57 @@ export function duplicateTemplateInput(template: TemplateInput): TemplateInput {
     isPinned: false,
     name: withCopySuffix(template.name),
   };
+}
+
+export function templateHasMeaningfulContent(template: TemplateInput): boolean {
+  return Boolean(
+    template.isPinned ||
+    (template.name.trim() && template.name.trim() !== DEFAULT_TEMPLATE_NAME) ||
+    template.subject.trim() ||
+    template.recipient.trim() ||
+    template.opening.trim() ||
+    template.body.trim() ||
+    template.closing.trim(),
+  );
+}
+
+export function templateInputsEqual(left: TemplateInput, right: TemplateInput | null): boolean {
+  if (!right) {
+    return false;
+  }
+
+  return (
+    left.id === right.id &&
+    left.name === right.name &&
+    left.isPinned === right.isPinned &&
+    left.subject === right.subject &&
+    left.recipient === right.recipient &&
+    left.opening === right.opening &&
+    left.body === right.body &&
+    left.closing === right.closing &&
+    left.signatureId === right.signatureId
+  );
+}
+
+export function templateMatchesPersistedTemplate(
+  left: TemplateInput,
+  right: Template | null,
+): boolean {
+  if (!right) {
+    return false;
+  }
+
+  return (
+    left.id === right.id &&
+    left.name === right.name &&
+    left.isPinned === right.isPinned &&
+    left.subject === right.subject &&
+    left.recipient === right.recipient &&
+    left.opening === right.opening &&
+    left.body === right.body &&
+    left.closing === right.closing &&
+    left.signatureId === right.signatureId
+  );
 }
 
 function withCopySuffix(value: string): string {

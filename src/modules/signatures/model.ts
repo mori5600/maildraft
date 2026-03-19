@@ -16,10 +16,12 @@ export interface SignatureInput {
   isDefault: boolean;
 }
 
+export const DEFAULT_SIGNATURE_NAME = "新しい署名";
+
 export function createEmptySignature(isDefault: boolean): SignatureInput {
   return {
     id: crypto.randomUUID(),
-    name: "新しい署名",
+    name: DEFAULT_SIGNATURE_NAME,
     isPinned: false,
     body: "",
     isDefault,
@@ -44,6 +46,45 @@ export function duplicateSignatureInput(signature: SignatureInput): SignatureInp
     isPinned: false,
     isDefault: false,
   };
+}
+
+export function signatureHasMeaningfulContent(signature: SignatureInput): boolean {
+  return Boolean(
+    signature.isPinned ||
+    (signature.name.trim() && signature.name.trim() !== DEFAULT_SIGNATURE_NAME) ||
+    signature.body.trim(),
+  );
+}
+
+export function signatureInputsEqual(left: SignatureInput, right: SignatureInput | null): boolean {
+  if (!right) {
+    return false;
+  }
+
+  return (
+    left.id === right.id &&
+    left.name === right.name &&
+    left.isPinned === right.isPinned &&
+    left.body === right.body &&
+    left.isDefault === right.isDefault
+  );
+}
+
+export function signatureMatchesPersistedSignature(
+  left: SignatureInput,
+  right: Signature | null,
+): boolean {
+  if (!right) {
+    return false;
+  }
+
+  return (
+    left.id === right.id &&
+    left.name === right.name &&
+    left.isPinned === right.isPinned &&
+    left.body === right.body &&
+    left.isDefault === right.isDefault
+  );
 }
 
 function withCopySuffix(value: string): string {

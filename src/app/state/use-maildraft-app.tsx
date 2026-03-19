@@ -91,6 +91,14 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       draftWorkspaceRef.current?.flushPendingDraft();
     }
 
+    if (shell.view === "templates" && nextView !== "templates") {
+      templateState.flushPendingTemplate();
+    }
+
+    if (shell.view === "signatures" && nextView !== "signatures") {
+      signatureState.flushPendingSignature();
+    }
+
     shell.setViewState(nextView);
   }
 

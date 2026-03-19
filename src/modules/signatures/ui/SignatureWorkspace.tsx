@@ -13,6 +13,7 @@ interface SignatureWorkspaceProps {
   totalSignatureCount: number;
   selectedSignatureId: string | null;
   signatureForm: SignatureInput;
+  autoSaveLabel: string;
   showWhitespace: boolean;
   searchQuery: string;
   sort: SignatureSortOption;
@@ -33,6 +34,7 @@ export function SignatureWorkspace({
   totalSignatureCount,
   selectedSignatureId,
   signatureForm,
+  autoSaveLabel,
   showWhitespace,
   searchQuery,
   sort,
@@ -69,6 +71,7 @@ export function SignatureWorkspace({
         />
 
         <SignatureEditorPane
+          autoSaveLabel={autoSaveLabel}
           canDuplicate={canDuplicate}
           selectedSignatureId={selectedSignatureId}
           showWhitespace={showWhitespace}

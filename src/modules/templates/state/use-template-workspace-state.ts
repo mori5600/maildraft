@@ -28,6 +28,12 @@ import {
   type TemplateInput,
   toTemplateInput,
 } from "../model";
+import {
+  createInitialTemplateState,
+  formatTemplateAutoSaveState,
+  toTemplateWorkspaceErrorMessage,
+} from "./template-workspace-helpers";
+import { useTemplateAutoSave } from "./use-template-auto-save";
 
 export interface TemplateWorkspaceStateOptions {
   onClearError: () => void;
@@ -52,18 +58,6 @@ function findTemplate(snapshot: StoreSnapshot, templateId: string | null): Templ
   }
 
   return snapshot.templates.find((template) => template.id === templateId) ?? null;
-}
-
-function toErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (typeof error === "string") {
-    return error;
-  }
-
-  return "処理に失敗しました。";
 }
 
 /**
@@ -107,15 +101,27 @@ export function useTemplateWorkspaceState({
   onViewChange,
   snapshot,
 }: TemplateWorkspaceStateOptions) {
-  const [initialTemplateState] = useState(() => buildTemplateEditingState(snapshot));
+  const [initialTemplateState] = useState(() => createInitialTemplateState(snapshot));
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
     initialTemplateState.selectedTemplateId,
   );
-  const [templateForm, setTemplateForm] = useState<TemplateInput>(initialTemplateState.templateForm);
+  const [templateForm, setTemplateForm] = useState<TemplateInput>(
+    initialTemplateState.templateForm,
+  );
   const [templateSearchQuery, setTemplateSearchQuery] = useState("");
   const [templateSort, setTemplateSort] = useState<TemplateSortOption>("recent");
   const deferredTemplateSearchQuery = useDeferredValue(templateSearchQuery);
+  const templateFormRef = useRef(templateForm);
+  const selectedTemplateIdRef = useRef(selectedTemplateId);
   const snapshotRef = useRef(snapshot);
+
+  useEffect(() => {
+    templateFormRef.current = templateForm;
+  }, [templateForm]);
+
+  useEffect(() => {
+    selectedTemplateIdRef.current = selectedTemplateId;
+  }, [selectedTemplateId]);
 
   useEffect(() => {
     snapshotRef.current = snapshot;
@@ -123,11 +129,7 @@ export function useTemplateWorkspaceState({
 
   const selectedTemplateSignature = useMemo(
     () =>
-      findTrashSignature(
-        snapshot.signatures,
-        snapshot.trash.signatures,
-        templateForm.signatureId,
-      ),
+      findTrashSignature(snapshot.signatures, snapshot.trash.signatures, templateForm.signatureId),
     [snapshot.signatures, snapshot.trash.signatures, templateForm.signatureId],
   );
   const templatePreviewText = useMemo(
@@ -166,6 +168,22 @@ export function useTemplateWorkspaceState({
     [snapshot.templates, templateSearchIndex, templateSearchTokens, templateSort],
   );
 
+  const { flushPendingTemplate, saveTemplate, setTemplateAutoSaveState, templateAutoSaveState } =
+    useTemplateAutoSave({
+      initialAutoSaveState: initialTemplateState.autoSaveState,
+      onClearError,
+      onError,
+      onNotice,
+      onSnapshotChange,
+      selectedTemplateId,
+      setSelectedTemplateId,
+      setTemplateForm,
+      snapshot,
+      snapshotRef,
+      templateForm,
+      templateFormRef,
+    });
+
   function hydrateTemplateState(
     nextSnapshot: StoreSnapshot,
     preferredTemplateId: string | null = null,
@@ -173,6 +191,7 @@ export function useTemplateWorkspaceState({
     const nextState = buildTemplateEditingState(nextSnapshot, preferredTemplateId);
     setSelectedTemplateId(nextState.selectedTemplateId);
     setTemplateForm(nextState.templateForm);
+    setTemplateAutoSaveState(nextState.selectedTemplateId ? "saved" : "idle");
   }
 
   function syncTemplateSignatureId(nextSnapshot: StoreSnapshot) {
@@ -182,26 +201,42 @@ export function useTemplateWorkspaceState({
     }));
   }
 
-  const selectTemplate = useCallback((templateId: string) => {
-    onFlushDraft();
+  const selectTemplate = useCallback(
+    (templateId: string) => {
+      onFlushDraft();
+      if (selectedTemplateIdRef.current !== templateId) {
+        flushPendingTemplate();
+      }
 
-    const template = findTemplate(snapshot, templateId);
-    if (!template) {
-      return;
-    }
+      const template = findTemplate(snapshot, templateId);
+      if (!template) {
+        return;
+      }
 
-    setSelectedTemplateId(templateId);
-    setTemplateForm(toTemplateInput(template));
-    onViewChange("templates");
-  }, [onFlushDraft, onViewChange, snapshot]);
+      setSelectedTemplateId(templateId);
+      setTemplateForm(toTemplateInput(template));
+      setTemplateAutoSaveState("saved");
+      onViewChange("templates");
+    },
+    [flushPendingTemplate, onFlushDraft, onViewChange, setTemplateAutoSaveState, snapshot],
+  );
 
   const createTemplate = useCallback(() => {
     onFlushDraft();
+    flushPendingTemplate();
     setSelectedTemplateId(null);
     setTemplateForm(createEmptyTemplate(getDefaultSignatureId(snapshot)));
+    setTemplateAutoSaveState("idle");
     onViewChange("templates");
     onNotice("新しいテンプレートを作成しています。");
-  }, [onFlushDraft, onNotice, onViewChange, snapshot]);
+  }, [
+    flushPendingTemplate,
+    onFlushDraft,
+    onNotice,
+    onViewChange,
+    setTemplateAutoSaveState,
+    snapshot,
+  ]);
 
   function changeTemplate<K extends keyof TemplateInput>(field: K, value: TemplateInput[K]) {
     setTemplateForm((current) => ({
@@ -215,19 +250,6 @@ export function useTemplateWorkspaceState({
       ...current,
       isPinned: !current.isPinned,
     }));
-  }
-
-  async function saveTemplate() {
-    try {
-      onClearError();
-      const savedTemplate = await maildraftApi.saveTemplate(templateForm);
-      const nextSnapshot = applySavedTemplateResult(snapshotRef.current, savedTemplate);
-      onSnapshotChange(nextSnapshot);
-      hydrateTemplateState(nextSnapshot, savedTemplate.template.id);
-      onNotice("テンプレートを保存しました。");
-    } catch (saveError) {
-      onError(toErrorMessage(saveError));
-    }
   }
 
   async function duplicateTemplate() {
@@ -245,7 +267,7 @@ export function useTemplateWorkspaceState({
       hydrateTemplateState(nextSnapshot, savedTemplate.template.id);
       onNotice("テンプレートを複製しました。");
     } catch (duplicateError) {
-      onError(toErrorMessage(duplicateError));
+      onError(toTemplateWorkspaceErrorMessage(duplicateError));
     }
   }
 
@@ -264,7 +286,7 @@ export function useTemplateWorkspaceState({
       onTrashItemSelect(buildTrashItemKey("template", selectedTemplateId));
       onNotice("テンプレートをゴミ箱に移動しました。");
     } catch (deleteError) {
-      onError(toErrorMessage(deleteError));
+      onError(toTemplateWorkspaceErrorMessage(deleteError));
     }
   }
 
@@ -286,11 +308,13 @@ export function useTemplateWorkspaceState({
 
   return {
     createTemplate,
+    flushPendingTemplate,
     hydrateTemplateState,
     saveTemplate,
     syncTemplateSignatureId,
     toggleTemplatePinned,
     templateWorkspaceProps: {
+      autoSaveLabel: formatTemplateAutoSaveState(templateAutoSaveState),
       canDuplicate: selectedTemplateId !== null,
       onChangeSearchQuery: setTemplateSearchQuery,
       onChangeSort: setTemplateSort,

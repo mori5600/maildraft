@@ -7,11 +7,9 @@ interface SignatureEditorPaneProps {
   signatureForm: SignatureInput;
   selectedSignatureId: string | null;
   showWhitespace: boolean;
+  autoSaveLabel: string;
   canDuplicate: boolean;
-  onChangeSignature: <K extends keyof SignatureInput>(
-    field: K,
-    value: SignatureInput[K],
-  ) => void;
+  onChangeSignature: <K extends keyof SignatureInput>(field: K, value: SignatureInput[K]) => void;
   onSaveSignature: () => Promise<void>;
   onDeleteSignature: () => Promise<void>;
   onDuplicateSignature: () => Promise<void>;
@@ -22,6 +20,7 @@ export function SignatureEditorPane({
   signatureForm,
   selectedSignatureId,
   showWhitespace,
+  autoSaveLabel,
   canDuplicate,
   onChangeSignature,
   onSaveSignature,
@@ -58,7 +57,7 @@ export function SignatureEditorPane({
             </Button>
           </div>
         }
-        description={`${signatureForm.isPinned ? "固定・" : ""}${signatureForm.name}`}
+        description={`${signatureForm.isPinned ? "固定・" : ""}${signatureForm.name}・${autoSaveLabel}`}
         title="署名編集"
       />
 

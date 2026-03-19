@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   createEmptySignature,
   duplicateSignatureInput,
+  signatureHasMeaningfulContent,
+  signatureInputsEqual,
+  signatureMatchesPersistedSignature,
   toSignatureInput,
 } from "./model";
 
@@ -56,5 +59,39 @@ describe("signature model", () => {
       body: "本文",
       isDefault: false,
     });
+  });
+
+  it("detects meaningful edits and persisted equality", () => {
+    const emptySignature = createEmptySignature(false);
+
+    expect(signatureHasMeaningfulContent(emptySignature)).toBe(false);
+    expect(
+      signatureHasMeaningfulContent({
+        ...emptySignature,
+        body: "本文",
+      }),
+    ).toBe(true);
+    expect(
+      signatureInputsEqual(emptySignature, {
+        ...emptySignature,
+      }),
+    ).toBe(true);
+    expect(
+      signatureMatchesPersistedSignature(
+        {
+          ...emptySignature,
+          body: "本文",
+        },
+        {
+          id: emptySignature.id,
+          name: "新しい署名",
+          isPinned: false,
+          body: "本文",
+          isDefault: false,
+          createdAt: "1",
+          updatedAt: "2",
+        },
+      ),
+    ).toBe(true);
   });
 });

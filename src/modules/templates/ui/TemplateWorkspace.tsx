@@ -17,6 +17,7 @@ interface TemplateWorkspaceProps {
   signatures: Signature[];
   selectedTemplateId: string | null;
   templateForm: TemplateInput;
+  autoSaveLabel: string;
   previewText: string;
   showWhitespace: boolean;
   searchQuery: string;
@@ -40,6 +41,7 @@ export function TemplateWorkspace({
   signatures,
   selectedTemplateId,
   templateForm,
+  autoSaveLabel,
   previewText,
   showWhitespace,
   searchQuery,
@@ -78,6 +80,7 @@ export function TemplateWorkspace({
         />
 
         <TemplateEditorPane
+          autoSaveLabel={autoSaveLabel}
           canDuplicate={canDuplicate}
           selectedTemplateId={selectedTemplateId}
           showWhitespace={showWhitespace}

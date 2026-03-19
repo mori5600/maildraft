@@ -3,11 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  createSignature,
-  createTemplate,
-  createTemplateInput,
-} from "../../../test/ui-fixtures";
+import { createSignature, createTemplate, createTemplateInput } from "../../../test/ui-fixtures";
 import { TemplateEditorPane } from "./panes/TemplateEditorPane";
 import { TemplateListPane } from "./panes/TemplateListPane";
 import { TemplatePreviewDialogContent } from "./panes/TemplatePreviewDialogContent";
@@ -77,6 +73,7 @@ describe("template UI", () => {
     render(
       <>
         <TemplateEditorPane
+          autoSaveLabel="自動保存済み"
           canDuplicate
           selectedTemplateId="template-input-1"
           showWhitespace={false}
@@ -129,6 +126,7 @@ describe("template UI", () => {
   it("keeps multiline template fields in CodeMirror when whitespace is visible", () => {
     render(
       <TemplateEditorPane
+        autoSaveLabel="自動保存済み"
         canDuplicate
         selectedTemplateId="template-input-1"
         showWhitespace
@@ -155,6 +153,7 @@ describe("template UI", () => {
 
     render(
       <TemplateWorkspace
+        autoSaveLabel="自動保存済み"
         canDuplicate
         previewText="テンプレート本文"
         searchQuery=""
