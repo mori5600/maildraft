@@ -140,6 +140,37 @@ describe("App runtime integration", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows whitespace markers in single-line CodeMirror fields without mutating the draft", async () => {
+    const user = userEvent.setup();
+    const runtime = installMockTauriRuntime({
+      snapshot: createSeededRuntimeSnapshot({
+        draftHistory: [],
+        drafts: [
+          createRuntimeDraft({
+            id: "draft-whitespace",
+            title: "案件 A\u3000B",
+            subject: "件名 A B",
+          }),
+        ],
+      }),
+    });
+
+    render(<App />);
+    await expectEditorText("一覧名", "案件 A\u3000B");
+
+    await user.click(screen.getByRole("button", { name: "空白表示" }));
+
+    await waitFor(() => {
+      const titleView = getEditorView("一覧名");
+      expect(titleView.state.doc.toString()).toBe("案件 A\u3000B");
+      expect(titleView.dom.querySelector('[data-marker="·"]')).not.toBeNull();
+      expect(titleView.dom.querySelector('[data-marker="□"]')).not.toBeNull();
+    });
+
+    expect(runtime.getSnapshot().drafts[0]?.title).toBe("案件 A\u3000B");
+    expect(runtime.commandCalls.some((call) => call.cmd === "save_draft")).toBe(false);
+  });
+
   it("persists logging settings through the Tauri command boundary", async () => {
     const user = userEvent.setup();
     const runtime = installMockTauriRuntime({
@@ -163,6 +194,36 @@ describe("App runtime integration", () => {
     });
     expect(runtime.commandCalls.some((call) => call.cmd === "save_logging_settings")).toBe(true);
     expect(await screen.findByText("ログ設定を保存しました。")).toBeInTheDocument();
+  });
+
+  it("normalizes newlines in single-line CodeMirror fields before saving", async () => {
+    const user = userEvent.setup();
+    const runtime = installMockTauriRuntime({
+      loggingSettings: createLoggingSettingsSnapshot({ fileCount: 0, totalBytes: 0 }),
+      snapshot: createSeededRuntimeSnapshot({
+        draftHistory: [],
+      }),
+    });
+
+    render(<App />);
+    await expectEditorText("一覧名", "4/12 打ち合わせお礼");
+
+    const titleView = getEditorView("一覧名");
+    titleView.dispatch({
+      changes: {
+        from: 0,
+        to: titleView.state.doc.length,
+        insert: "更新\nタイトル",
+      },
+    });
+
+    await expectEditorText("一覧名", "更新 タイトル");
+    await user.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => {
+      expect(runtime.getSnapshot().drafts[0]?.title).toBe("更新 タイトル");
+    });
+    expect(runtime.getSnapshot().drafts[0]?.title).not.toContain("\n");
   });
 
   it("restores a trashed draft and reopens it in the drafts workspace", async () => {
