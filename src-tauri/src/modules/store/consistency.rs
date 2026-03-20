@@ -171,16 +171,21 @@ impl StoreSnapshot {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{BTreeMap, HashSet};
+    use std::{
+        cmp::Ordering,
+        collections::{BTreeMap, HashSet},
+    };
 
     use pretty_assertions::assert_eq;
+    use proptest::{collection::vec, option, prelude::*, string::string_regex};
 
     use super::StoreSnapshot;
     use crate::modules::{
         drafts::{Draft, DraftHistoryEntry},
         memo::Memo,
+        signatures::Signature,
         templates::Template,
-        trash::{TrashedDraft, TrashedSignature, TrashedTemplate},
+        trash::{TrashSnapshot, TrashedDraft, TrashedMemo, TrashedSignature, TrashedTemplate},
     };
 
     fn sample_draft(id: &str, is_pinned: bool, updated_at: &str) -> Draft {
@@ -341,5 +346,374 @@ mod tests {
             store.memos.iter().all(|memo| !memo.id.trim().is_empty()),
             true
         );
+    }
+
+    fn arb_text() -> impl Strategy<Value = String> {
+        string_regex("[a-c0-2 ]{0,6}").expect("text regex")
+    }
+
+    fn arb_short_id() -> impl Strategy<Value = String> {
+        string_regex("[a-c0-2 ]{0,4}").expect("id regex")
+    }
+
+    fn arb_timestamp() -> impl Strategy<Value = String> {
+        (0u16..50).prop_map(|value| value.to_string())
+    }
+
+    fn arb_variables() -> impl Strategy<Value = BTreeMap<String, String>> {
+        prop::collection::btree_map(
+            string_regex("[ab]{1,2}").expect("variable key regex"),
+            arb_text(),
+            0..3,
+        )
+    }
+
+    prop_compose! {
+        fn arb_signature()(
+            id in arb_short_id(),
+            name in arb_text(),
+            is_pinned in any::<bool>(),
+            body in arb_text(),
+            is_default in any::<bool>(),
+            created_at in arb_timestamp(),
+            updated_at in arb_timestamp(),
+        ) -> Signature {
+            Signature {
+                id,
+                name,
+                is_pinned,
+                body,
+                is_default,
+                created_at,
+                updated_at,
+            }
+        }
+    }
+
+    prop_compose! {
+        fn arb_template()(
+            id in arb_short_id(),
+            name in arb_text(),
+            is_pinned in any::<bool>(),
+            subject in arb_text(),
+            recipient in arb_text(),
+            opening in arb_text(),
+            body in arb_text(),
+            closing in arb_text(),
+            signature_id in option::of(arb_short_id()),
+            created_at in arb_timestamp(),
+            updated_at in arb_timestamp(),
+        ) -> Template {
+            Template {
+                id,
+                name,
+                is_pinned,
+                subject,
+                recipient,
+                opening,
+                body,
+                closing,
+                signature_id,
+                created_at,
+                updated_at,
+            }
+        }
+    }
+
+    prop_compose! {
+        fn arb_draft()(
+            id in arb_short_id(),
+            title in arb_text(),
+            is_pinned in any::<bool>(),
+            subject in arb_text(),
+            recipient in arb_text(),
+            opening in arb_text(),
+            body in arb_text(),
+            closing in arb_text(),
+            template_id in option::of(arb_short_id()),
+            signature_id in option::of(arb_short_id()),
+            variable_values in arb_variables(),
+            created_at in arb_timestamp(),
+            updated_at in arb_timestamp(),
+        ) -> Draft {
+            Draft {
+                id,
+                title,
+                is_pinned,
+                subject,
+                recipient,
+                opening,
+                body,
+                closing,
+                template_id,
+                signature_id,
+                variable_values,
+                created_at,
+                updated_at,
+            }
+        }
+    }
+
+    prop_compose! {
+        fn arb_draft_history_entry()(
+            id in arb_short_id(),
+            draft_id in arb_short_id(),
+            title in arb_text(),
+            subject in arb_text(),
+            recipient in arb_text(),
+            opening in arb_text(),
+            body in arb_text(),
+            closing in arb_text(),
+            template_id in option::of(arb_short_id()),
+            signature_id in option::of(arb_short_id()),
+            variable_values in arb_variables(),
+            recorded_at in arb_timestamp(),
+        ) -> DraftHistoryEntry {
+            DraftHistoryEntry {
+                id,
+                draft_id,
+                title,
+                subject,
+                recipient,
+                opening,
+                body,
+                closing,
+                template_id,
+                signature_id,
+                variable_values,
+                recorded_at,
+            }
+        }
+    }
+
+    prop_compose! {
+        fn arb_memo()(
+            id in arb_short_id(),
+            title in arb_text(),
+            is_pinned in any::<bool>(),
+            body in arb_text(),
+            created_at in arb_timestamp(),
+            updated_at in arb_timestamp(),
+        ) -> Memo {
+            Memo {
+                id,
+                title,
+                is_pinned,
+                body,
+                created_at,
+                updated_at,
+            }
+        }
+    }
+
+    prop_compose! {
+        fn arb_trashed_draft()(
+            draft in arb_draft(),
+            history in vec(arb_draft_history_entry(), 0..3),
+            deleted_at in arb_timestamp(),
+        ) -> TrashedDraft {
+            TrashedDraft { draft, history, deleted_at }
+        }
+    }
+
+    prop_compose! {
+        fn arb_trashed_template()(
+            template in arb_template(),
+            deleted_at in arb_timestamp(),
+        ) -> TrashedTemplate {
+            TrashedTemplate { template, deleted_at }
+        }
+    }
+
+    prop_compose! {
+        fn arb_trashed_signature()(
+            signature in arb_signature(),
+            deleted_at in arb_timestamp(),
+        ) -> TrashedSignature {
+            TrashedSignature { signature, deleted_at }
+        }
+    }
+
+    prop_compose! {
+        fn arb_trashed_memo()(
+            memo in arb_memo(),
+            deleted_at in arb_timestamp(),
+        ) -> TrashedMemo {
+            TrashedMemo { memo, deleted_at }
+        }
+    }
+
+    prop_compose! {
+        fn arb_store_snapshot()(
+            drafts in vec(arb_draft(), 0..4),
+            draft_history in vec(arb_draft_history_entry(), 0..5),
+            templates in vec(arb_template(), 0..4),
+            signatures in vec(arb_signature(), 0..4),
+            memos in vec(arb_memo(), 0..5),
+            legacy_memo in option::of(arb_memo()),
+            trash_drafts in vec(arb_trashed_draft(), 0..3),
+            trash_templates in vec(arb_trashed_template(), 0..3),
+            trash_signatures in vec(arb_trashed_signature(), 0..3),
+            trash_memos in vec(arb_trashed_memo(), 0..3),
+        ) -> StoreSnapshot {
+            StoreSnapshot {
+                drafts,
+                draft_history,
+                variable_presets: Vec::new(),
+                templates,
+                signatures,
+                memos,
+                legacy_memo,
+                trash: TrashSnapshot {
+                    drafts: trash_drafts,
+                    templates: trash_templates,
+                    signatures: trash_signatures,
+                    memos: trash_memos,
+                },
+            }
+        }
+    }
+
+    fn assert_sorted<T>(items: &[T], compare: impl Fn(&T, &T) -> Ordering) {
+        for pair in items.windows(2) {
+            assert_ne!(compare(&pair[0], &pair[1]), Ordering::Greater);
+        }
+    }
+
+    fn assert_consistent_snapshot(store: &StoreSnapshot, allow_trash_references: bool) {
+        let template_ids = store
+            .templates
+            .iter()
+            .map(|template| template.id.as_str())
+            .chain(
+                allow_trash_references
+                    .then(|| {
+                        store
+                            .trash
+                            .templates
+                            .iter()
+                            .map(|entry| entry.template.id.as_str())
+                    })
+                    .into_iter()
+                    .flatten(),
+            )
+            .collect::<HashSet<_>>();
+        let signature_ids = store
+            .signatures
+            .iter()
+            .map(|signature| signature.id.as_str())
+            .chain(
+                allow_trash_references
+                    .then(|| {
+                        store
+                            .trash
+                            .signatures
+                            .iter()
+                            .map(|entry| entry.signature.id.as_str())
+                    })
+                    .into_iter()
+                    .flatten(),
+            )
+            .collect::<HashSet<_>>();
+
+        if !store.signatures.is_empty() {
+            assert_eq!(
+                store
+                    .signatures
+                    .iter()
+                    .filter(|signature| signature.is_default)
+                    .count(),
+                1
+            );
+        }
+
+        let memo_ids = store
+            .memos
+            .iter()
+            .map(|memo| memo.id.as_str())
+            .collect::<HashSet<_>>();
+        assert_eq!(memo_ids.len(), store.memos.len());
+        assert!(store.memos.iter().all(|memo| !memo.id.trim().is_empty()));
+        if !store.memos.is_empty() {
+            assert!(store.legacy_memo.is_none());
+        }
+
+        for draft in &store.drafts {
+            if let Some(template_id) = draft.template_id.as_deref() {
+                assert!(template_ids.contains(template_id));
+            }
+            if let Some(signature_id) = draft.signature_id.as_deref() {
+                assert!(signature_ids.contains(signature_id));
+            }
+        }
+
+        for entry in &store.draft_history {
+            if let Some(template_id) = entry.template_id.as_deref() {
+                assert!(template_ids.contains(template_id));
+            }
+            if let Some(signature_id) = entry.signature_id.as_deref() {
+                assert!(signature_ids.contains(signature_id));
+            }
+        }
+
+        for template in &store.templates {
+            if let Some(signature_id) = template.signature_id.as_deref() {
+                assert!(signature_ids.contains(signature_id));
+            }
+        }
+
+        assert_sorted(&store.drafts, |left, right| {
+            right
+                .is_pinned
+                .cmp(&left.is_pinned)
+                .then(right.updated_at.cmp(&left.updated_at))
+        });
+        assert_sorted(&store.draft_history, |left, right| {
+            right.recorded_at.cmp(&left.recorded_at)
+        });
+        assert_sorted(&store.templates, |left, right| {
+            right
+                .is_pinned
+                .cmp(&left.is_pinned)
+                .then(right.updated_at.cmp(&left.updated_at))
+        });
+        assert_sorted(&store.signatures, |left, right| {
+            right
+                .is_pinned
+                .cmp(&left.is_pinned)
+                .then(right.updated_at.cmp(&left.updated_at))
+        });
+        assert_sorted(&store.memos, |left, right| {
+            right.updated_at.cmp(&left.updated_at)
+        });
+        assert_sorted(&store.trash.drafts, |left, right| {
+            right.deleted_at.cmp(&left.deleted_at)
+        });
+        assert_sorted(&store.trash.templates, |left, right| {
+            right.deleted_at.cmp(&left.deleted_at)
+        });
+        assert_sorted(&store.trash.signatures, |left, right| {
+            right.deleted_at.cmp(&left.deleted_at)
+        });
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(64))]
+
+        #[test]
+        fn ensure_consistency_property_normalizes_random_snapshots(mut store in arb_store_snapshot()) {
+            store.ensure_consistency();
+            assert_consistent_snapshot(&store, true);
+        }
+
+        #[test]
+        fn empty_trash_then_consistency_property_removes_purged_references(mut store in arb_store_snapshot()) {
+            store.ensure_consistency();
+            store.empty_trash();
+            store.ensure_consistency();
+
+            assert_eq!(store.trash.item_count(), 0);
+            assert_consistent_snapshot(&store, false);
+        }
     }
 }

@@ -392,15 +392,21 @@ pub(crate) fn clear_logs(
 mod tests {
     use std::{collections::BTreeMap, fs};
 
-    use pretty_assertions::assert_eq;
-    use tempfile::tempdir;
-
     use super::*;
+    use pretty_assertions::assert_eq;
+    use serde_json::json;
+    use tempfile::tempdir;
 
     fn make_state() -> (AppState, tempfile::TempDir) {
         let directory = tempdir().expect("tempdir");
         let state = AppState::new_for_tests(directory.path()).expect("state");
         (state, directory)
+    }
+
+    fn as_tauri_state(state: &AppState) -> tauri::State<'_, AppState> {
+        // SAFETY: `tauri::State` is a newtype wrapper over `&T` and the command wrappers
+        // only dereference it to forward into the tested `*_impl` functions.
+        unsafe { std::mem::transmute::<&AppState, tauri::State<'_, AppState>>(state) }
     }
 
     #[test]
@@ -963,5 +969,433 @@ mod tests {
                 .is_empty()
                 == false
         );
+    }
+
+    #[test]
+    fn command_impl_results_serialize_as_compact_payloads() {
+        let (state, _directory) = make_state();
+
+        let saved_template = save_template_impl(
+            &state,
+            TemplateInput {
+                id: "template-compact".to_string(),
+                name: "compact".to_string(),
+                is_pinned: false,
+                subject: "件名".to_string(),
+                recipient: String::new(),
+                opening: String::new(),
+                body: "本文".to_string(),
+                closing: String::new(),
+                signature_id: Some("signature-default".to_string()),
+            },
+        )
+        .expect("save template");
+        let saved_template_json =
+            serde_json::to_value(&saved_template).expect("serialize template");
+        assert_eq!(
+            saved_template_json,
+            json!({ "template": saved_template.template })
+        );
+
+        let saved_signature = save_signature_impl(
+            &state,
+            SignatureInput {
+                id: "signature-compact".to_string(),
+                name: "compact".to_string(),
+                is_pinned: false,
+                body: "本文".to_string(),
+                is_default: false,
+            },
+        )
+        .expect("save signature");
+        let saved_signature_json =
+            serde_json::to_value(&saved_signature).expect("serialize signature");
+        assert_eq!(
+            saved_signature_json,
+            json!({ "signatures": saved_signature.signatures })
+        );
+
+        let deleted_template =
+            delete_template_impl(&state, "template-compact".to_string()).expect("delete template");
+        let deleted_template_json =
+            serde_json::to_value(&deleted_template).expect("serialize deleted template");
+        assert_eq!(
+            deleted_template_json,
+            json!({ "trashedTemplate": deleted_template.trashed_template })
+        );
+    }
+
+    #[test]
+    fn trash_mutation_commands_omit_unaffected_fields_from_json_payloads() {
+        let (memo_state, _directory) = make_state();
+        save_memo_impl(
+            &memo_state,
+            MemoInput {
+                id: "memo-json".to_string(),
+                title: "メモ".to_string(),
+                is_pinned: false,
+                body: "本文".to_string(),
+            },
+        )
+        .expect("save memo");
+        delete_memo_impl(&memo_state, "memo-json".to_string()).expect("trash memo");
+
+        let memo_mutation =
+            permanently_delete_memo_from_trash_impl(&memo_state, "memo-json".to_string())
+                .expect("purge memo");
+        let memo_json = serde_json::to_value(&memo_mutation).expect("serialize memo mutation");
+        assert_eq!(memo_json.get("drafts"), None);
+        assert_eq!(memo_json.get("draftHistory"), None);
+        assert_eq!(memo_json.get("templates"), None);
+        assert!(memo_json.get("trash").is_some());
+
+        let (signature_state, _directory) = make_state();
+        delete_signature_impl(&signature_state, "signature-default".to_string())
+            .expect("trash signature");
+        let signature_mutation = permanently_delete_signature_from_trash_impl(
+            &signature_state,
+            "signature-default".to_string(),
+        )
+        .expect("purge signature");
+        let signature_json =
+            serde_json::to_value(&signature_mutation).expect("serialize signature mutation");
+        assert!(signature_json.get("drafts").is_some());
+        assert!(signature_json.get("draftHistory").is_some());
+        assert!(signature_json.get("templates").is_some());
+        assert!(signature_json.get("trash").is_some());
+    }
+
+    #[test]
+    fn settings_commands_normalize_invalid_retention_in_their_contract() {
+        let (state, _directory) = make_state();
+
+        let saved = save_logging_settings_impl(
+            &state,
+            LoggingSettingsInput {
+                mode: crate::app::settings::LoggingMode::Off,
+                retention_days: 999,
+            },
+        )
+        .expect("save settings");
+        let saved_json = serde_json::to_value(&saved).expect("serialize settings");
+
+        assert_eq!(saved.retention_days, 14);
+        assert_eq!(saved_json["mode"], json!("off"));
+        assert_eq!(saved_json["retentionDays"], json!(14));
+    }
+
+    #[test]
+    fn restore_draft_command_impl_returns_history_only_for_the_restored_draft() {
+        let (state, _directory) = make_state();
+
+        save_draft_impl(
+            &state,
+            DraftInput {
+                id: "draft-secondary".to_string(),
+                title: "二件目".to_string(),
+                is_pinned: false,
+                subject: "件名".to_string(),
+                recipient: String::new(),
+                opening: String::new(),
+                body: "本文".to_string(),
+                closing: String::new(),
+                template_id: Some("template-thanks".to_string()),
+                signature_id: Some("signature-default".to_string()),
+                variable_values: BTreeMap::new(),
+            },
+        )
+        .expect("save draft");
+        save_draft_impl(
+            &state,
+            DraftInput {
+                id: "draft-secondary".to_string(),
+                title: "二件目".to_string(),
+                is_pinned: false,
+                subject: "更新件名".to_string(),
+                recipient: String::new(),
+                opening: String::new(),
+                body: "更新本文".to_string(),
+                closing: String::new(),
+                template_id: Some("template-thanks".to_string()),
+                signature_id: Some("signature-default".to_string()),
+                variable_values: BTreeMap::new(),
+            },
+        )
+        .expect("update draft");
+        delete_draft_impl(&state, "draft-welcome".to_string()).expect("trash primary");
+
+        let restored =
+            restore_draft_from_trash_impl(&state, "draft-welcome".to_string()).expect("restore");
+
+        assert_eq!(restored.draft.id, "draft-welcome");
+        assert_eq!(
+            restored
+                .draft_history
+                .iter()
+                .all(|entry| entry.draft_id == "draft-welcome"),
+            true
+        );
+    }
+
+    #[test]
+    fn tauri_command_wrappers_round_trip_mutations_without_leaking_other_collections() {
+        let (state, _directory) = make_state();
+
+        let initial = load_snapshot(as_tauri_state(&state)).expect("load snapshot");
+        assert_eq!(initial.drafts.len(), 1);
+        assert_eq!(
+            load_startup_notice(as_tauri_state(&state)).expect("load startup notice"),
+            None
+        );
+
+        let saved_memo = save_memo(
+            as_tauri_state(&state),
+            MemoInput {
+                id: "memo-wrapper".to_string(),
+                title: "wrapper".to_string(),
+                is_pinned: false,
+                body: "本文".to_string(),
+            },
+        )
+        .expect("save memo");
+        assert_eq!(saved_memo.id, "memo-wrapper");
+
+        let deleted_memo =
+            delete_memo(as_tauri_state(&state), "memo-wrapper".to_string()).expect("delete memo");
+        assert_eq!(deleted_memo.trashed_memo.memo.id, "memo-wrapper");
+
+        let restored_memo =
+            restore_memo_from_trash(as_tauri_state(&state), "memo-wrapper".to_string())
+                .expect("restore memo");
+        assert_eq!(restored_memo.id, "memo-wrapper");
+
+        delete_memo(as_tauri_state(&state), "memo-wrapper".to_string()).expect("trash memo");
+        let purged_memo =
+            permanently_delete_memo_from_trash(as_tauri_state(&state), "memo-wrapper".to_string())
+                .expect("purge memo");
+        assert!(purged_memo
+            .trash
+            .memos
+            .iter()
+            .all(|entry| entry.memo.id != "memo-wrapper"));
+        assert!(purged_memo.drafts.is_none());
+        assert!(purged_memo.templates.is_none());
+
+        let saved_preset = save_variable_preset(
+            as_tauri_state(&state),
+            VariablePresetInput {
+                id: "preset-wrapper".to_string(),
+                name: "preset".to_string(),
+                values: BTreeMap::from([("会社名".to_string(), "株式会社MailDraft".to_string())]),
+            },
+        )
+        .expect("save preset");
+        assert_eq!(saved_preset.variable_presets.len(), 1);
+
+        let deleted_preset =
+            delete_variable_preset(as_tauri_state(&state), "preset-wrapper".to_string())
+                .expect("delete preset");
+        assert!(deleted_preset.variable_presets.is_empty());
+
+        let saved_draft = save_draft(
+            as_tauri_state(&state),
+            DraftInput {
+                id: "draft-wrapper".to_string(),
+                title: "wrapper".to_string(),
+                is_pinned: false,
+                subject: "件名".to_string(),
+                recipient: String::new(),
+                opening: String::new(),
+                body: "本文".to_string(),
+                closing: String::new(),
+                template_id: Some("template-thanks".to_string()),
+                signature_id: Some("signature-default".to_string()),
+                variable_values: BTreeMap::new(),
+            },
+        )
+        .expect("save draft");
+        assert_eq!(saved_draft.draft.id, "draft-wrapper");
+
+        let trashed_draft =
+            delete_draft(as_tauri_state(&state), "draft-wrapper".to_string()).expect("trash draft");
+        assert_eq!(trashed_draft.trashed_draft.draft.id, "draft-wrapper");
+
+        let restored_draft =
+            restore_draft_from_trash(as_tauri_state(&state), "draft-wrapper".to_string())
+                .expect("restore draft");
+        assert_eq!(restored_draft.draft.id, "draft-wrapper");
+
+        let updated_draft = save_draft(
+            as_tauri_state(&state),
+            DraftInput {
+                id: "draft-wrapper".to_string(),
+                title: "wrapper".to_string(),
+                is_pinned: true,
+                subject: "更新件名".to_string(),
+                recipient: String::new(),
+                opening: String::new(),
+                body: "更新本文".to_string(),
+                closing: String::new(),
+                template_id: Some("template-thanks".to_string()),
+                signature_id: Some("signature-default".to_string()),
+                variable_values: BTreeMap::new(),
+            },
+        )
+        .expect("update draft");
+
+        let restored_history = updated_draft
+            .draft_history
+            .iter()
+            .find(|entry| entry.draft_id == "draft-wrapper")
+            .expect("history entry")
+            .id
+            .clone();
+        let snapshot_from_history = restore_draft_history(
+            as_tauri_state(&state),
+            "draft-wrapper".to_string(),
+            restored_history,
+        )
+        .expect("restore draft history");
+        assert_eq!(snapshot_from_history.draft.id, "draft-wrapper");
+
+        delete_draft(as_tauri_state(&state), "draft-wrapper".to_string()).expect("trash again");
+        let purged_draft = permanently_delete_draft_from_trash(
+            as_tauri_state(&state),
+            "draft-wrapper".to_string(),
+        )
+        .expect("purge draft");
+        assert!(purged_draft
+            .trash
+            .drafts
+            .iter()
+            .all(|entry| entry.draft.id != "draft-wrapper"));
+    }
+
+    #[test]
+    fn tauri_command_wrappers_cover_template_signature_backup_and_logging_contracts() {
+        let (state, directory) = make_state();
+
+        let logging_before =
+            load_logging_settings(as_tauri_state(&state)).expect("load logging settings");
+        assert_eq!(logging_before.retention_days, 14);
+
+        let saved_template = save_template(
+            as_tauri_state(&state),
+            TemplateInput {
+                id: "template-wrapper".to_string(),
+                name: "wrapper".to_string(),
+                is_pinned: false,
+                subject: "件名".to_string(),
+                recipient: String::new(),
+                opening: String::new(),
+                body: "本文".to_string(),
+                closing: String::new(),
+                signature_id: Some("signature-default".to_string()),
+            },
+        )
+        .expect("save template");
+        assert_eq!(saved_template.template.id, "template-wrapper");
+
+        let saved_signature = save_signature(
+            as_tauri_state(&state),
+            SignatureInput {
+                id: "signature-wrapper".to_string(),
+                name: "wrapper".to_string(),
+                is_pinned: false,
+                body: "署名".to_string(),
+                is_default: false,
+            },
+        )
+        .expect("save signature");
+        assert!(saved_signature
+            .signatures
+            .iter()
+            .any(|signature| signature.id == "signature-wrapper"));
+
+        let deleted_template =
+            delete_template(as_tauri_state(&state), "template-wrapper".to_string())
+                .expect("delete template");
+        assert_eq!(
+            deleted_template.trashed_template.template.id,
+            "template-wrapper"
+        );
+
+        let deleted_signature =
+            delete_signature(as_tauri_state(&state), "signature-wrapper".to_string())
+                .expect("delete signature");
+        assert_eq!(
+            deleted_signature.trashed_signature.signature.id,
+            "signature-wrapper"
+        );
+
+        let restored_template =
+            restore_template_from_trash(as_tauri_state(&state), "template-wrapper".to_string())
+                .expect("restore template");
+        assert_eq!(restored_template.template.id, "template-wrapper");
+
+        let restored_signature =
+            restore_signature_from_trash(as_tauri_state(&state), "signature-wrapper".to_string())
+                .expect("restore signature");
+        assert!(restored_signature
+            .signatures
+            .iter()
+            .any(|signature| signature.id == "signature-wrapper"));
+
+        delete_template(as_tauri_state(&state), "template-wrapper".to_string())
+            .expect("trash template again");
+        delete_signature(as_tauri_state(&state), "signature-wrapper".to_string())
+            .expect("trash signature again");
+        let purged_template = permanently_delete_template_from_trash(
+            as_tauri_state(&state),
+            "template-wrapper".to_string(),
+        )
+        .expect("purge template");
+        assert!(purged_template
+            .trash
+            .templates
+            .iter()
+            .all(|entry| entry.template.id != "template-wrapper"));
+
+        let purged_signature = permanently_delete_signature_from_trash(
+            as_tauri_state(&state),
+            "signature-wrapper".to_string(),
+        )
+        .expect("purge signature");
+        assert!(purged_signature
+            .trash
+            .signatures
+            .iter()
+            .all(|entry| entry.signature.id != "signature-wrapper"));
+
+        let saved_logging = save_logging_settings(
+            as_tauri_state(&state),
+            LoggingSettingsInput {
+                mode: crate::app::settings::LoggingMode::ErrorsOnly,
+                retention_days: 0,
+            },
+        )
+        .expect("save logging");
+        assert_eq!(saved_logging.retention_days, 14);
+
+        let recent_logs = load_recent_logs(as_tauri_state(&state), Some(5)).expect("load logs");
+        assert!(recent_logs.len() <= 5);
+
+        let cleared_logging = clear_logs(as_tauri_state(&state)).expect("clear logs");
+        assert_eq!(cleared_logging.mode, saved_logging.mode);
+
+        let backup_path = directory.path().join("wrapper-backup.json");
+        let exported_path =
+            export_backup(as_tauri_state(&state), backup_path.display().to_string())
+                .expect("export backup");
+        assert_eq!(exported_path, backup_path.display().to_string());
+
+        let imported = import_backup(as_tauri_state(&state), exported_path).expect("import backup");
+        assert_eq!(imported.snapshot.templates.len(), 1);
+
+        let emptied = empty_trash(as_tauri_state(&state)).expect("empty trash");
+        assert!(emptied.trash.drafts.is_empty());
+        assert!(emptied.trash.templates.is_empty());
+        assert!(emptied.trash.signatures.is_empty());
+        assert!(emptied.trash.memos.is_empty());
     }
 }

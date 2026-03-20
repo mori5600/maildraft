@@ -339,6 +339,122 @@ describe("template workspace state", () => {
     expect(onViewChange).toHaveBeenCalledWith("templates");
     expect(onNotice).toHaveBeenCalledWith("新しいテンプレートを作成しています。");
   });
+
+  it("keeps trashed signature ids and falls back only when the signature fully disappears", () => {
+    const snapshotWithTrashedSignature: StoreSnapshot = {
+      ...snapshot,
+      templates: [
+        {
+          ...snapshot.templates[0],
+          signatureId: "signature-trash",
+        },
+      ],
+      trash: {
+        ...snapshot.trash,
+        signatures: [
+          {
+            signature: {
+              id: "signature-trash",
+              name: "削除済み署名",
+              isPinned: false,
+              body: "本文",
+              isDefault: false,
+              createdAt: "1",
+              updatedAt: "1",
+            },
+            deletedAt: "10",
+          },
+        ],
+      },
+    };
+
+    const { result } = renderHook(() =>
+      useTemplateWorkspaceState({
+        onClearError: vi.fn(),
+        onError: vi.fn(),
+        onFlushDraft: vi.fn(),
+        onNotice: vi.fn(),
+        onOpenDraftInput: vi.fn(),
+        onSnapshotChange: vi.fn(),
+        onTrashItemSelect: vi.fn(),
+        onViewChange: vi.fn(),
+        snapshot: snapshotWithTrashedSignature,
+      }),
+    );
+
+    expect(result.current.templateWorkspaceProps.templateForm.signatureId).toBe("signature-trash");
+
+    act(() => {
+      result.current.syncTemplateSignatureId(snapshotWithTrashedSignature);
+    });
+    expect(result.current.templateWorkspaceProps.templateForm.signatureId).toBe("signature-trash");
+
+    act(() => {
+      result.current.syncTemplateSignatureId(snapshot);
+    });
+    expect(result.current.templateWorkspaceProps.templateForm.signatureId).toBe("signature-1");
+  });
+
+  it("starts a draft from an unsaved template using the latest default signature", () => {
+    const onNotice = vi.fn();
+    const onOpenDraftInput = vi.fn();
+    const onViewChange = vi.fn();
+
+    const { result } = renderHook(() =>
+      useTemplateWorkspaceState({
+        onClearError: vi.fn(),
+        onError: vi.fn(),
+        onFlushDraft: vi.fn(),
+        onNotice,
+        onOpenDraftInput,
+        onSnapshotChange: vi.fn(),
+        onTrashItemSelect: vi.fn(),
+        onViewChange,
+        snapshot: {
+          ...snapshot,
+          templates: [],
+          signatures: [
+            {
+              id: "signature-latest",
+              name: "最新署名",
+              isPinned: false,
+              body: "署名本文",
+              isDefault: true,
+              createdAt: "1",
+              updatedAt: "2",
+            },
+          ],
+          trash: {
+            drafts: [],
+            templates: [],
+            signatures: [],
+          },
+        },
+      }),
+    );
+
+    act(() => {
+      result.current.templateWorkspaceProps.onChangeTemplate("name", "未保存テンプレート");
+      result.current.templateWorkspaceProps.onChangeTemplate("subject", "未保存件名");
+      result.current.templateWorkspaceProps.onChangeTemplate("signatureId", null);
+    });
+
+    act(() => {
+      result.current.templateWorkspaceProps.onStartDraftFromTemplate();
+    });
+
+    expect(onOpenDraftInput).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "未保存テンプレート",
+        subject: "未保存件名",
+        signatureId: "signature-latest",
+      }),
+    );
+    expect(onViewChange).toHaveBeenCalledWith("drafts");
+    expect(onNotice).toHaveBeenCalledWith(
+      "未保存のテンプレートから新しい下書きを起こしました。",
+    );
+  });
 });
 
 afterAll(() => {
