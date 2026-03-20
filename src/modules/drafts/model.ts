@@ -1,3 +1,5 @@
+import type { Memo, MemoInput, MemoLike } from "../memo/model";
+import { memoLabel } from "../memo/model";
 import type { Template } from "../templates/model";
 import type { TemplateInput } from "../templates/model";
 
@@ -88,6 +90,24 @@ export function createDraftFromTemplateInput(
     templateId: template.id,
     signatureId: template.signatureId ?? defaultSignatureId,
     variableValues: {},
+  };
+}
+
+export function createDraftFromMemo(
+  memo: Memo,
+  defaultSignatureId: string | null,
+): DraftInput {
+  return createDraftFromMemoInput(memo, defaultSignatureId);
+}
+
+export function createDraftFromMemoInput(
+  memo: Pick<Memo | MemoInput | MemoLike, "title" | "body">,
+  defaultSignatureId: string | null,
+): DraftInput {
+  return {
+    ...createEmptyDraft(defaultSignatureId),
+    title: memoLabel(memo),
+    body: memo.body,
   };
 }
 

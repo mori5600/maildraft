@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { TemplateInput } from "../templates/model";
 import {
   applyTemplateToDraft,
+  createDraftFromMemoInput,
   createDraftFromTemplateInput,
   draftHasMeaningfulContent,
   draftInputsEqual,
@@ -27,6 +28,24 @@ describe("draft model", () => {
       subject: "お打ち合わせのお礼",
       templateId: "template-1",
       signatureId: "signature-template",
+    });
+  });
+
+  it("creates a draft from a memo and keeps the subject empty", () => {
+    expect(
+      createDraftFromMemoInput(
+        {
+          title: "",
+          body: "会議メモ\n宿題を確認",
+        },
+        "signature-default",
+      ),
+    ).toMatchObject({
+      title: "会議メモ",
+      subject: "",
+      body: "会議メモ\n宿題を確認",
+      templateId: null,
+      signatureId: "signature-default",
     });
   });
 

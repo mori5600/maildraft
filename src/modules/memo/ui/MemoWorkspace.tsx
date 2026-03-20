@@ -7,6 +7,7 @@ interface MemoWorkspaceProps {
   activeMemoUpdatedAt: string | null;
   autoSaveLabel: string;
   availableSortOptions: Array<{ value: MemoSortOption; label: string }>;
+  canStartDraftFromMemo: boolean;
   memos: Memo[];
   memoForm: MemoInput;
   onChangeMemo: <K extends keyof MemoInput>(field: K, value: MemoInput[K]) => void;
@@ -16,6 +17,7 @@ interface MemoWorkspaceProps {
   onDeleteMemo: () => Promise<void>;
   onSaveMemo: () => Promise<void>;
   onSelectMemo: (id: string) => void;
+  onStartDraftFromMemo: () => void;
   searchQuery: string;
   selectedMemoId: string | null;
   showWhitespace: boolean;
@@ -27,6 +29,7 @@ export function MemoWorkspace({
   activeMemoUpdatedAt,
   autoSaveLabel,
   availableSortOptions,
+  canStartDraftFromMemo,
   memos,
   memoForm,
   onChangeMemo,
@@ -36,6 +39,7 @@ export function MemoWorkspace({
   onDeleteMemo,
   onSaveMemo,
   onSelectMemo,
+  onStartDraftFromMemo,
   searchQuery,
   selectedMemoId,
   showWhitespace,
@@ -60,11 +64,13 @@ export function MemoWorkspace({
       <MemoEditorPane
         activeMemoUpdatedAt={activeMemoUpdatedAt}
         autoSaveLabel={autoSaveLabel}
+        canStartDraftFromMemo={canStartDraftFromMemo}
         memoForm={memoForm}
         onChangeMemo={onChangeMemo}
         onCreateMemo={onCreateMemo}
         onDeleteMemo={onDeleteMemo}
         onSaveMemo={onSaveMemo}
+        onStartDraftFromMemo={onStartDraftFromMemo}
         selectedMemoId={selectedMemoId}
         showWhitespace={showWhitespace}
       />

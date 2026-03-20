@@ -42,6 +42,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     onClearError: shell.clearError,
     onError: shell.setError,
     onNotice: shell.setNotice,
+    onOpenDraftInput: (input) => draftWorkspaceRef.current?.openDraftInput(input),
     onSnapshotChange: shell.setSnapshot,
     onTrashItemSelect: shell.setSelectedTrashItemKey,
     onViewChange: shell.setViewState,

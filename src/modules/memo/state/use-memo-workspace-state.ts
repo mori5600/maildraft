@@ -2,10 +2,19 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } f
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import { MEMO_SORT_OPTIONS, type MemoSortOption } from "../../../shared/lib/list-sort";
-import { applyDeletedMemoResult } from "../../../shared/lib/store-snapshot";
+import {
+  applyDeletedMemoResult,
+  getDefaultSignatureId,
+} from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot, WorkspaceView } from "../../../shared/types/store";
+import { createDraftFromMemoInput, type DraftInput } from "../../drafts/model";
 import { buildTrashItemKey } from "../../trash/model";
-import { createEmptyMemo, type MemoInput, toMemoInput } from "../model";
+import {
+  createEmptyMemo,
+  memoHasMeaningfulContent,
+  type MemoInput,
+  toMemoInput,
+} from "../model";
 import {
   buildMemoEditingState,
   createInitialMemoState,
@@ -20,6 +29,7 @@ export interface MemoWorkspaceStateOptions {
   onClearError: () => void;
   onError: (message: string) => void;
   onNotice: (message: string) => void;
+  onOpenDraftInput: (input: DraftInput) => void;
   onSnapshotChange: (snapshot: StoreSnapshot) => void;
   onTrashItemSelect?: (key: string | null) => void;
   onViewChange: (view: WorkspaceView) => void;
@@ -30,6 +40,7 @@ export function useMemoWorkspaceState({
   onClearError,
   onError,
   onNotice,
+  onOpenDraftInput,
   onSnapshotChange,
   onTrashItemSelect = () => {},
   onViewChange,
@@ -121,6 +132,19 @@ export function useMemoWorkspaceState({
     }));
   }
 
+  const startDraftFromMemo = useCallback(() => {
+    const currentMemo = memoFormRef.current;
+
+    if (!memoHasMeaningfulContent(currentMemo)) {
+      return;
+    }
+
+    flushPendingMemo();
+    onOpenDraftInput(createDraftFromMemoInput(currentMemo, getDefaultSignatureId(snapshotRef.current)));
+    onViewChange("drafts");
+    onNotice("メモから新しい下書きを起こしました。");
+  }, [flushPendingMemo, onNotice, onOpenDraftInput, onViewChange]);
+
   async function deleteMemo() {
     if (!selectedMemoId) {
       setMemoForm(createEmptyMemo());
@@ -152,6 +176,7 @@ export function useMemoWorkspaceState({
       activeMemoUpdatedAt: selectedMemoUpdatedAt,
       autoSaveLabel,
       availableSortOptions: MEMO_SORT_OPTIONS,
+      canStartDraftFromMemo: memoHasMeaningfulContent(memoForm),
       memos: filteredMemos,
       memoForm,
       onChangeMemo: changeMemo,
@@ -161,6 +186,7 @@ export function useMemoWorkspaceState({
       onDeleteMemo: deleteMemo,
       onSaveMemo: saveMemo,
       onSelectMemo: selectMemo,
+      onStartDraftFromMemo: startDraftFromMemo,
       searchQuery: memoSearchQuery,
       selectedMemoId,
       showWhitespace: false,

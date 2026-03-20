@@ -15,11 +15,13 @@ import {
 interface MemoEditorPaneProps {
   activeMemoUpdatedAt: string | null;
   autoSaveLabel: string;
+  canStartDraftFromMemo: boolean;
   memoForm: MemoInput;
   onChangeMemo: <K extends keyof MemoInput>(field: K, value: MemoInput[K]) => void;
   onCreateMemo: () => void;
   onDeleteMemo: () => Promise<void>;
   onSaveMemo: () => Promise<void>;
+  onStartDraftFromMemo: () => void;
   selectedMemoId: string | null;
   showWhitespace: boolean;
 }
@@ -27,11 +29,13 @@ interface MemoEditorPaneProps {
 export function MemoEditorPane({
   activeMemoUpdatedAt,
   autoSaveLabel,
+  canStartDraftFromMemo,
   memoForm,
   onChangeMemo,
   onCreateMemo,
   onDeleteMemo,
   onSaveMemo,
+  onStartDraftFromMemo,
   selectedMemoId,
   showWhitespace,
 }: MemoEditorPaneProps) {
@@ -44,6 +48,14 @@ export function MemoEditorPane({
           <div className="flex gap-2">
             <Button size="sm" title="Ctrl/Cmd+N" variant="ghost" onClick={onCreateMemo}>
               新規
+            </Button>
+            <Button
+              disabled={!canStartDraftFromMemo}
+              size="sm"
+              variant="ghost"
+              onClick={onStartDraftFromMemo}
+            >
+              下書きを作成
             </Button>
             <Button size="sm" variant="ghost" onClick={() => void onDeleteMemo()}>
               {selectedMemoId ? "削除" : "リセット"}
