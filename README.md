@@ -1,9 +1,11 @@
 # MailDraft
 
+<img width="1919" height="1029" alt="image" src="https://github.com/user-attachments/assets/3357e1fb-f0f7-4236-8ca3-bf05dd61eff3" />
+
 MailDraft は、日本語メールの下書き作成に特化したローカルファーストのデスクトップアプリです。  
 下書き、テンプレート、署名、差し込み値セットを分けて管理しながら、プレーンテキストのメール文を素早く組み立てられます。
 
-- 対応想定: macOS / Windows
+- 対応想定: Windows / macOS
 - スタック: Tauri v2, React 19, TypeScript, Vite, Tailwind CSS v4, Rust
 - 現在のアプリバージョン: `1.2.0`
 
