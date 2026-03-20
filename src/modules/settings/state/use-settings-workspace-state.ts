@@ -142,7 +142,7 @@ export function useSettingsWorkspaceState({
     try {
       onClearError();
       const confirmed = await confirm(
-        "バックアップを読み込むと、現在の下書き・テンプレート・署名・履歴を置き換えます。続けますか？",
+        "バックアップを読み込むと、現在の下書き・テンプレート・署名・メモ・履歴を置き換えます。続けますか？",
         {
           title: "MailDraft",
           kind: "warning",

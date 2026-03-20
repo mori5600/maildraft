@@ -5,6 +5,7 @@ use pretty_assertions::assert_eq;
 use super::StoreSnapshot;
 use crate::modules::{
     drafts::DraftInput,
+    memo::MemoInput,
     signatures::{Signature, SignatureInput},
     templates::TemplateInput,
     variable_presets::VariablePresetInput,
@@ -276,4 +277,51 @@ fn variable_presets_can_be_deleted_and_empty_trash_clears_all_kinds() {
     store.empty_trash();
 
     assert_eq!(store.trash.item_count(), 0);
+}
+
+#[test]
+fn memo_updates_in_place_after_first_save() {
+    let mut store = StoreSnapshot::seeded();
+
+    let first_saved = store.upsert_memo(
+        MemoInput {
+            id: "memo-1".to_string(),
+            title: "会議メモ".to_string(),
+            body: "決定事項".to_string(),
+        },
+        "10",
+    );
+    store.upsert_memo(
+        MemoInput {
+            id: "memo-1".to_string(),
+            title: "会議メモ".to_string(),
+            body: "決定事項\n宿題".to_string(),
+        },
+        "20",
+    );
+
+    assert_eq!(first_saved.id, "memo-1");
+    assert_eq!(store.memos[0].title, "会議メモ");
+    assert_eq!(store.memos[0].body, "決定事項\n宿題");
+    assert_eq!(store.memos[0].created_at, "10");
+    assert_eq!(store.memos[0].updated_at, "20");
+}
+
+#[test]
+fn ensure_consistency_migrates_legacy_singleton_memo() {
+    let mut store = StoreSnapshot::seeded();
+    store.legacy_memo = Some(crate::modules::memo::Memo {
+        id: String::new(),
+        title: "旧メモ".to_string(),
+        body: "移行対象".to_string(),
+        created_at: "10".to_string(),
+        updated_at: "11".to_string(),
+    });
+
+    store.ensure_consistency();
+
+    assert_eq!(store.memos.len(), 1);
+    assert_eq!(store.memos[0].id, "memo-legacy");
+    assert_eq!(store.memos[0].title, "旧メモ");
+    assert_eq!(store.legacy_memo, None);
 }

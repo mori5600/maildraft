@@ -4,8 +4,8 @@ use serde_json::{json, Map, Value};
 
 use crate::app::settings::LoggingSettings;
 use crate::modules::{
-    drafts::DraftInput, signatures::SignatureInput, store::StoreSnapshot, templates::TemplateInput,
-    variable_presets::VariablePresetInput,
+    drafts::DraftInput, memo::MemoInput, signatures::SignatureInput, store::StoreSnapshot,
+    templates::TemplateInput, variable_presets::VariablePresetInput,
 };
 
 pub(super) fn timestamp() -> String {
@@ -35,6 +35,7 @@ pub(super) fn snapshot_counts_context(snapshot: &StoreSnapshot) -> Map<String, V
         "signature_count".to_string(),
         json!(snapshot.signatures.len()),
     );
+    context.insert("memo_count".to_string(), json!(snapshot.memos.len()));
     context.insert(
         "trash_count".to_string(),
         json!(snapshot.trash.item_count()),
@@ -128,6 +129,14 @@ pub(super) fn signature_context(input: &SignatureInput) -> Map<String, Value> {
     context.insert("body_length".to_string(), json!(input.body.chars().count()));
     context.insert("is_pinned".to_string(), json!(input.is_pinned));
     context.insert("is_default".to_string(), json!(input.is_default));
+    context
+}
+
+pub(super) fn memo_context(input: &MemoInput) -> Map<String, Value> {
+    let mut context = Map::new();
+    context.insert("has_title".to_string(), json!(!input.title.trim().is_empty()));
+    context.insert("title_length".to_string(), json!(input.title.chars().count()));
+    context.insert("body_length".to_string(), json!(input.body.chars().count()));
     context
 }
 

@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import type { DraftInput } from "../../modules/drafts/model";
 import type { VariablePresetInput } from "../../modules/drafts/variable-presets";
+import type { Memo, MemoInput } from "../../modules/memo/model";
 import type {
   ImportedBackupSnapshot,
   LogEntrySnapshot,
@@ -12,6 +13,7 @@ import type { SignatureInput } from "../../modules/signatures/model";
 import type { TemplateInput } from "../../modules/templates/model";
 import type {
   DeleteDraftResult,
+  DeleteMemoResult,
   DeleteSignatureResult,
   DeleteTemplateResult,
   SaveDraftResult,
@@ -35,6 +37,14 @@ export const maildraftApi = {
 
   saveDraft(input: DraftInput) {
     return invoke<SaveDraftResult>("save_draft", { input });
+  },
+
+  saveMemo(input: MemoInput) {
+    return invoke<Memo>("save_memo", { input });
+  },
+
+  deleteMemo(id: string) {
+    return invoke<DeleteMemoResult>("delete_memo", { id });
   },
 
   deleteDraft(id: string) {

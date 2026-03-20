@@ -181,7 +181,7 @@ describe("App runtime integration", () => {
     render(<App />);
     await expectEditorText("一覧名", "4/12 打ち合わせお礼");
 
-    await user.click(screen.getByTitle("設定 (Ctrl/Cmd+5)"));
+    await user.click(screen.getByTitle("設定 (Ctrl/Cmd+6)"));
     await user.selectOptions(screen.getByLabelText(/記録レベル/), "standard");
     await user.click(
       within(screen.getByText("ログ設定").closest("section") as HTMLElement).getByRole("button", {
@@ -259,7 +259,7 @@ describe("App runtime integration", () => {
     render(<App />);
     await expectEditorText("一覧名", "現在の下書き");
 
-    await user.click(screen.getByTitle("ゴミ箱 (Ctrl/Cmd+4)"));
+    await user.click(screen.getByTitle("ゴミ箱 (Ctrl/Cmd+5)"));
     expect((await screen.findAllByText("削除した下書き")).length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole("button", { name: "復元" }));

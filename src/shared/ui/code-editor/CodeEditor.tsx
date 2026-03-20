@@ -7,6 +7,7 @@ import {
   createCodeEditorCompartments,
   createCodeEditorContentAttributesExtension,
   createCodeEditorEditorAttributesExtension,
+  createCodeEditorGutterExtension,
   createCodeEditorLayoutExtension,
   createCodeEditorPlaceholderExtension,
   createCodeEditorWhitespaceExtension,
@@ -32,6 +33,7 @@ export interface CodeEditorProps {
   className?: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  showLineNumbers?: boolean;
   showWhitespace?: boolean;
   singleLine?: boolean;
   textClassName?: string;
@@ -45,6 +47,7 @@ export function CodeEditor({
   textClassName = "mail-editor-text",
   onChange,
   placeholder,
+  showLineNumbers = false,
   showWhitespace = false,
   singleLine = false,
   value,
@@ -59,6 +62,7 @@ export function CodeEditor({
     ariaLabel,
     normalizedPlaceholder,
     normalizedValue,
+    showLineNumbers,
     showWhitespace,
     singleLine,
     textClassName,
@@ -87,6 +91,9 @@ export function CodeEditor({
         createCodeEditorEditorAttributesExtension({
           singleLine: initialConfig.singleLine,
         }),
+      ),
+      compartmentsRef.current.gutter.of(
+        createCodeEditorGutterExtension(initialConfig.showLineNumbers),
       ),
       compartmentsRef.current.contentAttributes.of(
         createCodeEditorContentAttributesExtension({
@@ -133,6 +140,19 @@ export function CodeEditor({
       ),
     });
   }, [singleLine]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) {
+      return;
+    }
+
+    view.dispatch({
+      effects: compartmentsRef.current.gutter.reconfigure(
+        createCodeEditorGutterExtension(showLineNumbers),
+      ),
+    });
+  }, [showLineNumbers]);
 
   useEffect(() => {
     const view = viewRef.current;

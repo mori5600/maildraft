@@ -1,4 +1,5 @@
 import { createEmptyDraft, type DraftInput, toDraftInput } from "../../modules/drafts/model";
+import { createEmptyMemo, type Memo, type MemoInput, toMemoInput } from "../../modules/memo/model";
 import {
   createEmptySignature,
   type SignatureInput,
@@ -11,6 +12,7 @@ import {
 } from "../../modules/templates/model";
 import type {
   DeleteDraftResult,
+  DeleteMemoResult,
   DeleteSignatureResult,
   DeleteTemplateResult,
   SaveDraftResult,
@@ -20,7 +22,7 @@ import type {
   TrashMutationResult,
   VariablePresetResult,
 } from "../types/store";
-import { sortDrafts, sortSignatures, sortTemplates } from "./list-sort";
+import { sortDrafts, sortMemos, sortSignatures, sortTemplates } from "./list-sort";
 
 export function getDefaultSignatureId(snapshot: StoreSnapshot): string | null {
   return (
@@ -70,6 +72,16 @@ export function pickTemplateInput(
   }
 
   return toTemplateInput(existing);
+}
+
+export function pickMemoInput(snapshot: StoreSnapshot, memoId: string | null): MemoInput {
+  const existing = snapshot.memos.find((memo) => memo.id === memoId) ?? snapshot.memos[0];
+
+  if (!existing) {
+    return createEmptyMemo();
+  }
+
+  return toMemoInput(existing);
 }
 
 export function pickSignatureInput(
@@ -217,6 +229,25 @@ export function applySavedSignatureResult(
   return {
     ...snapshot,
     signatures: sortSignatures(savedSignature.signatures, "recent"),
+  };
+}
+
+/** Patches one saved memo into the current snapshot. */
+export function applySavedMemoResult(snapshot: StoreSnapshot, memo: Memo): StoreSnapshot {
+  return {
+    ...snapshot,
+    memos: sortMemos(upsertById(snapshot.memos, memo), "recent"),
+  };
+}
+
+/** Replaces active memos with the deleted result payload. */
+export function applyDeletedMemoResult(
+  snapshot: StoreSnapshot,
+  deletedMemo: DeleteMemoResult,
+): StoreSnapshot {
+  return {
+    ...snapshot,
+    memos: sortMemos(deletedMemo.memos, "recent"),
   };
 }
 

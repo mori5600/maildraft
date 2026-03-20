@@ -6,8 +6,8 @@ use tempfile::tempdir;
 
 use super::{
     context::{
-        draft_context, logging_settings_context, merge_context, snapshot_counts_context,
-        template_context, trash_kind_context, variable_preset_context,
+        draft_context, logging_settings_context, memo_context, merge_context,
+        snapshot_counts_context, template_context, trash_kind_context, variable_preset_context,
     },
     AppState,
 };
@@ -18,7 +18,7 @@ use crate::{
         storage::{load_app_settings, load_store_snapshot, StartupNoticeTone},
     },
     modules::{
-        drafts::DraftInput, signatures::SignatureInput, store::StoreSnapshot,
+        drafts::DraftInput, memo::MemoInput, signatures::SignatureInput, store::StoreSnapshot,
         templates::TemplateInput, variable_presets::VariablePresetInput,
     },
 };
@@ -117,6 +117,7 @@ fn snapshot_counts_context_reports_current_collection_sizes() {
     assert_eq!(context.get("variable_preset_count"), Some(&json!(0)));
     assert_eq!(context.get("template_count"), Some(&json!(1)));
     assert_eq!(context.get("signature_count"), Some(&json!(1)));
+    assert_eq!(context.get("memo_count"), Some(&json!(0)));
     assert_eq!(context.get("trash_count"), Some(&json!(0)));
 }
 
@@ -161,6 +162,11 @@ fn input_context_builders_capture_safe_lengths_and_flags() {
         body: "Team".to_string(),
         is_default: false,
     };
+    let memo = MemoInput {
+        id: "memo-1".to_string(),
+        title: "商談".to_string(),
+        body: "要点".to_string(),
+    };
     let logging = LoggingSettings {
         mode: LoggingMode::Off,
         retention_days: 30,
@@ -187,6 +193,11 @@ fn input_context_builders_capture_safe_lengths_and_flags() {
     assert_eq!(signature_values.get("body_length"), Some(&json!(4)));
     assert_eq!(signature_values.get("is_pinned"), Some(&json!(true)));
     assert_eq!(signature_values.get("is_default"), Some(&json!(false)));
+
+    let memo_values = memo_context(&memo);
+    assert_eq!(memo_values.get("has_title"), Some(&json!(true)));
+    assert_eq!(memo_values.get("title_length"), Some(&json!(2)));
+    assert_eq!(memo_values.get("body_length"), Some(&json!(2)));
 
     let logging_values = logging_settings_context(&logging);
     assert_eq!(logging_values.get("mode"), Some(&json!("off")));
@@ -258,6 +269,27 @@ fn save_template_and_variable_preset_persist_store_updates() {
         .iter()
         .any(|template| template.id == "template-follow-up"));
     assert!(persisted.variable_presets.is_empty());
+}
+
+#[test]
+fn save_memo_persists_store_updates() {
+    let (state, _directory) = make_state();
+
+    let saved_memo = state
+        .save_memo(MemoInput {
+            id: "memo-1".to_string(),
+            title: "打ち合わせメモ".to_string(),
+            body: "宿題を確認".to_string(),
+        })
+        .expect("save memo");
+
+    assert_eq!(saved_memo.id, "memo-1");
+    assert_eq!(saved_memo.title, "打ち合わせメモ");
+    assert_eq!(saved_memo.body, "宿題を確認");
+
+    let persisted = read_store(&state.store_path);
+    assert_eq!(persisted.memos[0].title, "打ち合わせメモ");
+    assert_eq!(persisted.memos[0].body, "宿題を確認");
 }
 
 #[test]

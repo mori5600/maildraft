@@ -56,6 +56,7 @@ const snapshot: StoreSnapshot = {
       updatedAt: "1",
     },
   ],
+  memos: [],
   trash: {
     drafts: [],
     templates: [],
@@ -95,6 +96,7 @@ describe("template workspace state", () => {
         variablePresets: [],
         templates: [],
         signatures: snapshot.signatures,
+        memos: [],
         trash: {
           drafts: [],
           templates: [],

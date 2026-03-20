@@ -33,7 +33,15 @@ describe("DraftWorkspaceScreen", () => {
       <DraftWorkspaceScreen
         ref={ref}
         showWhitespace
-        snapshot={{ drafts: [], draftHistory: [], variablePresets: [], templates: [], signatures: [], trash: { drafts: [], templates: [], signatures: [] } }}
+        snapshot={{
+          drafts: [],
+          draftHistory: [],
+          variablePresets: [],
+          templates: [],
+          signatures: [],
+          memos: [],
+          trash: { drafts: [], templates: [], signatures: [] },
+        }}
         onClearError={vi.fn()}
         onError={vi.fn()}
         onNotice={vi.fn()}

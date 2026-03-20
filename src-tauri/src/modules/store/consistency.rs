@@ -1,12 +1,40 @@
+use std::collections::HashSet;
+
 use crate::modules::trash::TrashSnapshot;
 
 use super::StoreSnapshot;
 
 impl StoreSnapshot {
     pub fn ensure_consistency(&mut self) {
+        self.ensure_memos();
         self.ensure_default_signature();
         self.clean_broken_references();
         self.sort_by_recent();
+    }
+
+    fn ensure_memos(&mut self) {
+        if self.memos.is_empty() {
+            if let Some(mut legacy_memo) = self.legacy_memo.take() {
+                if legacy_memo.is_meaningful() {
+                    if legacy_memo.id.trim().is_empty() {
+                        legacy_memo.id = "memo-legacy".to_string();
+                    }
+
+                    self.memos.push(legacy_memo);
+                }
+            }
+        } else {
+            self.legacy_memo = None;
+        }
+
+        let mut seen_ids = HashSet::new();
+        for (index, memo) in self.memos.iter_mut().enumerate() {
+            if memo.id.trim().is_empty() || seen_ids.contains(&memo.id) {
+                memo.id = format!("memo-{}", index + 1);
+            }
+
+            seen_ids.insert(memo.id.clone());
+        }
     }
 
     fn ensure_default_signature(&mut self) {
@@ -123,6 +151,8 @@ impl StoreSnapshot {
                 .cmp(&left.is_pinned)
                 .then(right.updated_at.cmp(&left.updated_at))
         });
+        self.memos
+            .sort_by(|left, right| right.updated_at.cmp(&left.updated_at));
         self.trash
             .drafts
             .sort_by(|left, right| right.deleted_at.cmp(&left.deleted_at));

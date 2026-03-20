@@ -317,6 +317,97 @@
   white-space: nowrap;
 }
 
+.mail-note-editor-shell {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-field-bg);
+}
+
+.mail-note-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--color-panel-border);
+  background: var(--color-panel-bg);
+}
+
+.mail-note-title-input {
+  min-height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--color-text-strong);
+}
+
+.mail-note-title-input:focus-visible {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.mail-note-title-input::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+.mail-note-title-input,
+.mail-note-title-input::placeholder {
+  font-family:
+    system-ui, -apple-system, "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: normal;
+  font-kerning: auto;
+  font-feature-settings: normal;
+}
+
+.mail-note-editor-frame {
+  position: relative;
+  border: 0;
+  border-radius: 0;
+  background: var(--color-preview-bg);
+  box-shadow: none;
+}
+
+.mail-note-editor-frame:focus-within {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.mail-note-editor-frame .cm-gutters {
+  border-right: 1px solid var(--color-panel-border);
+  background: color-mix(in srgb, var(--color-panel-bg) 76%, var(--color-sidebar-bg) 24%);
+  color: var(--color-text-overlay);
+}
+
+.mail-note-editor-frame .cm-gutterElement {
+  min-width: 24px;
+  padding: 0 8px 0 6px;
+}
+
+.mail-note-editor-frame .cm-scroller {
+  background: transparent;
+}
+
+.mail-note-editor-frame .cm-content {
+  min-height: inherit;
+  padding: 14px 20px 24px 12px;
+}
+
+.mail-note-editor-text {
+  font-family:
+    "Cascadia Mono", Consolas, "BIZ UDGothic", "SFMono-Regular", monospace;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.68;
+  letter-spacing: normal;
+  font-kerning: normal;
+  font-feature-settings: normal;
+}
+
 .mail-editor-text {
   font-family:
     system-ui, -apple-system, "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;

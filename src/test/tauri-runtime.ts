@@ -2,6 +2,7 @@ import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 
 import type { Draft, DraftInput } from "../modules/drafts/model";
 import type { VariablePresetInput } from "../modules/drafts/variable-presets";
+import type { MemoInput } from "../modules/memo/model";
 import type {
   LogEntrySnapshot,
   LoggingSettingsInput,
@@ -88,6 +89,38 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
         return cloneData({
           draft: nextDraft,
           draftHistory: snapshot.draftHistory.filter((entry) => entry.draftId === nextDraft.id),
+        });
+      }
+      case "save_memo": {
+        const input = (payload as { input: MemoInput }).input;
+        const currentIndex = snapshot.memos.findIndex((memo) => memo.id === input.id);
+        const previous = currentIndex >= 0 ? snapshot.memos[currentIndex] : null;
+        const nextMemo = {
+          id: input.id,
+          title: input.title,
+          body: input.body,
+          createdAt: previous?.createdAt ?? String(Date.now()),
+          updatedAt: String(Date.now()),
+        };
+
+        if (currentIndex >= 0) {
+          snapshot.memos[currentIndex] = nextMemo;
+        } else {
+          snapshot.memos.unshift(nextMemo);
+        }
+
+        return cloneData(nextMemo);
+      }
+      case "delete_memo": {
+        const id = (payload as { id: string }).id;
+        const currentIndex = snapshot.memos.findIndex((memo) => memo.id === id);
+        if (currentIndex < 0) {
+          throw new Error("指定したメモが見つかりませんでした。");
+        }
+
+        snapshot.memos.splice(currentIndex, 1);
+        return cloneData({
+          memos: snapshot.memos,
         });
       }
       case "delete_draft": {

@@ -7,10 +7,12 @@ use crate::app::{
 };
 use crate::modules::{
     drafts::DraftInput,
+    memo::{Memo, MemoInput},
     signatures::SignatureInput,
     store::{
-        DeleteDraftResult, DeleteSignatureResult, DeleteTemplateResult, SaveDraftResult,
-        SaveSignatureResult, SaveTemplateResult, StoreSnapshot, TrashMutationResult,
+        DeleteDraftResult, DeleteMemoResult, DeleteSignatureResult, DeleteTemplateResult,
+        SaveDraftResult, SaveSignatureResult, SaveTemplateResult, StoreSnapshot,
+        TrashMutationResult,
         VariablePresetResult,
     },
     templates::TemplateInput,
@@ -27,6 +29,14 @@ fn load_startup_notice_impl(state: &AppState) -> Result<Option<StartupNoticeSnap
 
 fn save_draft_impl(state: &AppState, input: DraftInput) -> Result<SaveDraftResult, String> {
     state.save_draft(input)
+}
+
+fn save_memo_impl(state: &AppState, input: MemoInput) -> Result<Memo, String> {
+    state.save_memo(input)
+}
+
+fn delete_memo_impl(state: &AppState, id: String) -> Result<DeleteMemoResult, String> {
+    state.delete_memo(&id)
 }
 
 fn delete_draft_impl(state: &AppState, id: String) -> Result<DeleteDraftResult, String> {
@@ -165,6 +175,22 @@ pub(crate) fn save_draft(
     input: DraftInput,
 ) -> Result<SaveDraftResult, String> {
     save_draft_impl(&state, input)
+}
+
+#[tauri::command]
+pub(crate) fn save_memo(
+    state: tauri::State<'_, AppState>,
+    input: MemoInput,
+) -> Result<Memo, String> {
+    save_memo_impl(&state, input)
+}
+
+#[tauri::command]
+pub(crate) fn delete_memo(
+    state: tauri::State<'_, AppState>,
+    id: String,
+) -> Result<DeleteMemoResult, String> {
+    delete_memo_impl(&state, id)
 }
 
 #[tauri::command]
@@ -517,6 +543,32 @@ mod tests {
         assert!(removed_signature.drafts.is_some());
         assert!(removed_signature.draft_history.is_some());
         assert!(removed_signature.templates.is_some());
+    }
+
+    #[test]
+    fn memo_commands_round_trip() {
+        let (state, _directory) = make_state();
+
+        let memo = save_memo_impl(
+            &state,
+            MemoInput {
+                id: "memo-1".to_string(),
+                title: "打ち合わせ".to_string(),
+                body: "確認事項".to_string(),
+            },
+        )
+        .expect("save memo");
+
+        assert_eq!(memo.id, "memo-1");
+        assert_eq!(memo.title, "打ち合わせ");
+        assert_eq!(memo.body, "確認事項");
+
+        let snapshot = load_snapshot_impl(&state).expect("load snapshot");
+        assert_eq!(snapshot.memos[0].title, "打ち合わせ");
+        assert_eq!(snapshot.memos[0].body, "確認事項");
+
+        let deleted = delete_memo_impl(&state, "memo-1".to_string()).expect("delete memo");
+        assert!(deleted.memos.is_empty());
     }
 
     #[test]

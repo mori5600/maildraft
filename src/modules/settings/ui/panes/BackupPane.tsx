@@ -25,7 +25,7 @@ export function BackupPane({
               含まれる内容
             </div>
             <div className="mt-2.5 text-[13px] leading-6 text-(--color-text-muted)">
-              下書き、テンプレート、署名、差し込み値セット、履歴、ログ設定を JSON
+              下書き、テンプレート、署名、メモ、差し込み値セット、履歴、ログ設定を JSON
               として保存します。診断ログ本体は含めません。
             </div>
           </section>

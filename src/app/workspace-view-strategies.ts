@@ -2,6 +2,7 @@ import {
   Cog6ToothIcon,
   DocumentDuplicateIcon,
   EnvelopeIcon,
+  PencilSquareIcon,
   QuestionMarkCircleIcon,
   TrashIcon,
   UserCircleIcon,
@@ -32,6 +33,11 @@ export const WORKSPACE_VIEW_STRATEGIES = {
     title: "署名",
     description: "差出人プロフィールを管理",
     icon: UserCircleIcon,
+  },
+  memo: {
+    title: "メモ",
+    description: "自由記述のローカルメモを保存",
+    icon: PencilSquareIcon,
   },
   trash: {
     title: "ゴミ箱",

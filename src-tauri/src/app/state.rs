@@ -1,6 +1,7 @@
 mod context;
 mod draft_commands;
 mod internal;
+mod memo_commands;
 mod settings_backup;
 mod signature_commands;
 mod template_commands;

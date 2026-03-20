@@ -11,6 +11,7 @@ import {
 } from "./modules/drafts/ui/DraftWorkspaceScreen";
 import { getViewShortcutHint } from "./modules/help/model";
 import { HelpWorkspace } from "./modules/help/ui/HelpWorkspace";
+import { MemoWorkspace } from "./modules/memo/ui/MemoWorkspace";
 import { SettingsWorkspace } from "./modules/settings/ui/SettingsWorkspace";
 import { SignatureWorkspace } from "./modules/signatures/ui/SignatureWorkspace";
 import { TemplateWorkspace } from "./modules/templates/ui/TemplateWorkspace";
@@ -46,7 +47,7 @@ function App() {
                 className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none"
                 strokeWidth={1.8}
               />
-              <p>下書き、テンプレート、署名を読み込み中です。</p>
+              <p>下書き、テンプレート、署名、メモを読み込み中です。</p>
             </div>
           </Panel>
         </div>
@@ -170,6 +171,7 @@ function App() {
             {app.view === "signatures" ? (
               <SignatureWorkspace {...app.signatureWorkspaceProps} />
             ) : null}
+            {app.view === "memo" ? <MemoWorkspace {...app.memoWorkspaceProps} /> : null}
             {app.view === "trash" ? <TrashWorkspace {...app.trashWorkspaceProps} /> : null}
             {app.view === "settings" ? <SettingsWorkspace {...app.settingsWorkspaceProps} /> : null}
             {app.view === "help" ? <HelpWorkspace /> : null}

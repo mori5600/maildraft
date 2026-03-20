@@ -43,6 +43,15 @@ const populatedSnapshot: StoreSnapshot = {
       updatedAt: "2",
     },
   ],
+  memos: [
+    {
+      id: "memo-1",
+      title: "商談メモ",
+      body: "確認事項",
+      createdAt: "1",
+      updatedAt: "2",
+    },
+  ],
   trash: {
     drafts: [],
     templates: [
@@ -115,6 +124,7 @@ describe("maildraft app helpers", () => {
     expect(
       buildWorkspaceSummaries({
         draftCount: 1,
+        memoCount: 1,
         templateCount: 1,
         signatureCount: 1,
         trashItemCount: 2,
@@ -123,6 +133,7 @@ describe("maildraft app helpers", () => {
       { id: "drafts", label: "下書き", count: 1 },
       { id: "templates", label: "テンプレート", count: 1 },
       { id: "signatures", label: "署名", count: 1 },
+      { id: "memo", label: "メモ", count: 1 },
       { id: "trash", label: "ゴミ箱", count: 2 },
       { id: "settings", label: "設定" },
       { id: "help", label: "ヘルプ" },
@@ -151,6 +162,7 @@ describe("maildraft app helpers", () => {
         variablePresets: [],
         templates: [],
         signatures: [],
+        memos: [],
         trash: {
           drafts: [],
           templates: [],
@@ -181,14 +193,17 @@ describe("maildraft app helpers", () => {
 
   it("resolves sidebar shortcut actions without view-specific branching in the hook", () => {
     expect(resolveCreateShortcutAction("drafts")).toBe("createDraft");
+    expect(resolveCreateShortcutAction("memo")).toBe("createMemo");
     expect(resolveCreateShortcutAction("trash")).toBe("createDraft");
 
     expect(resolveSaveShortcutAction("templates")).toBe("saveTemplate");
+    expect(resolveSaveShortcutAction("memo")).toBe("saveMemo");
     expect(resolveSaveShortcutAction("settings")).toBe("saveLoggingSettings");
     expect(resolveSaveShortcutAction("help")).toBeNull();
 
     expect(resolvePinShortcutAction("drafts")).toBe("toggleDraftPinned");
     expect(resolvePinShortcutAction("signatures")).toBe("toggleSignaturePinned");
+    expect(resolvePinShortcutAction("memo")).toBeNull();
     expect(resolvePinShortcutAction("settings")).toBeNull();
   });
 
@@ -217,10 +232,31 @@ describe("maildraft app helpers", () => {
     expect(
       resolveShortcutIntent({
         currentView: "settings",
+        key: "4",
+        shiftKey: false,
+      }),
+    ).toEqual({ kind: "changeView", view: "memo" });
+    expect(
+      resolveShortcutIntent({
+        currentView: "settings",
+        key: "5",
+        shiftKey: false,
+      }),
+    ).toEqual({ kind: "changeView", view: "trash" });
+    expect(
+      resolveShortcutIntent({
+        currentView: "settings",
         key: "s",
         shiftKey: false,
       }),
     ).toEqual({ kind: "saveForView", view: "settings" });
+    expect(
+      resolveShortcutIntent({
+        currentView: "memo",
+        key: "s",
+        shiftKey: false,
+      }),
+    ).toEqual({ kind: "saveForView", view: "memo" });
     expect(
       resolveShortcutIntent({
         currentView: "signatures",

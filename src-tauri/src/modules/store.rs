@@ -2,6 +2,7 @@
 
 mod consistency;
 mod draft_operations;
+mod memo_operations;
 mod seed;
 mod signature_operations;
 mod template_operations;
@@ -14,6 +15,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::modules::{
     drafts::{Draft, DraftHistoryEntry},
+    memo::Memo,
     signatures::Signature,
     templates::Template,
     trash::{TrashSnapshot, TrashedDraft, TrashedSignature, TrashedTemplate},
@@ -36,6 +38,10 @@ pub struct StoreSnapshot {
     pub templates: Vec<Template>,
     #[serde(default)]
     pub signatures: Vec<Signature>,
+    #[serde(default)]
+    pub memos: Vec<Memo>,
+    #[serde(default, alias = "memo", skip_serializing)]
+    pub legacy_memo: Option<Memo>,
     #[serde(default)]
     pub trash: TrashSnapshot,
 }
@@ -87,6 +93,13 @@ pub struct DeleteSignatureResult {
     #[serde(default)]
     pub signatures: Vec<Signature>,
     pub trashed_signature: TrashedSignature,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteMemoResult {
+    #[serde(default)]
+    pub memos: Vec<Memo>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

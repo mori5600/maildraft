@@ -74,6 +74,10 @@ export const HELP_USAGE_GROUPS: HelpGuideGroup[] = [
         title: "テンプレートから起こす",
         body: "テンプレート画面の `下書きを作成` で、そのテンプレートを元に新しい下書きを始められます。",
       },
+      {
+        title: "補足はメモに逃がす",
+        body: "メモ画面では、本文に入れる前の論点や会話ログを自由に書き残せます。タイトルを付けておくと後で見返しやすくなります。",
+      },
     ],
   },
   {
@@ -83,7 +87,7 @@ export const HELP_USAGE_GROUPS: HelpGuideGroup[] = [
     steps: [
       {
         title: "自動保存と履歴を使う",
-        body: "下書き、テンプレート、署名は自動保存されます。下書きは履歴から復元できるため、書き直したあとでも前の状態へ戻しやすくなっています。",
+        body: "下書き、テンプレート、署名、メモは自動保存されます。下書きは履歴から復元できるため、書き直したあとでも前の状態へ戻しやすくなっています。",
       },
       {
         title: "削除はゴミ箱へ送る",
@@ -91,7 +95,7 @@ export const HELP_USAGE_GROUPS: HelpGuideGroup[] = [
       },
       {
         title: "必要に応じてバックアップする",
-        body: "設定のバックアップ画面から JSON を書き出し / 読み込みできます。下書き、テンプレート、署名、差し込み値セットごと別のPCへ移行できます。",
+        body: "設定のバックアップ画面から JSON を書き出し / 読み込みできます。下書き、テンプレート、署名、メモ、差し込み値セットごと別のPCへ移行できます。",
       },
       {
         title: "Windows の初回警告を確認する",
@@ -125,9 +129,10 @@ export const KEYBOARD_SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: "Ctrl/Cmd+1", description: "下書きへ移動" },
       { keys: "Ctrl/Cmd+2", description: "テンプレートへ移動" },
       { keys: "Ctrl/Cmd+3", description: "署名へ移動" },
-      { keys: "Ctrl/Cmd+4", description: "ゴミ箱へ移動" },
-      { keys: "Ctrl/Cmd+5", description: "設定へ移動" },
-      { keys: "Ctrl/Cmd+6", description: "ヘルプへ移動" },
+      { keys: "Ctrl/Cmd+4", description: "メモへ移動" },
+      { keys: "Ctrl/Cmd+5", description: "ゴミ箱へ移動" },
+      { keys: "Ctrl/Cmd+6", description: "設定へ移動" },
+      { keys: "Ctrl/Cmd+7", description: "ヘルプへ移動" },
     ],
   },
   {
@@ -138,7 +143,7 @@ export const KEYBOARD_SHORTCUT_GROUPS: ShortcutGroup[] = [
       {
         keys: "Ctrl/Cmd+N",
         description: "現在の画面に応じて新規作成",
-        note: "ヘルプ・設定・ゴミ箱では新規下書き",
+        note: "ヘルプ・設定・ゴミ箱では新規下書き、メモでは新規メモ",
       },
       { keys: "Ctrl/Cmd+S", description: "現在の編集内容を保存" },
       {
@@ -161,7 +166,7 @@ export const KEYBOARD_SHORTCUT_GROUPS: ShortcutGroup[] = [
       {
         keys: "Ctrl/Cmd+K",
         description: "現在の一覧の検索欄へ移動",
-        note: "下書き・テンプレート・署名のみ",
+        note: "下書き・テンプレート・署名・メモのみ",
       },
     ],
   },
@@ -175,11 +180,13 @@ export function getViewShortcutHint(view: WorkspaceView): string {
       return "Ctrl/Cmd+2";
     case "signatures":
       return "Ctrl/Cmd+3";
-    case "trash":
+    case "memo":
       return "Ctrl/Cmd+4";
-    case "settings":
+    case "trash":
       return "Ctrl/Cmd+5";
-    case "help":
+    case "settings":
       return "Ctrl/Cmd+6";
+    case "help":
+      return "Ctrl/Cmd+7";
   }
 }

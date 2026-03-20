@@ -1,5 +1,6 @@
 import type { Draft, DraftHistoryEntry, DraftInput } from "../modules/drafts/model";
 import type { VariablePreset } from "../modules/drafts/variable-presets";
+import type { Memo, MemoInput } from "../modules/memo/model";
 import {
   createDefaultLoggingSettingsSnapshot,
   type LogEntrySnapshot,
@@ -164,6 +165,26 @@ export function createLoggingSettingsInput(
   };
 }
 
+export function createMemo(overrides: Partial<Memo> = {}): Memo {
+  return {
+    id: "memo-1",
+    title: "打ち合わせメモ",
+    body: "確認事項を整理する",
+    createdAt: DEFAULT_TIME,
+    updatedAt: DEFAULT_TIME,
+    ...overrides,
+  };
+}
+
+export function createMemoInput(overrides: Partial<MemoInput> = {}): MemoInput {
+  return {
+    id: "memo-input-1",
+    title: "打ち合わせメモ",
+    body: "確認事項を整理する",
+    ...overrides,
+  };
+}
+
 export function createLogEntry(overrides: Partial<LogEntrySnapshot> = {}): LogEntrySnapshot {
   return {
     timestampMs: 1710000000000,
@@ -255,6 +276,7 @@ export function createStoreSnapshot(overrides: Partial<StoreSnapshot> = {}): Sto
     variablePresets: [createVariablePreset()],
     templates: [createTemplate()],
     signatures: [createSignature()],
+    memos: [createMemo()],
     trash: createTrashSnapshot(),
     ...overrides,
   };

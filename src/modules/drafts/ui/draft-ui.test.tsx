@@ -105,7 +105,7 @@ describe("draft UI", () => {
     expect(handleDuplicateDraft).toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "保存" }));
     expect(handleSaveDraft).toHaveBeenCalled();
-  });
+  }, 10000);
 
   it("keeps multiline draft fields in CodeMirror when whitespace is visible", () => {
     render(

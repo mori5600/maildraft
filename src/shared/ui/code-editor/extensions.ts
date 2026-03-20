@@ -12,6 +12,7 @@ import {
   drawSelection,
   EditorView,
   keymap,
+  lineNumbers,
   placeholder,
   ViewPlugin,
   type ViewUpdate,
@@ -22,6 +23,7 @@ import { codeEditorTheme } from "./theme";
 export interface CodeEditorCompartments {
   contentAttributes: Compartment;
   editorAttributes: Compartment;
+  gutter: Compartment;
   layout: Compartment;
   placeholder: Compartment;
   whitespace: Compartment;
@@ -40,6 +42,7 @@ export function createCodeEditorCompartments(): CodeEditorCompartments {
   return {
     contentAttributes: new Compartment(),
     editorAttributes: new Compartment(),
+    gutter: new Compartment(),
     layout: new Compartment(),
     placeholder: new Compartment(),
     whitespace: new Compartment(),
@@ -69,6 +72,10 @@ export function createCodeEditorPlaceholderExtension(
   placeholderText?: string,
 ): Extension {
   return placeholderText ? placeholder(placeholderText) : [];
+}
+
+export function createCodeEditorGutterExtension(showLineNumbers: boolean): Extension {
+  return showLineNumbers ? [lineNumbers()] : [];
 }
 
 export function createCodeEditorContentAttributesExtension(

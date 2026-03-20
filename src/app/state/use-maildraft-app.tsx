@@ -1,6 +1,7 @@
 import { type RefObject, useMemo } from "react";
 
 import type { DraftWorkspaceHandle } from "../../modules/drafts/ui/DraftWorkspaceScreen";
+import { useMemoWorkspaceState } from "../../modules/memo/state/use-memo-workspace-state";
 import { useSettingsWorkspaceState } from "../../modules/settings/state/use-settings-workspace-state";
 import { useSignatureWorkspaceState } from "../../modules/signatures/state/use-signature-workspace-state";
 import { useTemplateWorkspaceState } from "../../modules/templates/state/use-template-workspace-state";
@@ -17,6 +18,7 @@ const EMPTY_SNAPSHOT: StoreSnapshot = {
   variablePresets: [],
   templates: [],
   signatures: [],
+  memos: [],
   trash: {
     drafts: [],
     templates: [],
@@ -35,6 +37,14 @@ const EMPTY_SNAPSHOT: StoreSnapshot = {
  */
 export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandle | null>) {
   const shell = useAppShellState(EMPTY_SNAPSHOT);
+  const memoState = useMemoWorkspaceState({
+    onClearError: shell.clearError,
+    onError: shell.setError,
+    onNotice: shell.setNotice,
+    onSnapshotChange: shell.setSnapshot,
+    onViewChange: shell.setViewState,
+    snapshot: shell.snapshot,
+  });
 
   const templateState = useTemplateWorkspaceState({
     onClearError: shell.clearError,
@@ -71,6 +81,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
   function hydrateAll(nextSnapshot: StoreSnapshot) {
     const hydratedState = buildHydratedWorkspaceState(nextSnapshot);
     shell.setSnapshot(nextSnapshot);
+    memoState.hydrateMemoState(nextSnapshot);
     templateState.hydrateTemplateState(nextSnapshot, hydratedState.selectedTemplateId);
     signatureState.hydrateSignatureState(nextSnapshot, hydratedState.selectedSignatureId);
     shell.setSelectedTrashItemKey(hydratedState.selectedTrashItemKey);
@@ -99,6 +110,10 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       signatureState.flushPendingSignature();
     }
 
+    if (shell.view === "memo" && nextView !== "memo") {
+      memoState.flushPendingMemo();
+    }
+
     shell.setViewState(nextView);
   }
 
@@ -125,12 +140,14 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     () =>
       buildWorkspaceSummaries({
         draftCount: shell.snapshot.drafts.length,
+        memoCount: shell.snapshot.memos.length,
         signatureCount: shell.snapshot.signatures.length,
         templateCount: shell.snapshot.templates.length,
         trashItemCount: trashState.trashItems.length,
       }),
     [
       shell.snapshot.drafts.length,
+      shell.snapshot.memos.length,
       shell.snapshot.signatures.length,
       shell.snapshot.templates.length,
       trashState.trashItems.length,
@@ -140,6 +157,10 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
   function createDraft() {
     draftWorkspaceRef.current?.createDraft();
     shell.setViewState("drafts");
+  }
+
+  function createMemo() {
+    memoState.createMemo();
   }
 
   async function saveDraft() {
@@ -159,10 +180,12 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       changeView,
       copyDraftPreview,
       createDraft,
+      createMemo,
       createSignature: signatureState.createSignature,
       createTemplate: templateState.createTemplate,
       saveDraft,
       saveLoggingSettings: settingsState.saveLoggingSettings,
+      saveMemo: memoState.saveMemo,
       saveSignature: signatureState.saveSignature,
       saveTemplate: templateState.saveTemplate,
       toggleDraftPinned,
@@ -184,6 +207,10 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     },
     error: shell.error,
     isLoading: shell.isLoading,
+    memoWorkspaceProps: {
+      ...memoState.memoWorkspaceProps,
+      showWhitespace: shell.showWhitespace,
+    },
     notice: shell.notice,
     warning: shell.warning,
     settingsWorkspaceProps: settingsState.settingsWorkspaceProps,

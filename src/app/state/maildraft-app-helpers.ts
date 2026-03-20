@@ -29,6 +29,7 @@ export interface HydratedWorkspaceState {
 
 export interface WorkspaceSummaryCounts {
   draftCount: number;
+  memoCount: number;
   signatureCount: number;
   templateCount: number;
   trashItemCount: number;
@@ -43,9 +44,10 @@ export type ShortcutIntent =
   | { kind: "pinForView"; view: WorkspaceView }
   | { kind: "copyDraftPreview" };
 
-export type CreateShortcutAction = "createDraft" | "createTemplate" | "createSignature";
+export type CreateShortcutAction = "createDraft" | "createMemo" | "createTemplate" | "createSignature";
 export type SaveShortcutAction =
   | "saveDraft"
+  | "saveMemo"
   | "saveTemplate"
   | "saveSignature"
   | "saveLoggingSettings";
@@ -58,6 +60,7 @@ const CREATE_SHORTCUT_ACTIONS = {
   drafts: "createDraft",
   templates: "createTemplate",
   signatures: "createSignature",
+  memo: "createMemo",
   trash: "createDraft",
   settings: "createDraft",
   help: "createDraft",
@@ -67,6 +70,7 @@ const SAVE_SHORTCUT_ACTIONS = {
   drafts: "saveDraft",
   templates: "saveTemplate",
   signatures: "saveSignature",
+  memo: "saveMemo",
   trash: null,
   settings: "saveLoggingSettings",
   help: null,
@@ -76,6 +80,7 @@ const PIN_SHORTCUT_ACTIONS = {
   drafts: "toggleDraftPinned",
   templates: "toggleTemplatePinned",
   signatures: "toggleSignaturePinned",
+  memo: null,
   trash: null,
   settings: null,
   help: null,
@@ -88,6 +93,7 @@ export function buildWorkspaceSummaries(
     { id: "drafts", label: "下書き", count: counts.draftCount },
     { id: "templates", label: "テンプレート", count: counts.templateCount },
     { id: "signatures", label: "署名", count: counts.signatureCount },
+    { id: "memo", label: "メモ", count: counts.memoCount },
     { id: "trash", label: "ゴミ箱", count: counts.trashItemCount },
     { id: "settings", label: "設定" },
     { id: "help", label: "ヘルプ" },
@@ -146,14 +152,18 @@ export function resolveShortcutIntent({
   }
 
   if (!shiftKey && loweredKey === "4") {
-    return { kind: "changeView", view: "trash" };
+    return { kind: "changeView", view: "memo" };
   }
 
   if (!shiftKey && loweredKey === "5") {
-    return { kind: "changeView", view: "settings" };
+    return { kind: "changeView", view: "trash" };
   }
 
   if (!shiftKey && loweredKey === "6") {
+    return { kind: "changeView", view: "settings" };
+  }
+
+  if (!shiftKey && loweredKey === "7") {
     return { kind: "changeView", view: "help" };
   }
 

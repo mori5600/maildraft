@@ -58,6 +58,8 @@ impl StoreSnapshot {
             variable_presets: Vec::new(),
             templates: vec![template],
             signatures: vec![signature],
+            memos: Vec::new(),
+            legacy_memo: None,
             trash: TrashSnapshot::default(),
         }
     }

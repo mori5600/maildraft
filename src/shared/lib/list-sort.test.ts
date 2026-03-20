@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import type { Draft } from "../../modules/drafts/model";
+import type { Memo } from "../../modules/memo/model";
 import type { Signature } from "../../modules/signatures/model";
 import type { Template } from "../../modules/templates/model";
-import { sortDrafts, sortSignatures, sortTemplates } from "./list-sort";
+import { sortDrafts, sortMemos, sortSignatures, sortTemplates } from "./list-sort";
 
 const drafts: Draft[] = [
   {
@@ -103,6 +104,30 @@ const signatures: Signature[] = [
   },
 ];
 
+const memos: Memo[] = [
+  {
+    id: "memo-1",
+    title: "商談メモ",
+    body: "",
+    createdAt: "1",
+    updatedAt: "2",
+  },
+  {
+    id: "memo-2",
+    title: "",
+    body: "Z 行",
+    createdAt: "1",
+    updatedAt: "8",
+  },
+  {
+    id: "memo-3",
+    title: "営業ログ",
+    body: "本文",
+    createdAt: "1",
+    updatedAt: "3",
+  },
+];
+
 describe("list-sort", () => {
   it("sorts drafts with pinned items first and then by requested strategy", () => {
     expect(sortDrafts(drafts, "recent").map((draft) => draft.id)).toEqual([
@@ -138,6 +163,24 @@ describe("list-sort", () => {
     expect(sortSignatures(signatures, "recent").map((signature) => signature.id)).toEqual([
       "signature-2",
       "signature-1",
+    ]);
+  });
+
+  it("sorts memos by requested strategy without pinning", () => {
+    expect(sortMemos(memos, "recent").map((memo) => memo.id)).toEqual([
+      "memo-2",
+      "memo-3",
+      "memo-1",
+    ]);
+    expect(sortMemos(memos, "oldest").map((memo) => memo.id)).toEqual([
+      "memo-1",
+      "memo-3",
+      "memo-2",
+    ]);
+    expect(sortMemos(memos, "label").map((memo) => memo.id)).toEqual([
+      "memo-2",
+      "memo-3",
+      "memo-1",
     ]);
   });
 });

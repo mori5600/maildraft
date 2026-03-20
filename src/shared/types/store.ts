@@ -1,5 +1,6 @@
 import type { Draft, DraftHistoryEntry } from "../../modules/drafts/model";
 import type { VariablePreset } from "../../modules/drafts/variable-presets";
+import type { Memo } from "../../modules/memo/model";
 import type { Signature } from "../../modules/signatures/model";
 import type { Template } from "../../modules/templates/model";
 import type {
@@ -16,6 +17,7 @@ export interface StoreSnapshot {
   variablePresets: VariablePreset[];
   templates: Template[];
   signatures: Signature[];
+  memos: Memo[];
   trash: TrashSnapshot;
 }
 
@@ -35,6 +37,10 @@ export interface SaveTemplateResult {
 
 export interface DeleteTemplateResult {
   trashedTemplate: TrashedTemplate;
+}
+
+export interface DeleteMemoResult {
+  memos: Memo[];
 }
 
 export interface SaveSignatureResult {
@@ -63,4 +69,11 @@ export interface StartupNoticeSnapshot {
   tone: "notice" | "warning";
 }
 
-export type WorkspaceView = "drafts" | "templates" | "signatures" | "trash" | "settings" | "help";
+export type WorkspaceView =
+  | "drafts"
+  | "templates"
+  | "signatures"
+  | "memo"
+  | "trash"
+  | "settings"
+  | "help";

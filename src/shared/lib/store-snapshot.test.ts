@@ -3,12 +3,14 @@ import { describe, expect, it } from "vitest";
 import type { StoreSnapshot } from "../types/store";
 import {
   applyDeletedDraftResult,
+  applyDeletedMemoResult,
   applyDeletedSignatureResult,
   applyDeletedTemplateResult,
   applyRestoredDraftResult,
   applyRestoredSignatureResult,
   applyRestoredTemplateResult,
   applySavedDraftResult,
+  applySavedMemoResult,
   applySavedSignatureResult,
   applySavedTemplateResult,
   applyTrashMutationResult,
@@ -16,6 +18,7 @@ import {
   getDefaultSignatureId,
   pickDraftInput,
   pickKnownSignatureId,
+  pickMemoInput,
   pickSignatureInput,
   pickTemplateInput,
   templateExists,
@@ -76,6 +79,15 @@ const snapshot: StoreSnapshot = {
       updatedAt: "1",
     },
   ],
+  memos: [
+    {
+      id: "memo-1",
+      title: "営業メモ",
+      body: "論点整理",
+      createdAt: "1",
+      updatedAt: "2",
+    },
+  ],
   trash: {
     drafts: [],
     templates: [
@@ -133,6 +145,7 @@ describe("store-snapshot helpers", () => {
       variablePresets: [],
       templates: [],
       signatures: [],
+      memos: [],
       trash: {
         drafts: [],
         templates: [],
@@ -141,6 +154,12 @@ describe("store-snapshot helpers", () => {
     };
 
     expect(pickDraftInput(emptySnapshot, null).signatureId).toBeNull();
+    expect(pickMemoInput(snapshot, "memo-1")).toEqual({
+      id: "memo-1",
+      title: "営業メモ",
+      body: "論点整理",
+    });
+    expect(pickMemoInput(emptySnapshot, null).title).toBe("");
     expect(pickTemplateInput(emptySnapshot, null).signatureId).toBeNull();
     expect(pickSignatureInput(emptySnapshot, null).isDefault).toBe(true);
   });
@@ -203,6 +222,14 @@ describe("store-snapshot helpers", () => {
     });
     expect(nextSignatureSnapshot.signatures[0]?.id).toBe("signature-other");
     expect(nextSignatureSnapshot.signatures[0]?.isDefault).toBe(true);
+
+    const nextMemoSnapshot = applySavedMemoResult(snapshot, {
+      ...snapshot.memos[0],
+      body: "更新済みメモ",
+      updatedAt: "5",
+    });
+    expect(nextMemoSnapshot.memos[0].body).toBe("更新済みメモ");
+    expect(nextMemoSnapshot.memos[0].id).toBe("memo-1");
   });
 
   it("applies compact delete and restore payloads without replacing the full snapshot", () => {
@@ -287,6 +314,11 @@ describe("store-snapshot helpers", () => {
         (entry) => entry.signature.id === "signature-other",
       ),
     ).toBe(false);
+
+    const deletedMemoSnapshot = applyDeletedMemoResult(snapshot, {
+      memos: [],
+    });
+    expect(deletedMemoSnapshot.memos).toHaveLength(0);
   });
 
   it("applies compact trash cleanup payloads without replacing unrelated collections", () => {

@@ -34,6 +34,10 @@ vi.mock("./modules/help/ui/HelpWorkspace", () => ({
   HelpWorkspace: () => <div>HelpWorkspace</div>,
 }));
 
+vi.mock("./modules/memo/ui/MemoWorkspace", () => ({
+  MemoWorkspace: () => <div>MemoWorkspace</div>,
+}));
+
 function createAppState(overrides: Record<string, unknown> = {}) {
   return {
     isLoading: false,
@@ -42,6 +46,7 @@ function createAppState(overrides: Record<string, unknown> = {}) {
       { id: "drafts", label: "下書き", count: 1 },
       { id: "templates", label: "テンプレート", count: 2 },
       { id: "signatures", label: "署名", count: 1 },
+      { id: "memo", label: "メモ" },
       { id: "trash", label: "ゴミ箱", count: 0 },
       { id: "settings", label: "設定" },
       { id: "help", label: "ヘルプ" },
@@ -55,6 +60,7 @@ function createAppState(overrides: Record<string, unknown> = {}) {
     toggleWhitespace: vi.fn(),
     setView: vi.fn(),
     draftWorkspaceProps: {},
+    memoWorkspaceProps: {},
     templateWorkspaceProps: {},
     signatureWorkspaceProps: {},
     trashWorkspaceProps: {},

@@ -47,6 +47,7 @@ const snapshot: StoreSnapshot = {
       updatedAt: "2",
     },
   ],
+  memos: [],
   trash: {
     drafts: [],
     templates: [],

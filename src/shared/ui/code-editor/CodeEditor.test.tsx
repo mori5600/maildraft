@@ -95,6 +95,15 @@ describe("CodeEditor", () => {
     expect(view.dom.querySelector('[data-marker="□"]')).not.toBeNull();
   });
 
+  it("renders line numbers when requested", () => {
+    render(<CodeEditor ariaLabel="本文" showLineNumbers value={"a\nb"} onChange={vi.fn()} />);
+
+    const view = getEditorView("本文");
+
+    expect(view.dom.querySelector(".cm-lineNumbers")).not.toBeNull();
+    expect(view.dom.querySelectorAll(".cm-gutterElement").length).toBeGreaterThan(0);
+  });
+
   it("keeps single-line editors on one line when Enter is pressed", async () => {
     const user = userEvent.setup();
 
