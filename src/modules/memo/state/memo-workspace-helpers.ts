@@ -1,3 +1,9 @@
+import { type MemoSortOption, sortMemos } from "../../../shared/lib/list-sort";
+import {
+  buildSearchHaystack,
+  createSearchTokens,
+  matchesSearchTokens,
+} from "../../../shared/lib/search";
 import type { StoreSnapshot } from "../../../shared/types/store";
 import {
   createEmptyMemo,
@@ -48,6 +54,23 @@ export function createInitialMemoState(snapshot: StoreSnapshot): InitialMemoStat
   };
 }
 
+export function filterMemos(
+  memos: Memo[],
+  searchQuery: string,
+  sort: MemoSortOption,
+): Memo[] {
+  const searchTokens = createSearchTokens(searchQuery);
+
+  return sortMemos(
+    searchTokens.length === 0
+      ? memos
+      : memos.filter((memo) =>
+          matchesSearchTokens(searchTokens, buildSearchHaystack([memo.title, memo.body])),
+        ),
+    sort,
+  );
+}
+
 export function formatMemoAutoSaveState(state: MemoAutoSaveState): string {
   switch (state) {
     case "idle":
@@ -71,6 +94,13 @@ export function shouldAutoPersistMemo(input: MemoInput, snapshot: StoreSnapshot)
   }
 
   return !memoMatchesPersistedMemo(input, persistedMemo);
+}
+
+export function getMemoUpdatedAt(
+  memos: Memo[],
+  selectedMemoId: string | null,
+): string | null {
+  return memos.find((memo) => memo.id === selectedMemoId)?.updatedAt ?? null;
 }
 
 export function toMemoWorkspaceErrorMessage(error: unknown): string {

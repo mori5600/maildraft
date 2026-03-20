@@ -1,18 +1,16 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
-import { MEMO_SORT_OPTIONS, type MemoSortOption, sortMemos } from "../../../shared/lib/list-sort";
-import {
-  buildSearchHaystack,
-  createSearchTokens,
-  matchesSearchTokens,
-} from "../../../shared/lib/search";
+import { MEMO_SORT_OPTIONS, type MemoSortOption } from "../../../shared/lib/list-sort";
 import { applyDeletedMemoResult } from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot, WorkspaceView } from "../../../shared/types/store";
 import { createEmptyMemo, type MemoInput, toMemoInput } from "../model";
 import {
   buildMemoEditingState,
   createInitialMemoState,
+  filterMemos,
+  findMemo,
+  getMemoUpdatedAt,
   toMemoWorkspaceErrorMessage,
 } from "./memo-workspace-helpers";
 import { useMemoAutoSave } from "./use-memo-auto-save";
@@ -58,29 +56,9 @@ export function useMemoWorkspaceState({
     snapshotRef.current = snapshot;
   }, [snapshot]);
 
-  const memoSearchTokens = useMemo(
-    () => createSearchTokens(deferredMemoSearchQuery),
-    [deferredMemoSearchQuery],
-  );
-  const memoSearchIndex = useMemo(
-    () =>
-      snapshot.memos.map((memo) => ({
-        haystack: buildSearchHaystack([memo.title, memo.body]),
-        memo,
-      })),
-    [snapshot.memos],
-  );
   const filteredMemos = useMemo(
-    () =>
-      sortMemos(
-        memoSearchTokens.length === 0
-          ? snapshot.memos
-          : memoSearchIndex
-              .filter(({ haystack }) => matchesSearchTokens(memoSearchTokens, haystack))
-              .map(({ memo }) => memo),
-        memoSort,
-      ),
-    [memoSearchIndex, memoSearchTokens, memoSort, snapshot.memos],
+    () => filterMemos(snapshot.memos, deferredMemoSearchQuery, memoSort),
+    [deferredMemoSearchQuery, memoSort, snapshot.memos],
   );
 
   const { autoSaveLabel, flushPendingMemo, saveMemo } = useMemoAutoSave({
@@ -113,7 +91,7 @@ export function useMemoWorkspaceState({
         flushPendingMemo();
       }
 
-      const memo = snapshot.memos.find((item) => item.id === memoId);
+      const memo = findMemo(snapshotRef.current, memoId);
       if (!memo) {
         return;
       }
@@ -122,7 +100,7 @@ export function useMemoWorkspaceState({
       setMemoForm(toMemoInput(memo));
       onViewChange("memo");
     },
-    [flushPendingMemo, onViewChange, snapshot.memos],
+    [flushPendingMemo, onViewChange, snapshotRef],
   );
 
   const createMemo = useCallback(() => {
@@ -159,8 +137,7 @@ export function useMemoWorkspaceState({
     }
   }
 
-  const selectedMemoUpdatedAt =
-    snapshot.memos.find((memo) => memo.id === selectedMemoId)?.updatedAt ?? null;
+  const selectedMemoUpdatedAt = getMemoUpdatedAt(snapshot.memos, selectedMemoId);
 
   return {
     createMemo,
