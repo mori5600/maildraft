@@ -76,7 +76,26 @@ export const HELP_USAGE_GROUPS: HelpGuideGroup[] = [
       },
       {
         title: "補足はメモに逃がす",
-        body: "メモ画面では、本文に入れる前の論点や会話ログを自由に書き残せます。まとまったら `下書きを作成` でそのまま下書きへ移せます。",
+        body: "メモ画面では、本文に入れる前の論点や会話ログを自由に書き残せます。タイトルと本文を書いておくと、`下書きを作成` でそのまま新しい下書きへ移せます。",
+      },
+      {
+        title: "メモを整理する",
+        body: "メモは一覧から切り替えて編集できます。検索や並び順に加えて `固定` を使うと、重要なメモを一覧の先頭に残せます。",
+      },
+    ],
+  },
+  {
+    id: "editor-behavior",
+    title: "エディタの使い方",
+    description: "CodeMirror ベースの入力欄で使える操作",
+    steps: [
+      {
+        title: "ショートカットはエディタにフォーカスした状態で使う",
+        body: "タイトル、件名、本文などの入力欄は CodeMirror ベースです。`Ctrl/Cmd+Z` の取り消しや `Ctrl/Cmd+D` の複数選択は、対象の入力欄をクリックしてから使います。",
+      },
+      {
+        title: "エディタ内検索を使う",
+        body: "入力欄にフォーカスしたまま `Ctrl/Cmd+F` を押すと、そのエディタの中だけを検索できます。メモ一覧の検索とは別です。",
       },
     ],
   },
@@ -145,11 +164,15 @@ export const KEYBOARD_SHORTCUT_GROUPS: ShortcutGroup[] = [
         description: "現在の画面に応じて新規作成",
         note: "ヘルプ・設定・ゴミ箱では新規下書き、メモでは新規メモ",
       },
-      { keys: "Ctrl/Cmd+S", description: "現在の編集内容を保存" },
+      {
+        keys: "Ctrl/Cmd+S",
+        description: "現在の編集内容を保存",
+        note: "メモではタイトル・本文・固定状態をまとめて保存",
+      },
       {
         keys: "Ctrl/Cmd+Shift+P",
-        description: "固定留めを切り替え",
-        note: "下書き・テンプレート・署名・メモのみ",
+        description: "固定を切り替え",
+        note: "下書き・テンプレート・署名・メモのみ。メモでは一覧の先頭固定に使います。",
       },
       {
         keys: "Ctrl/Cmd+Shift+C",
@@ -166,7 +189,39 @@ export const KEYBOARD_SHORTCUT_GROUPS: ShortcutGroup[] = [
       {
         keys: "Ctrl/Cmd+K",
         description: "現在の一覧の検索欄へ移動",
-        note: "下書き・テンプレート・署名・メモのみ",
+        note: "下書き・テンプレート・署名・メモのみ。メモでは一覧の絞り込みに使います。",
+      },
+    ],
+  },
+  {
+    id: "editor",
+    title: "エディタ操作",
+    description: "CodeMirror 入力欄にフォーカスがあるときの操作",
+    items: [
+      {
+        keys: "Ctrl/Cmd+Z",
+        description: "直前の編集を取り消し",
+        note: "タイトル、件名、本文などの CodeMirror 入力欄で有効",
+      },
+      {
+        keys: "Ctrl+Y / Cmd+Shift+Z",
+        description: "取り消した編集をやり直し",
+        note: "Linux では Ctrl+Shift+Z でも動作",
+      },
+      {
+        keys: "Ctrl/Cmd+D",
+        description: "選択中の文字列と同じ次の箇所を追加選択",
+        note: "同じ語をまとめて編集したいときに使います",
+      },
+      {
+        keys: "Ctrl/Cmd+F",
+        description: "現在フォーカス中のエディタ内を検索",
+        note: "一覧検索ではなく、編集中の入力欄だけを対象にします",
+      },
+      {
+        keys: "Ctrl/Cmd+G / F3",
+        description: "検索結果の次へ移動",
+        note: "前へ戻る場合は Ctrl/Cmd+Shift+G または Shift+F3",
       },
     ],
   },
