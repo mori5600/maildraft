@@ -10,6 +10,7 @@ import {
 import type { Signature, SignatureInput } from "../modules/signatures/model";
 import type { Template, TemplateInput } from "../modules/templates/model";
 import type {
+  TrashedMemo,
   TrashedSignature,
   TrashItem,
   TrashSnapshot,
@@ -221,6 +222,15 @@ export function createTrashSnapshot(overrides: Partial<TrashSnapshot> = {}): Tra
         deletedAt: DEFAULT_TIME,
       },
     ],
+    memos: [],
+    ...overrides,
+  };
+}
+
+export function createTrashedMemo(overrides: Partial<TrashedMemo> = {}): TrashedMemo {
+  return {
+    memo: createMemo(),
+    deletedAt: DEFAULT_TIME,
     ...overrides,
   };
 }
@@ -269,8 +279,19 @@ export function createTrashSignatureItem(): Extract<TrashItem, { kind: "signatur
   };
 }
 
-export function createStoreSnapshot(overrides: Partial<StoreSnapshot> = {}): StoreSnapshot {
+export function createTrashMemoItem(): Extract<TrashItem, { kind: "memo" }> {
+  const memo = createMemo();
   return {
+    kind: "memo",
+    key: `memo:${memo.id}`,
+    deletedAt: DEFAULT_TIME,
+    label: memo.title,
+    memo,
+  };
+}
+
+export function createStoreSnapshot(overrides: Partial<StoreSnapshot> = {}): StoreSnapshot {
+  const baseSnapshot: StoreSnapshot = {
     drafts: [createDraft()],
     draftHistory: [createDraftHistoryEntry()],
     variablePresets: [createVariablePreset()],
@@ -278,6 +299,14 @@ export function createStoreSnapshot(overrides: Partial<StoreSnapshot> = {}): Sto
     signatures: [createSignature()],
     memos: [createMemo()],
     trash: createTrashSnapshot(),
+  };
+
+  return {
+    ...baseSnapshot,
     ...overrides,
+    trash: {
+      ...baseSnapshot.trash,
+      ...overrides.trash,
+    },
   };
 }

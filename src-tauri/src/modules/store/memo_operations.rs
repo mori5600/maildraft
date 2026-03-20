@@ -1,4 +1,5 @@
 use crate::modules::memo::{Memo, MemoInput};
+use crate::modules::trash::TrashedMemo;
 
 use super::StoreSnapshot;
 
@@ -14,9 +15,16 @@ impl StoreSnapshot {
         memo
     }
 
-    pub fn delete_memo(&mut self, id: &str) -> bool {
-        let initial_len = self.memos.len();
-        self.memos.retain(|memo| memo.id != id);
-        initial_len != self.memos.len()
+    pub fn delete_memo(&mut self, id: &str, timestamp: &str) -> Option<TrashedMemo> {
+        let index = self.memos.iter().position(|memo| memo.id == id)?;
+        let memo = self.memos.remove(index);
+        let trashed_memo = TrashedMemo {
+            memo,
+            deleted_at: timestamp.to_string(),
+        };
+
+        self.trash.memos.retain(|entry| entry.memo.id != id);
+        self.trash.memos.insert(0, trashed_memo.clone());
+        Some(trashed_memo)
     }
 }

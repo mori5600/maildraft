@@ -1,7 +1,7 @@
 import { formatStoredTime } from "../../../../shared/lib/time";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Panel, Pill } from "../../../../shared/ui/primitives";
-import { type TrashItem,trashItemTypeLabel } from "../../model";
+import { type TrashItem, trashItemTypeLabel } from "../../model";
 
 interface TrashListPaneProps {
   items: TrashItem[];

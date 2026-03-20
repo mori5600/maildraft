@@ -7,6 +7,7 @@ import {
   applyDeletedSignatureResult,
   applyDeletedTemplateResult,
   applyRestoredDraftResult,
+  applyRestoredMemoResult,
   applyRestoredSignatureResult,
   applyRestoredTemplateResult,
   applySavedDraftResult,
@@ -122,6 +123,7 @@ const snapshot: StoreSnapshot = {
         deletedAt: "10",
       },
     ],
+    memos: [],
   },
 };
 
@@ -150,6 +152,7 @@ describe("store-snapshot helpers", () => {
         drafts: [],
         templates: [],
         signatures: [],
+        memos: [],
       },
     };
 
@@ -316,9 +319,17 @@ describe("store-snapshot helpers", () => {
     ).toBe(false);
 
     const deletedMemoSnapshot = applyDeletedMemoResult(snapshot, {
-      memos: [],
+      trashedMemo: {
+        memo: snapshot.memos[0],
+        deletedAt: "14",
+      },
     });
     expect(deletedMemoSnapshot.memos).toHaveLength(0);
+    expect(deletedMemoSnapshot.trash.memos?.[0]?.memo.id).toBe("memo-1");
+
+    const restoredMemoSnapshot = applyRestoredMemoResult(deletedMemoSnapshot, snapshot.memos[0]);
+    expect(restoredMemoSnapshot.memos[0]?.id).toBe("memo-1");
+    expect(restoredMemoSnapshot.trash.memos ?? []).toHaveLength(0);
   });
 
   it("applies compact trash cleanup payloads without replacing unrelated collections", () => {
@@ -375,6 +386,7 @@ describe("store-snapshot helpers", () => {
         drafts: [],
         templates: [],
         signatures: [],
+        memos: [],
       },
     });
     expect(nextAfterEmptyTrash.drafts[0]?.signatureId).toBeNull();

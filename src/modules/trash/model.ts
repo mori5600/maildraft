@@ -1,4 +1,5 @@
 import { type Draft, type DraftHistoryEntry, draftLabel } from "../drafts/model";
+import { type Memo, memoLabel } from "../memo/model";
 import type { Signature } from "../signatures/model";
 import type { Template } from "../templates/model";
 
@@ -6,6 +7,7 @@ export interface TrashSnapshot {
   drafts: TrashedDraft[];
   templates: TrashedTemplate[];
   signatures: TrashedSignature[];
+  memos?: TrashedMemo[];
 }
 
 export interface TrashedDraft {
@@ -21,6 +23,11 @@ export interface TrashedTemplate {
 
 export interface TrashedSignature {
   signature: Signature;
+  deletedAt: string;
+}
+
+export interface TrashedMemo {
+  memo: Memo;
   deletedAt: string;
 }
 
@@ -46,14 +53,26 @@ export type TrashItem =
       deletedAt: string;
       label: string;
       signature: Signature;
+    }
+  | {
+      kind: "memo";
+      key: string;
+      deletedAt: string;
+      label: string;
+      memo: Memo;
     };
 
 /**
  * Flattens trash and sorts newest deletions first.
  */
 export function collectTrashItems(trash: TrashSnapshot): TrashItem[] {
+  const drafts = trash.drafts ?? [];
+  const templates = trash.templates ?? [];
+  const signatures = trash.signatures ?? [];
+  const memos = trash.memos ?? [];
+
   return [
-    ...trash.drafts.map((entry) => ({
+    ...drafts.map((entry) => ({
       kind: "draft" as const,
       key: buildTrashItemKey("draft", entry.draft.id),
       deletedAt: entry.deletedAt,
@@ -61,19 +80,26 @@ export function collectTrashItems(trash: TrashSnapshot): TrashItem[] {
       draft: entry.draft,
       history: entry.history,
     })),
-    ...trash.templates.map((entry) => ({
+    ...templates.map((entry) => ({
       kind: "template" as const,
       key: buildTrashItemKey("template", entry.template.id),
       deletedAt: entry.deletedAt,
       label: entry.template.name.trim() || "無題のテンプレート",
       template: entry.template,
     })),
-    ...trash.signatures.map((entry) => ({
+    ...signatures.map((entry) => ({
       kind: "signature" as const,
       key: buildTrashItemKey("signature", entry.signature.id),
       deletedAt: entry.deletedAt,
       label: entry.signature.name.trim() || "無題の署名",
       signature: entry.signature,
+    })),
+    ...memos.map((entry) => ({
+      kind: "memo" as const,
+      key: buildTrashItemKey("memo", entry.memo.id),
+      deletedAt: entry.deletedAt,
+      label: memoLabel(entry.memo),
+      memo: entry.memo,
     })),
   ].sort((left, right) => Number(right.deletedAt) - Number(left.deletedAt));
 }
@@ -90,6 +116,8 @@ export function trashItemTypeLabel(kind: TrashItem["kind"]): string {
       return "テンプレート";
     case "signature":
       return "署名";
+    case "memo":
+      return "メモ";
   }
 }
 

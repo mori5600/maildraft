@@ -118,9 +118,14 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
           throw new Error("指定したメモが見つかりませんでした。");
         }
 
-        snapshot.memos.splice(currentIndex, 1);
+        const [deletedMemo] = snapshot.memos.splice(currentIndex, 1);
+        const trashedMemos = snapshot.trash.memos ?? (snapshot.trash.memos = []);
+        trashedMemos.unshift({
+          memo: deletedMemo,
+          deletedAt: String(Date.now()),
+        });
         return cloneData({
-          memos: snapshot.memos,
+          trashedMemo: trashedMemos[0],
         });
       }
       case "delete_draft": {
@@ -165,6 +170,31 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
         return cloneData({
           draft: restored.draft,
           draftHistory: restored.history,
+        });
+      }
+      case "restore_memo_from_trash": {
+        const id = (payload as { id: string }).id;
+        const trashedMemos = snapshot.trash.memos ?? [];
+        const trashedIndex = trashedMemos.findIndex((entry) => entry.memo.id === id);
+        if (trashedIndex < 0) {
+          throw new Error("指定した項目がゴミ箱に見つかりませんでした。");
+        }
+
+        const [restored] = trashedMemos.splice(trashedIndex, 1);
+        snapshot.memos.unshift(restored.memo);
+        return cloneData(restored.memo);
+      }
+      case "permanently_delete_memo_from_trash": {
+        const id = (payload as { id: string }).id;
+        const trashedMemos = snapshot.trash.memos ?? [];
+        const trashedIndex = trashedMemos.findIndex((entry) => entry.memo.id === id);
+        if (trashedIndex < 0) {
+          throw new Error("指定した項目がゴミ箱に見つかりませんでした。");
+        }
+
+        trashedMemos.splice(trashedIndex, 1);
+        return cloneData({
+          trash: snapshot.trash,
         });
       }
       case "restore_draft_history": {
@@ -266,14 +296,23 @@ export function resetMockTauriRuntime() {
 }
 
 export function createSeededRuntimeSnapshot(overrides: Partial<StoreSnapshot> = {}): StoreSnapshot {
-  return createStoreSnapshot({
+  const baseSnapshot = createStoreSnapshot({
     trash: {
       drafts: [],
       templates: [],
       signatures: [],
+      memos: [],
     },
-    ...overrides,
   });
+
+  return {
+    ...baseSnapshot,
+    ...overrides,
+    trash: {
+      ...baseSnapshot.trash,
+      ...overrides.trash,
+    },
+  };
 }
 
 export function createRuntimeDraft(overrides: Partial<Draft> = {}): Draft {

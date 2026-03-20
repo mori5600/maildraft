@@ -39,6 +39,17 @@ fn delete_memo_impl(state: &AppState, id: String) -> Result<DeleteMemoResult, St
     state.delete_memo(&id)
 }
 
+fn restore_memo_from_trash_impl(state: &AppState, id: String) -> Result<Memo, String> {
+    state.restore_memo_from_trash(&id)
+}
+
+fn permanently_delete_memo_from_trash_impl(
+    state: &AppState,
+    id: String,
+) -> Result<TrashMutationResult, String> {
+    state.permanently_delete_memo_from_trash(&id)
+}
+
 fn delete_draft_impl(state: &AppState, id: String) -> Result<DeleteDraftResult, String> {
     state.delete_draft(&id)
 }
@@ -191,6 +202,22 @@ pub(crate) fn delete_memo(
     id: String,
 ) -> Result<DeleteMemoResult, String> {
     delete_memo_impl(&state, id)
+}
+
+#[tauri::command]
+pub(crate) fn restore_memo_from_trash(
+    state: tauri::State<'_, AppState>,
+    id: String,
+) -> Result<Memo, String> {
+    restore_memo_from_trash_impl(&state, id)
+}
+
+#[tauri::command]
+pub(crate) fn permanently_delete_memo_from_trash(
+    state: tauri::State<'_, AppState>,
+    id: String,
+) -> Result<TrashMutationResult, String> {
+    permanently_delete_memo_from_trash_impl(&state, id)
 }
 
 #[tauri::command]
@@ -568,7 +595,21 @@ mod tests {
         assert_eq!(snapshot.memos[0].body, "確認事項");
 
         let deleted = delete_memo_impl(&state, "memo-1".to_string()).expect("delete memo");
-        assert!(deleted.memos.is_empty());
+        assert_eq!(deleted.trashed_memo.memo.id, "memo-1");
+
+        let restored =
+            restore_memo_from_trash_impl(&state, "memo-1".to_string()).expect("restore memo");
+        assert_eq!(restored.id, "memo-1");
+
+        delete_memo_impl(&state, "memo-1".to_string()).expect("delete memo");
+        let deleted_permanently =
+            permanently_delete_memo_from_trash_impl(&state, "memo-1".to_string())
+                .expect("delete memo permanently");
+        assert!(deleted_permanently
+            .trash
+            .memos
+            .iter()
+            .all(|memo| memo.memo.id != "memo-1"));
     }
 
     #[test]
@@ -638,11 +679,22 @@ mod tests {
         delete_draft_impl(&state, "draft-welcome".to_string()).expect("trash draft");
         delete_template_impl(&state, "template-thanks".to_string()).expect("trash template");
         delete_signature_impl(&state, "signature-default".to_string()).expect("trash signature");
+        save_memo_impl(
+            &state,
+            MemoInput {
+                id: "memo-trash".to_string(),
+                title: "削除予定".to_string(),
+                body: "本文".to_string(),
+            },
+        )
+        .expect("save memo");
+        delete_memo_impl(&state, "memo-trash".to_string()).expect("trash memo");
 
         let emptied = empty_trash_impl(&state).expect("empty trash");
         assert!(emptied.trash.drafts.is_empty());
         assert!(emptied.trash.templates.is_empty());
         assert!(emptied.trash.signatures.is_empty());
+        assert!(emptied.trash.memos.is_empty());
         assert!(emptied.drafts.is_some());
     }
 }

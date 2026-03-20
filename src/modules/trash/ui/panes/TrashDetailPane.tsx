@@ -64,7 +64,7 @@ export function TrashDetailPane({
           />
         ) : (
           <div className="rounded-lg border border-(--color-panel-border-strong) bg-(--color-field-bg) px-4 py-3 text-[13px] leading-6 text-(--color-text-muted)">
-            ゴミ箱に移動した下書き、テンプレート、署名がここに表示されます。
+            ゴミ箱に移動した下書き、テンプレート、署名、メモがここに表示されます。
           </div>
         )}
       </div>

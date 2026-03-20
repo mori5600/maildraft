@@ -3,6 +3,7 @@ use std::time::Instant;
 use serde_json::Map;
 
 use crate::app::logging::{LogEntry, LogLevel};
+use crate::modules::memo::Memo;
 use crate::modules::store::{
     SaveDraftResult, SaveSignatureResult, SaveTemplateResult, TrashMutationResult,
 };
@@ -178,6 +179,57 @@ impl AppState {
         }
     }
 
+    /// Restores one memo from trash and persists the updated store.
+    ///
+    /// The response returns only the restored memo because memo restore does not rewrite
+    /// unrelated active collections.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the trash item does not exist, the store lock cannot be acquired, or
+    /// persistence fails.
+    pub fn restore_memo_from_trash(&self, id: &str) -> AppResult<Memo> {
+        let started_at = Instant::now();
+
+        let result = (|| {
+            let mut store = self.store.lock().map_err(|error| error.to_string())?;
+            let memo = store
+                .restore_memo_from_trash(id)
+                .ok_or_else(|| "指定した項目がゴミ箱に見つかりませんでした。".to_string())?;
+            store.ensure_consistency();
+            self.persist_locked_store(&store)?;
+
+            Ok((memo, snapshot_counts_context(&store)))
+        })();
+
+        match result {
+            Ok((restored_memo, snapshot_context)) => {
+                self.log_event(LogEntry {
+                    level: LogLevel::Info,
+                    event_name: "trash.restore",
+                    module: "trash",
+                    result: "success",
+                    duration_ms: Some(elapsed_millis(started_at)),
+                    error_code: None,
+                    safe_context: merge_context(trash_kind_context("memo"), snapshot_context),
+                });
+                Ok(restored_memo)
+            }
+            Err(error) => {
+                self.log_event(LogEntry {
+                    level: LogLevel::Error,
+                    event_name: "trash.restore",
+                    module: "trash",
+                    result: "failure",
+                    duration_ms: Some(elapsed_millis(started_at)),
+                    error_code: Some("TRASH_ITEM_NOT_FOUND"),
+                    safe_context: trash_kind_context("memo"),
+                });
+                Err(error)
+            }
+        }
+    }
+
     /// Permanently deletes one trashed draft and persists the updated store.
     ///
     /// The returned mutation updates only the trash collection because removing a trashed draft
@@ -240,6 +292,29 @@ impl AppState {
             drafts: Some(store.drafts.clone()),
             draft_history: Some(store.draft_history.clone()),
             templates: Some(store.templates.clone()),
+            trash: store.trash.clone(),
+        })
+    }
+
+    /// Permanently deletes one trashed memo and persists the updated store.
+    ///
+    /// The returned mutation updates only the trash collection because removing a trashed memo
+    /// does not rewrite active drafts, templates, signatures, or memos.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the trash item does not exist, the store lock cannot be acquired, or
+    /// persistence fails.
+    pub fn permanently_delete_memo_from_trash(
+        &self,
+        id: &str,
+    ) -> AppResult<TrashMutationResult> {
+        self.permanently_delete_item_from_trash("memo", |store| {
+            store.permanently_delete_memo_from_trash(id)
+        }, |store| TrashMutationResult {
+            drafts: None,
+            draft_history: None,
+            templates: None,
             trash: store.trash.clone(),
         })
     }

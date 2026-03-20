@@ -1,5 +1,6 @@
 use crate::modules::store::StoreSnapshot;
 use crate::modules::{
+    memo::Memo,
     signatures::Signature,
     templates::Template,
     trash::TrashedDraft,
@@ -65,6 +66,20 @@ impl StoreSnapshot {
         Some(entry.signature)
     }
 
+    pub fn restore_memo_from_trash(&mut self, id: &str) -> Option<Memo> {
+        if self.memos.iter().any(|memo| memo.id == id) {
+            return None;
+        }
+
+        let Some(index) = self.trash.memos.iter().position(|entry| entry.memo.id == id) else {
+            return None;
+        };
+
+        let entry = self.trash.memos.remove(index);
+        self.memos.push(entry.memo.clone());
+        Some(entry.memo)
+    }
+
     pub fn permanently_delete_draft_from_trash(&mut self, id: &str) -> bool {
         let initial_len = self.trash.drafts.len();
         self.trash.drafts.retain(|entry| entry.draft.id != id);
@@ -83,5 +98,11 @@ impl StoreSnapshot {
             .signatures
             .retain(|entry| entry.signature.id != id);
         initial_len != self.trash.signatures.len()
+    }
+
+    pub fn permanently_delete_memo_from_trash(&mut self, id: &str) -> bool {
+        let initial_len = self.trash.memos.len();
+        self.trash.memos.retain(|entry| entry.memo.id != id);
+        initial_len != self.trash.memos.len()
     }
 }

@@ -85,6 +85,18 @@ describe("maildraftApi", () => {
       run: () => maildraftApi.saveDraft(DRAFT_INPUT),
     },
     {
+      expectedArgs: ["delete_memo", { id: "memo-1" }],
+      run: () => maildraftApi.deleteMemo("memo-1"),
+    },
+    {
+      expectedArgs: ["restore_memo_from_trash", { id: "memo-1" }],
+      run: () => maildraftApi.restoreMemoFromTrash("memo-1"),
+    },
+    {
+      expectedArgs: ["permanently_delete_memo_from_trash", { id: "memo-1" }],
+      run: () => maildraftApi.permanentlyDeleteMemoFromTrash("memo-1"),
+    },
+    {
       expectedArgs: ["delete_draft", { id: "draft-1" }],
       run: () => maildraftApi.deleteDraft("draft-1"),
     },

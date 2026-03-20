@@ -66,19 +66,19 @@ impl AppState {
     /// persistence fails.
     pub fn delete_memo(&self, id: &str) -> AppResult<DeleteMemoResult> {
         let started_at = Instant::now();
+        let timestamp = timestamp();
 
         let result = (|| {
             let mut store = self.store.lock().map_err(|error| error.to_string())?;
-            if !store.delete_memo(id) {
-                return Err("指定したメモが見つかりませんでした。".to_string());
-            }
+            let trashed_memo = store
+                .delete_memo(id, &timestamp)
+                .ok_or_else(|| "指定したメモが見つかりませんでした。".to_string())?;
 
             store.ensure_consistency();
             self.persist_locked_store(&store)?;
 
             let snapshot_context = snapshot_counts_context(&store);
-            let memos = store.memos.clone();
-            Ok((DeleteMemoResult { memos }, snapshot_context))
+            Ok((DeleteMemoResult { trashed_memo }, snapshot_context))
         })();
 
         match result {

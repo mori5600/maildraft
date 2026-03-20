@@ -62,12 +62,25 @@ const trash: TrashSnapshot = {
       deletedAt: "7",
     },
   ],
+  memos: [
+    {
+      memo: {
+        id: "memo-1",
+        title: "確認メモ",
+        body: "段取りを確認",
+        createdAt: "1",
+        updatedAt: "2",
+      },
+      deletedAt: "8",
+    },
+  ],
 };
 
 describe("trash model", () => {
   it("collects trash items in descending deleted order with fallback labels", () => {
     expect(collectTrashItems(trash).map((item) => [item.kind, item.label, item.key])).toEqual([
       ["template", "無題のテンプレート", "template:template-1"],
+      ["memo", "確認メモ", "memo:memo-1"],
       ["signature", "無題の署名", "signature:signature-trash"],
       ["draft", "下書きA", "draft:draft-1"],
     ]);
@@ -78,6 +91,7 @@ describe("trash model", () => {
     expect(trashItemTypeLabel("draft")).toBe("下書き");
     expect(trashItemTypeLabel("template")).toBe("テンプレート");
     expect(trashItemTypeLabel("signature")).toBe("署名");
+    expect(trashItemTypeLabel("memo")).toBe("メモ");
   });
 
   it("finds signatures from active data or trash and returns undefined for null ids", () => {

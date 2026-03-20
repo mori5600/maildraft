@@ -5,6 +5,7 @@ import type { Signature } from "../../modules/signatures/model";
 import type { Template } from "../../modules/templates/model";
 import type {
   TrashedDraft,
+  TrashedMemo,
   TrashedSignature,
   TrashedTemplate,
   TrashSnapshot,
@@ -40,7 +41,7 @@ export interface DeleteTemplateResult {
 }
 
 export interface DeleteMemoResult {
-  memos: Memo[];
+  trashedMemo: TrashedMemo;
 }
 
 export interface SaveSignatureResult {

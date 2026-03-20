@@ -23,6 +23,7 @@ const EMPTY_SNAPSHOT: StoreSnapshot = {
     drafts: [],
     templates: [],
     signatures: [],
+    memos: [],
   },
 };
 
@@ -42,6 +43,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     onError: shell.setError,
     onNotice: shell.setNotice,
     onSnapshotChange: shell.setSnapshot,
+    onTrashItemSelect: shell.setSelectedTrashItemKey,
     onViewChange: shell.setViewState,
     snapshot: shell.snapshot,
   });
@@ -122,6 +124,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     onDraftRestored: (draftId, nextSnapshot) =>
       draftWorkspaceRef.current?.openDraftById(draftId, nextSnapshot),
     onError: shell.setError,
+    onMemoRestored: memoState.hydrateMemoState,
     onNotice: shell.setNotice,
     onSignatureRestored: (nextSnapshot, signatureId) => {
       signatureState.hydrateSignatureState(nextSnapshot, signatureId);

@@ -4,6 +4,7 @@ import { maildraftApi } from "../../../shared/api/maildraft-api";
 import { MEMO_SORT_OPTIONS, type MemoSortOption } from "../../../shared/lib/list-sort";
 import { applyDeletedMemoResult } from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot, WorkspaceView } from "../../../shared/types/store";
+import { buildTrashItemKey } from "../../trash/model";
 import { createEmptyMemo, type MemoInput, toMemoInput } from "../model";
 import {
   buildMemoEditingState,
@@ -20,6 +21,7 @@ export interface MemoWorkspaceStateOptions {
   onError: (message: string) => void;
   onNotice: (message: string) => void;
   onSnapshotChange: (snapshot: StoreSnapshot) => void;
+  onTrashItemSelect?: (key: string | null) => void;
   onViewChange: (view: WorkspaceView) => void;
   snapshot: StoreSnapshot;
 }
@@ -29,6 +31,7 @@ export function useMemoWorkspaceState({
   onError,
   onNotice,
   onSnapshotChange,
+  onTrashItemSelect = () => {},
   onViewChange,
   snapshot,
 }: MemoWorkspaceStateOptions) {
@@ -131,7 +134,8 @@ export function useMemoWorkspaceState({
       const nextSnapshot = applyDeletedMemoResult(snapshotRef.current, deletedMemo);
       onSnapshotChange(nextSnapshot);
       hydrateMemoState(nextSnapshot);
-      onNotice("メモを削除しました。");
+      onTrashItemSelect(buildTrashItemKey("memo", selectedMemoId));
+      onNotice("メモをゴミ箱に移動しました。");
     } catch (deleteError) {
       onError(toMemoWorkspaceErrorMessage(deleteError));
     }

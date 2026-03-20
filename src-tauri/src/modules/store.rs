@@ -18,7 +18,7 @@ use crate::modules::{
     memo::Memo,
     signatures::Signature,
     templates::Template,
-    trash::{TrashSnapshot, TrashedDraft, TrashedSignature, TrashedTemplate},
+    trash::{TrashSnapshot, TrashedDraft, TrashedMemo, TrashedSignature, TrashedTemplate},
     variable_presets::VariablePreset,
 };
 
@@ -98,8 +98,7 @@ pub struct DeleteSignatureResult {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeleteMemoResult {
-    #[serde(default)]
-    pub memos: Vec<Memo>,
+    pub trashed_memo: TrashedMemo,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import {
   applyRestoredDraftResult,
+  applyRestoredMemoResult,
   applyRestoredSignatureResult,
   applyRestoredTemplateResult,
   applyTrashMutationResult,
@@ -31,6 +32,7 @@ interface TrashWorkspaceStateOptions {
   onClearError: () => void;
   onDraftRestored: (draftId: string, snapshot: StoreSnapshot) => void;
   onError: (message: string) => void;
+  onMemoRestored?: (snapshot: StoreSnapshot, memoId: string) => void;
   onNotice: (message: string) => void;
   onSignatureRestored: (snapshot: StoreSnapshot, signatureId: string) => void;
   onSignatureSnapshotChange: (snapshot: StoreSnapshot) => void;
@@ -56,6 +58,7 @@ export function useTrashWorkspaceState({
   onClearError,
   onDraftRestored,
   onError,
+  onMemoRestored = () => {},
   onNotice,
   onSignatureRestored,
   onSignatureSnapshotChange,
@@ -117,6 +120,16 @@ export function useTrashWorkspaceState({
         return;
       }
 
+      if (item.kind === "memo") {
+        const restoredMemo = await maildraftApi.restoreMemoFromTrash(item.memo.id);
+        const nextSnapshot = applyRestoredMemoResult(snapshotRef.current, restoredMemo);
+        onSnapshotChange(nextSnapshot);
+        onMemoRestored(nextSnapshot, item.memo.id);
+        onViewChange("memo");
+        onNotice("メモをゴミ箱から復元しました。");
+        return;
+      }
+
       const restoredSignature = await maildraftApi.restoreSignatureFromTrash(item.signature.id);
       const nextSnapshot = applyRestoredSignatureResult(
         snapshotRef.current,
@@ -162,6 +175,14 @@ export function useTrashWorkspaceState({
         const nextSnapshot = applyTrashMutationResult(snapshotRef.current, deletedTemplate);
         onSnapshotChange(nextSnapshot);
         onNotice("テンプレートを完全に削除しました。");
+        return;
+      }
+
+      if (item.kind === "memo") {
+        const deletedMemo = await maildraftApi.permanentlyDeleteMemoFromTrash(item.memo.id);
+        const nextSnapshot = applyTrashMutationResult(snapshotRef.current, deletedMemo);
+        onSnapshotChange(nextSnapshot);
+        onNotice("メモを完全に削除しました。");
         return;
       }
 

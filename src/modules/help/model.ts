@@ -91,7 +91,7 @@ export const HELP_USAGE_GROUPS: HelpGuideGroup[] = [
       },
       {
         title: "削除はゴミ箱へ送る",
-        body: "下書き、テンプレート、署名を削除すると、すぐ消えずにゴミ箱へ移動します。必要なら後から復元できます。",
+        body: "下書き、テンプレート、署名、メモを削除すると、すぐ消えずにゴミ箱へ移動します。必要なら後から復元できます。",
       },
       {
         title: "必要に応じてバックアップする",
@@ -149,7 +149,7 @@ export const KEYBOARD_SHORTCUT_GROUPS: ShortcutGroup[] = [
       {
         keys: "Ctrl/Cmd+Shift+P",
         description: "固定留めを切り替え",
-        note: "下書き・テンプレート・署名のみ",
+        note: "下書き・テンプレート・署名・メモのみ",
       },
       {
         keys: "Ctrl/Cmd+Shift+C",

@@ -1,5 +1,9 @@
 import { toDraftInput } from "../../drafts/model";
 import {
+  memoCharacterCount,
+  memoLineCount,
+} from "../../memo/model";
+import {
   buildDraftRenderResult,
   renderTemplatePreview,
 } from "../../renderer/render-draft";
@@ -47,6 +51,12 @@ export function buildTrashDetail(
         subject: "",
         body: item.signature.body,
         meta: item.signature.isDefault ? "削除時点では既定の署名" : "通常の署名",
+      };
+    case "memo":
+      return {
+        subject: "",
+        body: item.memo.body,
+        meta: `${memoLineCount(item.memo)} 行 / ${memoCharacterCount(item.memo)} 文字`,
       };
   }
 }

@@ -47,6 +47,14 @@ export const maildraftApi = {
     return invoke<DeleteMemoResult>("delete_memo", { id });
   },
 
+  restoreMemoFromTrash(id: string) {
+    return invoke<Memo>("restore_memo_from_trash", { id });
+  },
+
+  permanentlyDeleteMemoFromTrash(id: string) {
+    return invoke<TrashMutationResult>("permanently_delete_memo_from_trash", { id });
+  },
+
   deleteDraft(id: string) {
     return invoke<DeleteDraftResult>("delete_draft", { id });
   },

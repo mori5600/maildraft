@@ -240,14 +240,39 @@ export function applySavedMemoResult(snapshot: StoreSnapshot, memo: Memo): Store
   };
 }
 
-/** Replaces active memos with the deleted result payload. */
+/** Moves one deleted memo into trash without replacing unrelated snapshot data. */
 export function applyDeletedMemoResult(
   snapshot: StoreSnapshot,
   deletedMemo: DeleteMemoResult,
 ): StoreSnapshot {
   return {
     ...snapshot,
-    memos: sortMemos(deletedMemo.memos, "recent"),
+    memos: snapshot.memos.filter((memo) => memo.id !== deletedMemo.trashedMemo.memo.id),
+    trash: {
+      ...snapshot.trash,
+      memos: upsertTrashEntry(
+        snapshot.trash.memos ?? [],
+        deletedMemo.trashedMemo,
+        (entry) => entry.memo.id,
+      ),
+    },
+  };
+}
+
+/** Restores one memo from trash using the same compact shape as save. */
+export function applyRestoredMemoResult(snapshot: StoreSnapshot, restoredMemo: Memo): StoreSnapshot {
+  const nextSnapshot = applySavedMemoResult(snapshot, restoredMemo);
+
+  return {
+    ...nextSnapshot,
+    trash: {
+      ...nextSnapshot.trash,
+      memos: removeTrashEntry(
+        nextSnapshot.trash.memos ?? [],
+        restoredMemo.id,
+        (entry) => entry.memo.id,
+      ),
+    },
   };
 }
 

@@ -272,7 +272,16 @@ fn variable_presets_can_be_deleted_and_empty_trash_clears_all_kinds() {
     assert!(store.delete_draft("draft-welcome", "20").is_some());
     assert!(store.delete_template("template-thanks", "21").is_some());
     assert!(store.delete_signature("signature-default", "22").is_some());
-    assert_eq!(store.trash.item_count(), 3);
+    store.upsert_memo(
+        MemoInput {
+            id: "memo-trash".to_string(),
+            title: "削除予定".to_string(),
+            body: "本文".to_string(),
+        },
+        "23",
+    );
+    assert!(store.delete_memo("memo-trash", "24").is_some());
+    assert_eq!(store.trash.item_count(), 4);
 
     store.empty_trash();
 
@@ -305,6 +314,34 @@ fn memo_updates_in_place_after_first_save() {
     assert_eq!(store.memos[0].body, "決定事項\n宿題");
     assert_eq!(store.memos[0].created_at, "10");
     assert_eq!(store.memos[0].updated_at, "20");
+}
+
+#[test]
+fn memo_delete_and_restore_round_trip() {
+    let mut store = StoreSnapshot::seeded();
+
+    store.upsert_memo(
+        MemoInput {
+            id: "memo-1".to_string(),
+            title: "会議メモ".to_string(),
+            body: "決定事項".to_string(),
+        },
+        "10",
+    );
+
+    let trashed = store.delete_memo("memo-1", "20").expect("trash memo");
+
+    assert_eq!(trashed.memo.id, "memo-1");
+    assert!(store.memos.is_empty());
+    assert_eq!(store.trash.memos.len(), 1);
+
+    let restored = store
+        .restore_memo_from_trash("memo-1")
+        .expect("restore memo");
+
+    assert_eq!(restored.id, "memo-1");
+    assert_eq!(store.memos.len(), 1);
+    assert!(store.trash.memos.is_empty());
 }
 
 #[test]

@@ -353,16 +353,39 @@ fn trash_operations_round_trip_and_persist_snapshot_changes() {
         "指定した項目がゴミ箱に見つかりませんでした。"
     );
 
+    state
+        .save_memo(MemoInput {
+            id: "memo-trash".to_string(),
+            title: "会議".to_string(),
+            body: "確認事項".to_string(),
+        })
+        .expect("save memo");
+    let deleted = state.delete_memo("memo-trash").expect("trash memo");
+    assert_eq!(deleted.trashed_memo.memo.id, "memo-trash");
+
+    let restored = state
+        .restore_memo_from_trash("memo-trash")
+        .expect("restore memo");
+    assert_eq!(restored.id, "memo-trash");
+
+    state.delete_memo("memo-trash").expect("trash memo again");
+    let deleted = state
+        .permanently_delete_memo_from_trash("memo-trash")
+        .expect("delete memo permanently");
+    assert!(deleted.trash.memos.is_empty());
+
     state.delete_draft("draft-welcome").expect("trash draft");
     let emptied = state.empty_trash().expect("empty trash");
     assert!(emptied.trash.drafts.is_empty());
     assert!(emptied.trash.templates.is_empty());
     assert!(emptied.trash.signatures.is_empty());
+    assert!(emptied.trash.memos.is_empty());
 
     let persisted = read_store(&state.store_path);
     assert!(persisted.trash.drafts.is_empty());
     assert!(persisted.trash.templates.is_empty());
     assert!(persisted.trash.signatures.is_empty());
+    assert!(persisted.trash.memos.is_empty());
 }
 
 #[test]
