@@ -64,7 +64,7 @@ export function MemoEditorPane({
               下書きを作成
             </Button>
             <Button size="sm" variant="ghost" onClick={() => void onDeleteMemo()}>
-              {selectedMemoId ? "削除" : "リセット"}
+              {selectedMemoId ? "ゴミ箱へ移動" : "リセット"}
             </Button>
             <Button size="sm" title="Ctrl/Cmd+S" variant="primary" onClick={() => void onSaveMemo()}>
               保存

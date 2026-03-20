@@ -89,7 +89,7 @@ describe("memo UI", () => {
     expect(handleTogglePinned).toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "下書きを作成" }));
     expect(handleStartDraftFromMemo).toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "削除" }));
+    await user.click(screen.getByRole("button", { name: "ゴミ箱へ移動" }));
     expect(handleDeleteMemo).toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "保存" }));
     expect(handleSaveMemo).toHaveBeenCalled();
