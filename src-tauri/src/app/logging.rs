@@ -347,13 +347,14 @@ fn collect_log_paths(logs_dir: &Path) -> Result<Vec<PathBuf>, String> {
 
 #[cfg(test)]
 mod tests {
-    use std::{thread, time::Duration};
+    use std::{fs, thread, time::Duration};
 
     use pretty_assertions::assert_eq;
+    use serde_json::json;
     use serde_json::Map;
     use tempfile::tempdir;
 
-    use super::{AppLogger, LogEntry, LogLevel};
+    use super::{AppLogger, LogEntry, LogLevel, MAX_LOG_FILE_BYTES, MAX_LOG_ROTATED_FILES};
     use crate::app::settings::{LoggingMode, LoggingSettings};
 
     #[test]
@@ -464,5 +465,161 @@ mod tests {
 
         assert_eq!(snapshot.file_count, 0);
         assert_eq!(snapshot.total_bytes, 0);
+    }
+
+    #[test]
+    fn clear_removes_only_files_and_preserves_subdirectories() {
+        let temp_dir = tempdir().unwrap();
+        let logs_dir = temp_dir.path().join("logs");
+        let archive_dir = logs_dir.join("archive");
+        fs::create_dir_all(&archive_dir).unwrap();
+        fs::write(logs_dir.join("current.jsonl"), "active log").unwrap();
+        fs::write(archive_dir.join("keep.txt"), "do not delete").unwrap();
+
+        let logger = AppLogger::new(logs_dir.clone());
+        logger.clear().unwrap();
+
+        assert!(!logs_dir.join("current.jsonl").exists());
+        assert!(archive_dir.exists());
+        assert!(archive_dir.join("keep.txt").exists());
+    }
+
+    #[test]
+    fn load_recent_ignores_invalid_lines_and_non_jsonl_files() {
+        let temp_dir = tempdir().unwrap();
+        let logs_dir = temp_dir.path().join("logs");
+        fs::create_dir_all(&logs_dir).unwrap();
+        fs::write(
+            logs_dir.join("current.jsonl"),
+            format!(
+                "{}\nnot-json\n\n",
+                json!({
+                    "timestampMs": 10,
+                    "level": "info",
+                    "eventName": "draft.save",
+                    "module": "drafts",
+                    "result": "success",
+                    "sessionId": "session-1",
+                    "durationMs": 5,
+                    "errorCode": null,
+                    "safeContext": {},
+                })
+            ),
+        )
+        .unwrap();
+        fs::write(
+            logs_dir.join("notes.txt"),
+            json!({
+                "timestampMs": 11,
+                "level": "error",
+                "eventName": "ignored",
+                "module": "drafts",
+                "result": "failure",
+                "sessionId": "session-2",
+                "durationMs": 1,
+                "errorCode": "ERR",
+                "safeContext": {},
+            })
+            .to_string(),
+        )
+        .unwrap();
+
+        let logger = AppLogger::new(logs_dir);
+        let entries = logger.load_recent(14, 10).unwrap();
+
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].event_name, "draft.save");
+    }
+
+    #[test]
+    fn load_recent_returns_empty_when_limit_is_zero() {
+        let temp_dir = tempdir().unwrap();
+        let logger = AppLogger::new(temp_dir.path().join("logs"));
+
+        assert!(logger.load_recent(14, 0).unwrap().is_empty());
+    }
+
+    #[test]
+    fn record_rotates_current_file_and_keeps_backup_count_bounded() {
+        let temp_dir = tempdir().unwrap();
+        let logs_dir = temp_dir.path().join("logs");
+        fs::create_dir_all(&logs_dir).unwrap();
+        fs::write(
+            logs_dir.join("current.jsonl"),
+            vec![b'a'; MAX_LOG_FILE_BYTES as usize],
+        )
+        .unwrap();
+        for index in 1..=MAX_LOG_ROTATED_FILES {
+            fs::write(
+                logs_dir.join(format!("current.{index}.jsonl")),
+                format!("old-{index}"),
+            )
+            .unwrap();
+        }
+
+        let logger = AppLogger::new(logs_dir.clone());
+        let settings = LoggingSettings {
+            mode: LoggingMode::Standard,
+            retention_days: 14,
+        };
+
+        logger
+            .record(
+                &settings,
+                LogEntry {
+                    level: LogLevel::Info,
+                    event_name: "memo.save",
+                    module: "memo",
+                    result: "success",
+                    duration_ms: Some(3),
+                    error_code: None,
+                    safe_context: Map::new(),
+                },
+            )
+            .unwrap();
+
+        let rotated = fs::read(logs_dir.join("current.1.jsonl")).unwrap();
+        assert_eq!(rotated.len(), MAX_LOG_FILE_BYTES as usize);
+        assert!(logs_dir.join("current.5.jsonl").exists());
+        assert!(!logs_dir.join("current.6.jsonl").exists());
+
+        let snapshot = logger.snapshot(&settings).unwrap();
+        assert_eq!(snapshot.file_count, MAX_LOG_ROTATED_FILES + 1);
+    }
+
+    #[test]
+    fn snapshot_counts_only_log_files_and_ignores_subdirectories() {
+        let temp_dir = tempdir().unwrap();
+        let logs_dir = temp_dir.path().join("logs");
+        let archive_dir = logs_dir.join("archive");
+        fs::create_dir_all(&archive_dir).unwrap();
+        fs::write(logs_dir.join("current.jsonl"), "one").unwrap();
+        fs::write(logs_dir.join("current.1.jsonl"), "two").unwrap();
+        fs::write(archive_dir.join("nested.jsonl"), "nested").unwrap();
+
+        let logger = AppLogger::new(logs_dir);
+        let snapshot = logger
+            .snapshot(&LoggingSettings {
+                mode: LoggingMode::Standard,
+                retention_days: 14,
+            })
+            .unwrap();
+
+        assert_eq!(snapshot.file_count, 2);
+        assert_eq!(snapshot.total_bytes, 6);
+    }
+
+    #[test]
+    fn prune_expired_logs_with_zero_retention_removes_existing_files() {
+        let temp_dir = tempdir().unwrap();
+        let logs_dir = temp_dir.path().join("logs");
+        fs::create_dir_all(&logs_dir).unwrap();
+        fs::write(logs_dir.join("current.jsonl"), "old log").unwrap();
+        thread::sleep(Duration::from_millis(5));
+
+        let logger = AppLogger::new(logs_dir.clone());
+        logger.prune_expired_logs(0).unwrap();
+
+        assert!(!logs_dir.join("current.jsonl").exists());
     }
 }

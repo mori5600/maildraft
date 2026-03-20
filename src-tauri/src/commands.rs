@@ -12,8 +12,7 @@ use crate::modules::{
     store::{
         DeleteDraftResult, DeleteMemoResult, DeleteSignatureResult, DeleteTemplateResult,
         SaveDraftResult, SaveSignatureResult, SaveTemplateResult, StoreSnapshot,
-        TrashMutationResult,
-        VariablePresetResult,
+        TrashMutationResult, VariablePresetResult,
     },
     templates::TemplateInput,
     variable_presets::VariablePresetInput,
@@ -87,7 +86,10 @@ fn save_variable_preset_impl(
     state.save_variable_preset(input)
 }
 
-fn delete_variable_preset_impl(state: &AppState, id: String) -> Result<VariablePresetResult, String> {
+fn delete_variable_preset_impl(
+    state: &AppState,
+    id: String,
+) -> Result<VariablePresetResult, String> {
     state.delete_variable_preset(&id)
 }
 
@@ -334,7 +336,9 @@ pub(crate) fn permanently_delete_signature_from_trash(
 }
 
 #[tauri::command]
-pub(crate) fn empty_trash(state: tauri::State<'_, AppState>) -> Result<TrashMutationResult, String> {
+pub(crate) fn empty_trash(
+    state: tauri::State<'_, AppState>,
+) -> Result<TrashMutationResult, String> {
     empty_trash_impl(&state)
 }
 
@@ -699,5 +703,265 @@ mod tests {
         assert!(emptied.trash.signatures.is_empty());
         assert!(emptied.trash.memos.is_empty());
         assert!(emptied.drafts.is_some());
+    }
+
+    #[test]
+    fn empty_trash_command_reports_only_the_collections_affected_by_cleanup() {
+        let (memo_state, _directory) = make_state();
+        save_memo_impl(
+            &memo_state,
+            MemoInput {
+                id: "memo-only".to_string(),
+                title: "メモ".to_string(),
+                is_pinned: false,
+                body: "本文".to_string(),
+            },
+        )
+        .expect("save memo");
+        delete_memo_impl(&memo_state, "memo-only".to_string()).expect("trash memo");
+
+        let emptied_memo = empty_trash_impl(&memo_state).expect("empty memo trash");
+        assert_eq!(emptied_memo.drafts.is_none(), true);
+        assert_eq!(emptied_memo.draft_history.is_none(), true);
+        assert_eq!(emptied_memo.templates.is_none(), true);
+
+        let (template_state, _directory) = make_state();
+        delete_template_impl(&template_state, "template-thanks".to_string())
+            .expect("trash template");
+
+        let emptied_template = empty_trash_impl(&template_state).expect("empty template trash");
+        assert_eq!(emptied_template.drafts.is_some(), true);
+        assert_eq!(emptied_template.draft_history.is_some(), true);
+        assert_eq!(emptied_template.templates.is_none(), true);
+
+        let (signature_state, _directory) = make_state();
+        delete_signature_impl(&signature_state, "signature-default".to_string())
+            .expect("trash signature");
+
+        let emptied_signature = empty_trash_impl(&signature_state).expect("empty signature trash");
+        assert_eq!(emptied_signature.drafts.is_some(), true);
+        assert_eq!(emptied_signature.draft_history.is_some(), true);
+        assert_eq!(emptied_signature.templates.is_some(), true);
+    }
+
+    #[test]
+    fn signature_commands_keep_exactly_one_default_signature_across_save_delete_and_restore() {
+        let (state, _directory) = make_state();
+
+        let saved = save_signature_impl(
+            &state,
+            SignatureInput {
+                id: "signature-alt".to_string(),
+                name: "営業署名".to_string(),
+                is_pinned: true,
+                body: "営業部".to_string(),
+                is_default: true,
+            },
+        )
+        .expect("save signature");
+        assert_eq!(
+            saved
+                .signatures
+                .iter()
+                .filter(|signature| signature.is_default)
+                .count(),
+            1
+        );
+        assert_eq!(
+            saved
+                .signatures
+                .iter()
+                .find(|signature| signature.id == "signature-alt")
+                .map(|signature| signature.is_default),
+            Some(true)
+        );
+
+        let deleted =
+            delete_signature_impl(&state, "signature-alt".to_string()).expect("delete signature");
+        assert_eq!(
+            deleted
+                .signatures
+                .iter()
+                .filter(|signature| signature.is_default)
+                .count(),
+            1
+        );
+        assert_eq!(
+            deleted
+                .signatures
+                .iter()
+                .find(|signature| signature.id == "signature-default")
+                .map(|signature| signature.is_default),
+            Some(true)
+        );
+
+        let restored = restore_signature_from_trash_impl(&state, "signature-alt".to_string())
+            .expect("restore signature");
+        assert_eq!(
+            restored
+                .signatures
+                .iter()
+                .filter(|signature| signature.is_default)
+                .count(),
+            1
+        );
+        assert_eq!(
+            restored
+                .signatures
+                .iter()
+                .find(|signature| signature.id == "signature-default")
+                .map(|signature| signature.is_default),
+            Some(true)
+        );
+        assert_eq!(
+            restored
+                .signatures
+                .iter()
+                .find(|signature| signature.id == "signature-alt")
+                .map(|signature| signature.is_default),
+            Some(false)
+        );
+    }
+
+    #[test]
+    fn restore_draft_command_impl_returns_cleaned_references_after_related_items_are_purged() {
+        let (state, _directory) = make_state();
+
+        delete_draft_impl(&state, "draft-welcome".to_string()).expect("trash draft");
+        delete_template_impl(&state, "template-thanks".to_string()).expect("trash template");
+        delete_signature_impl(&state, "signature-default".to_string()).expect("trash signature");
+        permanently_delete_template_from_trash_impl(&state, "template-thanks".to_string())
+            .expect("purge template");
+        permanently_delete_signature_from_trash_impl(&state, "signature-default".to_string())
+            .expect("purge signature");
+
+        let restored = restore_draft_from_trash_impl(&state, "draft-welcome".to_string())
+            .expect("restore draft");
+
+        assert_eq!(restored.draft.template_id, None);
+        assert_eq!(restored.draft.signature_id, None);
+        assert_eq!(
+            restored
+                .draft_history
+                .iter()
+                .all(|entry| entry.template_id.is_none() && entry.signature_id.is_none()),
+            true
+        );
+    }
+
+    #[test]
+    fn restore_template_command_impl_returns_a_cleaned_signature_reference_after_signature_purge() {
+        let (state, _directory) = make_state();
+
+        delete_template_impl(&state, "template-thanks".to_string()).expect("trash template");
+        delete_signature_impl(&state, "signature-default".to_string()).expect("trash signature");
+        permanently_delete_signature_from_trash_impl(&state, "signature-default".to_string())
+            .expect("purge signature");
+
+        let restored = restore_template_from_trash_impl(&state, "template-thanks".to_string())
+            .expect("restore template");
+
+        assert_eq!(restored.template.signature_id, None);
+    }
+
+    #[test]
+    fn command_impls_report_missing_entities_and_boundary_inputs() {
+        let (state, directory) = make_state();
+
+        assert_eq!(
+            delete_draft_impl(&state, "missing".to_string()).unwrap_err(),
+            "指定した下書きが見つかりませんでした。"
+        );
+        assert_eq!(
+            restore_draft_from_trash_impl(&state, "missing".to_string()).unwrap_err(),
+            "指定した項目がゴミ箱に見つかりませんでした。"
+        );
+        assert_eq!(
+            restore_draft_history_impl(&state, "draft-welcome".to_string(), "missing".to_string())
+                .unwrap_err(),
+            "指定した履歴が見つかりませんでした。"
+        );
+        assert_eq!(
+            delete_memo_impl(&state, "missing".to_string()).unwrap_err(),
+            "指定したメモが見つかりませんでした。"
+        );
+        assert_eq!(
+            restore_memo_from_trash_impl(&state, "missing".to_string()).unwrap_err(),
+            "指定した項目がゴミ箱に見つかりませんでした。"
+        );
+        assert_eq!(
+            delete_template_impl(&state, "missing".to_string()).unwrap_err(),
+            "指定したテンプレートが見つかりませんでした。"
+        );
+        assert_eq!(
+            restore_template_from_trash_impl(&state, "missing".to_string()).unwrap_err(),
+            "指定した項目がゴミ箱に見つかりませんでした。"
+        );
+        assert_eq!(
+            delete_signature_impl(&state, "missing".to_string()).unwrap_err(),
+            "指定した署名が見つかりませんでした。"
+        );
+        assert_eq!(
+            restore_signature_from_trash_impl(&state, "missing".to_string()).unwrap_err(),
+            "指定した項目がゴミ箱に見つかりませんでした。"
+        );
+        assert_eq!(
+            permanently_delete_draft_from_trash_impl(&state, "missing".to_string()).unwrap_err(),
+            "指定した項目がゴミ箱に見つかりませんでした。"
+        );
+        assert_eq!(
+            permanently_delete_memo_from_trash_impl(&state, "missing".to_string()).unwrap_err(),
+            "指定した項目がゴミ箱に見つかりませんでした。"
+        );
+        assert_eq!(
+            permanently_delete_template_from_trash_impl(&state, "missing".to_string()).unwrap_err(),
+            "指定した項目がゴミ箱に見つかりませんでした。"
+        );
+        assert_eq!(
+            permanently_delete_signature_from_trash_impl(&state, "missing".to_string())
+                .unwrap_err(),
+            "指定した項目がゴミ箱に見つかりませんでした。"
+        );
+        assert_eq!(
+            delete_variable_preset_impl(&state, "missing".to_string()).unwrap_err(),
+            "指定した変数値セットが見つかりませんでした。"
+        );
+
+        for index in 0..3 {
+            save_memo_impl(
+                &state,
+                MemoInput {
+                    id: format!("memo-{index}"),
+                    title: format!("ログ {index}"),
+                    is_pinned: false,
+                    body: "本文".to_string(),
+                },
+            )
+            .expect("save memo");
+        }
+
+        let all_logs = load_recent_logs_impl(&state, Some(200)).unwrap();
+        assert_eq!(load_recent_logs_impl(&state, Some(0)).unwrap().len(), 1);
+        assert_eq!(
+            load_recent_logs_impl(&state, None).unwrap().len(),
+            all_logs.len().min(80)
+        );
+        assert_eq!(
+            load_recent_logs_impl(&state, Some(999)).unwrap().len(),
+            all_logs.len()
+        );
+
+        let invalid_backup = directory.path().join("invalid-backup.json");
+        fs::write(&invalid_backup, "{\"version\":999}").expect("write invalid backup");
+        assert_eq!(
+            import_backup_impl(&state, invalid_backup.display().to_string()).unwrap_err(),
+            "このバックアップ形式には対応していません。"
+        );
+        assert!(
+            export_backup_impl(&state, directory.path().display().to_string())
+                .unwrap_err()
+                .is_empty()
+                == false
+        );
     }
 }

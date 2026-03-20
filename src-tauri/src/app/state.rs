@@ -163,3 +163,58 @@ fn combine_startup_notice(
         tone,
     })
 }
+
+#[cfg(test)]
+mod state_unit_tests {
+    use pretty_assertions::assert_eq;
+
+    use super::combine_startup_notice;
+    use crate::app::storage::{StartupNoticeSnapshot, StartupNoticeTone};
+
+    #[test]
+    fn combine_startup_notice_returns_none_when_no_messages_exist() {
+        assert_eq!(combine_startup_notice(Vec::new()), None);
+    }
+
+    #[test]
+    fn combine_startup_notice_keeps_notice_tone_when_all_messages_are_notices() {
+        let combined = combine_startup_notice([
+            StartupNoticeSnapshot {
+                message: "設定を読み込みました。".to_string(),
+                tone: StartupNoticeTone::Notice,
+            },
+            StartupNoticeSnapshot {
+                message: "テンプレートを更新しました。".to_string(),
+                tone: StartupNoticeTone::Notice,
+            },
+        ])
+        .expect("combined notice");
+
+        assert_eq!(combined.tone, StartupNoticeTone::Notice);
+        assert_eq!(
+            combined.message,
+            "設定を読み込みました。 テンプレートを更新しました。"
+        );
+    }
+
+    #[test]
+    fn combine_startup_notice_prefers_warning_when_any_warning_is_present() {
+        let combined = combine_startup_notice([
+            StartupNoticeSnapshot {
+                message: "設定を読み込みました。".to_string(),
+                tone: StartupNoticeTone::Notice,
+            },
+            StartupNoticeSnapshot {
+                message: "バックアップから復旧しました。".to_string(),
+                tone: StartupNoticeTone::Warning,
+            },
+        ])
+        .expect("combined warning");
+
+        assert_eq!(combined.tone, StartupNoticeTone::Warning);
+        assert_eq!(
+            combined.message,
+            "設定を読み込みました。 バックアップから復旧しました。"
+        );
+    }
+}

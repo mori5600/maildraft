@@ -31,7 +31,10 @@ impl AppState {
             .cloned()
             .collect();
 
-        Ok(SaveDraftResult { draft, draft_history })
+        Ok(SaveDraftResult {
+            draft,
+            draft_history,
+        })
     }
 
     /// Persists a draft, records the save attempt, and returns the saved draft with its history.
@@ -49,9 +52,10 @@ impl AppState {
 
         let result = (|| {
             let mut store = self.store.lock().map_err(|error| error.to_string())?;
+            let previous = store.clone();
             store.upsert_draft(input, &timestamp);
             store.ensure_consistency();
-            self.persist_locked_store(&store)?;
+            self.persist_locked_store_with_rollback(&mut store, previous)?;
             let saved_draft = Self::collect_saved_draft_result(&store, &draft_id)?;
             let snapshot_context = snapshot_counts_context(&store);
 
@@ -102,11 +106,12 @@ impl AppState {
 
         let result = (|| {
             let mut store = self.store.lock().map_err(|error| error.to_string())?;
+            let previous = store.clone();
             let trashed_draft = store
                 .delete_draft(id, &timestamp)
                 .ok_or_else(|| "指定した下書きが見つかりませんでした。".to_string())?;
             store.ensure_consistency();
-            self.persist_locked_store(&store)?;
+            self.persist_locked_store_with_rollback(&mut store, previous)?;
 
             let snapshot_context = snapshot_counts_context(&store);
 
@@ -158,12 +163,13 @@ impl AppState {
         let started_at = Instant::now();
         let result = (|| {
             let mut store = self.store.lock().map_err(|error| error.to_string())?;
+            let previous = store.clone();
             if !store.restore_draft_history(draft_id, history_id, &timestamp()) {
                 return Err("指定した履歴が見つかりませんでした。".to_string());
             }
 
             store.ensure_consistency();
-            self.persist_locked_store(&store)?;
+            self.persist_locked_store_with_rollback(&mut store, previous)?;
             let restored_draft = Self::collect_saved_draft_result(&store, draft_id)?;
             let snapshot_context = snapshot_counts_context(&store);
 

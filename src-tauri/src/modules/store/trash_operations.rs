@@ -1,10 +1,5 @@
 use crate::modules::store::StoreSnapshot;
-use crate::modules::{
-    memo::Memo,
-    signatures::Signature,
-    templates::Template,
-    trash::TrashedDraft,
-};
+use crate::modules::{memo::Memo, signatures::Signature, templates::Template, trash::TrashedDraft};
 
 impl StoreSnapshot {
     pub fn restore_draft_from_trash(&mut self, id: &str) -> Option<TrashedDraft> {
@@ -71,7 +66,12 @@ impl StoreSnapshot {
             return None;
         }
 
-        let Some(index) = self.trash.memos.iter().position(|entry| entry.memo.id == id) else {
+        let Some(index) = self
+            .trash
+            .memos
+            .iter()
+            .position(|entry| entry.memo.id == id)
+        else {
             return None;
         };
 

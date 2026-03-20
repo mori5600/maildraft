@@ -134,8 +134,14 @@ pub(super) fn signature_context(input: &SignatureInput) -> Map<String, Value> {
 
 pub(super) fn memo_context(input: &MemoInput) -> Map<String, Value> {
     let mut context = Map::new();
-    context.insert("has_title".to_string(), json!(!input.title.trim().is_empty()));
-    context.insert("title_length".to_string(), json!(input.title.chars().count()));
+    context.insert(
+        "has_title".to_string(),
+        json!(!input.title.trim().is_empty()),
+    );
+    context.insert(
+        "title_length".to_string(),
+        json!(input.title.chars().count()),
+    );
     context.insert("body_length".to_string(), json!(input.body.chars().count()));
     context
 }

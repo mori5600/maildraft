@@ -169,6 +169,26 @@ describe("store-snapshot helpers", () => {
     expect(pickSignatureInput(emptySnapshot, null).isDefault).toBe(true);
   });
 
+  it("falls back from stale ids to the first surviving active records", () => {
+    expect(pickDraftInput(snapshot, "missing")).toMatchObject({ id: "draft-1" });
+    expect(pickTemplateInput(snapshot, "missing")).toMatchObject({ id: "template-1" });
+    expect(pickSignatureInput(snapshot, "missing")).toMatchObject({ id: "signature-default" });
+    expect(pickMemoInput(snapshot, "missing")).toMatchObject({ id: "memo-1" });
+    expect(
+      pickKnownSignatureId(
+        {
+          ...snapshot,
+          signatures: [],
+          trash: {
+            ...snapshot.trash,
+            signatures: [],
+          },
+        },
+        null,
+      ),
+    ).toBeNull();
+  });
+
   it("finds templates both in active data and trash", () => {
     expect(templateExists(snapshot, "template-1")).toBe(true);
     expect(templateExists(snapshot, "template-trash")).toBe(true);
@@ -332,6 +352,96 @@ describe("store-snapshot helpers", () => {
     const restoredMemoSnapshot = applyRestoredMemoResult(deletedMemoSnapshot, snapshot.memos[0]);
     expect(restoredMemoSnapshot.memos[0]?.id).toBe("memo-1");
     expect(restoredMemoSnapshot.trash.memos ?? []).toHaveLength(0);
+  });
+
+  it("deduplicates destructive compact payloads and preserves unrelated records", () => {
+    const otherDraft = {
+      ...snapshot.drafts[0],
+      id: "draft-2",
+      title: "別の下書き",
+      updatedAt: "1",
+    };
+    const draftHistoryEntry = {
+      id: "draft-1-history",
+      draftId: "draft-1",
+      title: "下書き",
+      subject: "件名",
+      recipient: "",
+      opening: "",
+      body: "",
+      closing: "",
+      templateId: "template-1",
+      signatureId: "signature-default",
+      variableValues: {},
+      recordedAt: "3",
+    };
+    const otherDraftHistoryEntry = {
+      ...draftHistoryEntry,
+      id: "draft-2-history",
+      draftId: "draft-2",
+      title: "別の下書き",
+    };
+    const snapshotWithStaleTrash: StoreSnapshot = {
+      ...snapshot,
+      drafts: [snapshot.drafts[0], otherDraft],
+      draftHistory: [draftHistoryEntry, otherDraftHistoryEntry],
+      trash: {
+        ...snapshot.trash,
+        drafts: [
+          {
+            draft: {
+              ...snapshot.drafts[0],
+              subject: "古い削除結果",
+            },
+            history: [],
+            deletedAt: "5",
+          },
+        ],
+        memos: [
+          {
+            memo: {
+              ...snapshot.memos[0],
+              body: "古いメモ",
+            },
+            deletedAt: "6",
+          },
+        ],
+      },
+    };
+
+    const deletedDraftSnapshot = applyDeletedDraftResult(snapshotWithStaleTrash, {
+      trashedDraft: {
+        draft: snapshot.drafts[0],
+        history: [draftHistoryEntry],
+        deletedAt: "20",
+      },
+    });
+    expect(deletedDraftSnapshot.trash.drafts).toHaveLength(1);
+    expect(deletedDraftSnapshot.trash.drafts[0]).toMatchObject({
+      deletedAt: "20",
+      draft: { id: "draft-1" },
+    });
+    expect(
+      deletedDraftSnapshot.draftHistory.map((entry) => ({
+        draftId: entry.draftId,
+        id: entry.id,
+      })),
+    ).toEqual([{ draftId: "draft-2", id: "draft-2-history" }]);
+    expect(deletedDraftSnapshot.drafts.map((draft) => draft.id)).toEqual(["draft-2"]);
+
+    const deletedMemoSnapshot = applyDeletedMemoResult(snapshotWithStaleTrash, {
+      trashedMemo: {
+        memo: snapshot.memos[0],
+        deletedAt: "30",
+      },
+    });
+    expect(deletedMemoSnapshot.trash.memos).toHaveLength(1);
+    expect(deletedMemoSnapshot.trash.memos?.[0]).toMatchObject({
+      deletedAt: "30",
+      memo: { id: "memo-1" },
+    });
+    expect(deletedMemoSnapshot.templates).toEqual(snapshot.templates);
+    expect(deletedMemoSnapshot.signatures).toEqual(snapshot.signatures);
   });
 
   it("applies compact trash cleanup payloads without replacing unrelated collections", () => {

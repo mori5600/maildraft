@@ -31,9 +31,10 @@ impl AppState {
 
         let result = (|| {
             let mut store = self.store.lock().map_err(|error| error.to_string())?;
+            let previous = store.clone();
             store.upsert_signature(input, &timestamp);
             store.ensure_consistency();
-            self.persist_locked_store(&store)?;
+            self.persist_locked_store_with_rollback(&mut store, previous)?;
 
             let snapshot_context = snapshot_counts_context(&store);
             let signatures = store.signatures.clone();
@@ -84,11 +85,12 @@ impl AppState {
 
         let result = (|| {
             let mut store = self.store.lock().map_err(|error| error.to_string())?;
+            let previous = store.clone();
             let trashed_signature = store
                 .delete_signature(id, &timestamp)
                 .ok_or_else(|| "指定した署名が見つかりませんでした。".to_string())?;
             store.ensure_consistency();
-            self.persist_locked_store(&store)?;
+            self.persist_locked_store_with_rollback(&mut store, previous)?;
 
             let snapshot_context = snapshot_counts_context(&store);
             let signatures = store.signatures.clone();

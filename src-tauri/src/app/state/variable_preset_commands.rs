@@ -30,14 +30,18 @@ impl AppState {
     /// # Errors
     ///
     /// Returns an error if the store lock cannot be acquired or persistence fails.
-    pub fn save_variable_preset(&self, input: VariablePresetInput) -> AppResult<VariablePresetResult> {
+    pub fn save_variable_preset(
+        &self,
+        input: VariablePresetInput,
+    ) -> AppResult<VariablePresetResult> {
         let started_at = Instant::now();
         let safe_context = variable_preset_context(&input);
         let result = (|| {
             let mut store = self.store.lock().map_err(|error| error.to_string())?;
+            let previous = store.clone();
             store.upsert_variable_preset(input, &timestamp());
             store.ensure_consistency();
-            self.persist_locked_store(&store)?;
+            self.persist_locked_store_with_rollback(&mut store, previous)?;
             let variable_preset_result = Self::collect_variable_preset_result(&store);
             let snapshot_context = snapshot_counts_context(&store);
 
@@ -84,13 +88,14 @@ impl AppState {
         let started_at = Instant::now();
         let result = (|| {
             let mut store = self.store.lock().map_err(|error| error.to_string())?;
+            let previous = store.clone();
 
             if !store.delete_variable_preset(id) {
                 return Err("指定した変数値セットが見つかりませんでした。".to_string());
             }
 
             store.ensure_consistency();
-            self.persist_locked_store(&store)?;
+            self.persist_locked_store_with_rollback(&mut store, previous)?;
             let variable_preset_result = Self::collect_variable_preset_result(&store);
             let snapshot_context = snapshot_counts_context(&store);
 

@@ -28,18 +28,31 @@ impl AppState {
 
         let result = (|| {
             let mut store = self.store.lock().map_err(|error| error.to_string())?;
-            let restored_draft = store
+            let previous = store.clone();
+            store
                 .restore_draft_from_trash(id)
                 .ok_or_else(|| "指定した項目がゴミ箱に見つかりませんでした。".to_string())?;
             store.ensure_consistency();
-            self.persist_locked_store(&store)?;
+            self.persist_locked_store_with_rollback(&mut store, previous)?;
 
             let snapshot_context = snapshot_counts_context(&store);
+            let draft = store
+                .drafts
+                .iter()
+                .find(|draft| draft.id == id)
+                .cloned()
+                .ok_or_else(|| "復元した下書きが見つかりませんでした。".to_string())?;
+            let draft_history = store
+                .draft_history
+                .iter()
+                .filter(|entry| entry.draft_id == id)
+                .cloned()
+                .collect();
 
             Ok((
                 SaveDraftResult {
-                    draft: restored_draft.draft,
-                    draft_history: restored_draft.history,
+                    draft,
+                    draft_history,
                 },
                 snapshot_context,
             ))
@@ -87,13 +100,20 @@ impl AppState {
 
         let result = (|| {
             let mut store = self.store.lock().map_err(|error| error.to_string())?;
-            let template = store
+            let previous = store.clone();
+            store
                 .restore_template_from_trash(id)
                 .ok_or_else(|| "指定した項目がゴミ箱に見つかりませんでした。".to_string())?;
             store.ensure_consistency();
-            self.persist_locked_store(&store)?;
+            self.persist_locked_store_with_rollback(&mut store, previous)?;
 
             let snapshot_context = snapshot_counts_context(&store);
+            let template = store
+                .templates
+                .iter()
+                .find(|template| template.id == id)
+                .cloned()
+                .ok_or_else(|| "復元したテンプレートが見つかりませんでした。".to_string())?;
 
             Ok((SaveTemplateResult { template }, snapshot_context))
         })();
@@ -140,10 +160,12 @@ impl AppState {
 
         let result = (|| {
             let mut store = self.store.lock().map_err(|error| error.to_string())?;
-            store.restore_signature_from_trash(id)
+            let previous = store.clone();
+            store
+                .restore_signature_from_trash(id)
                 .ok_or_else(|| "指定した項目がゴミ箱に見つかりませんでした。".to_string())?;
             store.ensure_consistency();
-            self.persist_locked_store(&store)?;
+            self.persist_locked_store_with_rollback(&mut store, previous)?;
 
             let snapshot_context = snapshot_counts_context(&store);
             let signatures = store.signatures.clone();
@@ -193,11 +215,12 @@ impl AppState {
 
         let result = (|| {
             let mut store = self.store.lock().map_err(|error| error.to_string())?;
+            let previous = store.clone();
             let memo = store
                 .restore_memo_from_trash(id)
                 .ok_or_else(|| "指定した項目がゴミ箱に見つかりませんでした。".to_string())?;
             store.ensure_consistency();
-            self.persist_locked_store(&store)?;
+            self.persist_locked_store_with_rollback(&mut store, previous)?;
 
             Ok((memo, snapshot_counts_context(&store)))
         })();
@@ -240,14 +263,16 @@ impl AppState {
     /// Returns an error if the trash item does not exist, the store lock cannot be acquired, or
     /// persistence fails.
     pub fn permanently_delete_draft_from_trash(&self, id: &str) -> AppResult<TrashMutationResult> {
-        self.permanently_delete_item_from_trash("draft", |store| {
-            store.permanently_delete_draft_from_trash(id)
-        }, |store| TrashMutationResult {
-            drafts: None,
-            draft_history: None,
-            templates: None,
-            trash: store.trash.clone(),
-        })
+        self.permanently_delete_item_from_trash(
+            "draft",
+            |store| store.permanently_delete_draft_from_trash(id),
+            |store| TrashMutationResult {
+                drafts: None,
+                draft_history: None,
+                templates: None,
+                trash: store.trash.clone(),
+            },
+        )
     }
 
     /// Permanently deletes one trashed template and persists the updated store.
@@ -263,14 +288,16 @@ impl AppState {
         &self,
         id: &str,
     ) -> AppResult<TrashMutationResult> {
-        self.permanently_delete_item_from_trash("template", |store| {
-            store.permanently_delete_template_from_trash(id)
-        }, |store| TrashMutationResult {
-            drafts: Some(store.drafts.clone()),
-            draft_history: Some(store.draft_history.clone()),
-            templates: None,
-            trash: store.trash.clone(),
-        })
+        self.permanently_delete_item_from_trash(
+            "template",
+            |store| store.permanently_delete_template_from_trash(id),
+            |store| TrashMutationResult {
+                drafts: Some(store.drafts.clone()),
+                draft_history: Some(store.draft_history.clone()),
+                templates: None,
+                trash: store.trash.clone(),
+            },
+        )
     }
 
     /// Permanently deletes one trashed signature and persists the updated store.
@@ -286,14 +313,16 @@ impl AppState {
         &self,
         id: &str,
     ) -> AppResult<TrashMutationResult> {
-        self.permanently_delete_item_from_trash("signature", |store| {
-            store.permanently_delete_signature_from_trash(id)
-        }, |store| TrashMutationResult {
-            drafts: Some(store.drafts.clone()),
-            draft_history: Some(store.draft_history.clone()),
-            templates: Some(store.templates.clone()),
-            trash: store.trash.clone(),
-        })
+        self.permanently_delete_item_from_trash(
+            "signature",
+            |store| store.permanently_delete_signature_from_trash(id),
+            |store| TrashMutationResult {
+                drafts: Some(store.drafts.clone()),
+                draft_history: Some(store.draft_history.clone()),
+                templates: Some(store.templates.clone()),
+                trash: store.trash.clone(),
+            },
+        )
     }
 
     /// Permanently deletes one trashed memo and persists the updated store.
@@ -305,18 +334,17 @@ impl AppState {
     ///
     /// Returns an error if the trash item does not exist, the store lock cannot be acquired, or
     /// persistence fails.
-    pub fn permanently_delete_memo_from_trash(
-        &self,
-        id: &str,
-    ) -> AppResult<TrashMutationResult> {
-        self.permanently_delete_item_from_trash("memo", |store| {
-            store.permanently_delete_memo_from_trash(id)
-        }, |store| TrashMutationResult {
-            drafts: None,
-            draft_history: None,
-            templates: None,
-            trash: store.trash.clone(),
-        })
+    pub fn permanently_delete_memo_from_trash(&self, id: &str) -> AppResult<TrashMutationResult> {
+        self.permanently_delete_item_from_trash(
+            "memo",
+            |store| store.permanently_delete_memo_from_trash(id),
+            |store| TrashMutationResult {
+                drafts: None,
+                draft_history: None,
+                templates: None,
+                trash: store.trash.clone(),
+            },
+        )
     }
 
     /// Permanently deletes all trash items and persists the updated store.
@@ -332,12 +360,13 @@ impl AppState {
 
         let result = (|| {
             let mut store = self.store.lock().map_err(|error| error.to_string())?;
+            let previous = store.clone();
             let had_trashed_templates = !store.trash.templates.is_empty();
             let had_trashed_signatures = !store.trash.signatures.is_empty();
 
             store.empty_trash();
             store.ensure_consistency();
-            self.persist_locked_store(&store)?;
+            self.persist_locked_store_with_rollback(&mut store, previous)?;
 
             Ok((
                 TrashMutationResult {

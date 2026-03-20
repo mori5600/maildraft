@@ -168,3 +168,178 @@ impl StoreSnapshot {
         self.trash = TrashSnapshot::default();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::{BTreeMap, HashSet};
+
+    use pretty_assertions::assert_eq;
+
+    use super::StoreSnapshot;
+    use crate::modules::{
+        drafts::{Draft, DraftHistoryEntry},
+        memo::Memo,
+        templates::Template,
+        trash::{TrashedDraft, TrashedSignature, TrashedTemplate},
+    };
+
+    fn sample_draft(id: &str, is_pinned: bool, updated_at: &str) -> Draft {
+        Draft {
+            id: id.to_string(),
+            title: id.to_string(),
+            is_pinned,
+            subject: String::new(),
+            recipient: String::new(),
+            opening: String::new(),
+            body: id.to_string(),
+            closing: String::new(),
+            template_id: None,
+            signature_id: None,
+            variable_values: BTreeMap::new(),
+            created_at: "0".to_string(),
+            updated_at: updated_at.to_string(),
+        }
+    }
+
+    #[test]
+    fn ensure_consistency_keeps_references_to_items_that_only_exist_in_trash() {
+        let mut store = StoreSnapshot::seeded();
+        store
+            .draft_history
+            .push(DraftHistoryEntry::from_draft(&store.drafts[0], "5"));
+
+        let trashed_template = store.templates.remove(0);
+        let trashed_signature = store.signatures.remove(0);
+        store.trash.templates.push(TrashedTemplate {
+            template: trashed_template.clone(),
+            deleted_at: "10".to_string(),
+        });
+        store.trash.signatures.push(TrashedSignature {
+            signature: trashed_signature.clone(),
+            deleted_at: "11".to_string(),
+        });
+        store.templates.push(Template {
+            id: "template-active".to_string(),
+            name: "現役テンプレート".to_string(),
+            is_pinned: false,
+            subject: String::new(),
+            recipient: String::new(),
+            opening: String::new(),
+            body: String::new(),
+            closing: String::new(),
+            signature_id: Some(trashed_signature.id.clone()),
+            created_at: "12".to_string(),
+            updated_at: "12".to_string(),
+        });
+
+        store.ensure_consistency();
+
+        assert_eq!(
+            store.drafts[0].template_id.as_deref(),
+            Some(trashed_template.id.as_str())
+        );
+        assert_eq!(
+            store.drafts[0].signature_id.as_deref(),
+            Some(trashed_signature.id.as_str())
+        );
+        assert_eq!(
+            store.draft_history[0].template_id.as_deref(),
+            Some(trashed_template.id.as_str())
+        );
+        assert_eq!(
+            store.draft_history[0].signature_id.as_deref(),
+            Some(trashed_signature.id.as_str())
+        );
+        assert_eq!(
+            store.templates[0].signature_id.as_deref(),
+            Some(trashed_signature.id.as_str())
+        );
+    }
+
+    #[test]
+    fn ensure_consistency_normalizes_memo_ids_and_sorts_recent_items() {
+        let mut store = StoreSnapshot::default();
+        store.drafts = vec![
+            sample_draft("draft-old", false, "10"),
+            sample_draft("draft-pinned", true, "5"),
+            sample_draft("draft-new", false, "20"),
+        ];
+        store.memos = vec![
+            Memo {
+                id: String::new(),
+                title: "first".to_string(),
+                is_pinned: false,
+                body: String::new(),
+                created_at: "0".to_string(),
+                updated_at: "10".to_string(),
+            },
+            Memo {
+                id: "memo-1".to_string(),
+                title: "second".to_string(),
+                is_pinned: false,
+                body: String::new(),
+                created_at: "0".to_string(),
+                updated_at: "30".to_string(),
+            },
+            Memo {
+                id: "memo-1".to_string(),
+                title: "third".to_string(),
+                is_pinned: false,
+                body: String::new(),
+                created_at: "0".to_string(),
+                updated_at: "20".to_string(),
+            },
+        ];
+        store.trash.drafts = vec![
+            TrashedDraft {
+                draft: sample_draft("trash-old", false, "0"),
+                history: Vec::new(),
+                deleted_at: "10".to_string(),
+            },
+            TrashedDraft {
+                draft: sample_draft("trash-new", false, "0"),
+                history: Vec::new(),
+                deleted_at: "20".to_string(),
+            },
+        ];
+
+        store.ensure_consistency();
+
+        assert_eq!(
+            store
+                .drafts
+                .iter()
+                .map(|draft| draft.id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["draft-pinned", "draft-new", "draft-old"]
+        );
+        assert_eq!(
+            store
+                .memos
+                .iter()
+                .map(|memo| memo.title.as_str())
+                .collect::<Vec<_>>(),
+            vec!["second", "third", "first"]
+        );
+        assert_eq!(
+            store
+                .trash
+                .drafts
+                .iter()
+                .map(|entry| entry.draft.id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["trash-new", "trash-old"]
+        );
+
+        let memo_ids = store
+            .memos
+            .iter()
+            .map(|memo| memo.id.as_str())
+            .collect::<HashSet<_>>();
+        assert_eq!(memo_ids.len(), 3);
+        assert_eq!(
+            store.memos.iter().all(|memo| !memo.id.trim().is_empty()),
+            true
+        );
+    }
+}

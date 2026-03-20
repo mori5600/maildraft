@@ -5,6 +5,7 @@ import { maildraftApi } from "../../../shared/api/maildraft-api";
 import {
   createDraft,
   createDraftHistoryEntry,
+  createDraftInput,
   createSignature,
   createStoreSnapshot,
   createTemplate,
@@ -290,5 +291,151 @@ describe("draft persistence state", () => {
     expect(result.current.draftForm.subject).toBe("元の件名");
     expect(autoSaveMocks.setDraftAutoSaveState).toHaveBeenCalledWith("saved");
     expect(onNotice).toHaveBeenCalledWith("履歴から下書きを復元しました。");
+  });
+
+  it("rehydrates to a surviving draft when the selected draft disappears", async () => {
+    const onResetVariablePresetSelection = vi.fn();
+    const initialSnapshot = createStoreSnapshot({
+      drafts: [
+        createDraft({
+          id: "draft-remove",
+          title: "消える下書き",
+          subject: "消える件名",
+          updatedAt: "30",
+        }),
+        createDraft({
+          id: "draft-keep",
+          title: "残る下書き",
+          subject: "残る件名",
+          updatedAt: "20",
+        }),
+      ],
+      templates: [createTemplate()],
+      signatures: [createSignature({ id: "signature-1", isDefault: true })],
+      trash: {
+        drafts: [],
+        templates: [],
+        signatures: [],
+      },
+    });
+    const nextSnapshot = createStoreSnapshot({
+      drafts: [
+        createDraft({
+          id: "draft-keep",
+          title: "残る下書き",
+          subject: "残る件名",
+          updatedAt: "40",
+        }),
+      ],
+      templates: [createTemplate()],
+      signatures: [createSignature({ id: "signature-1", isDefault: true })],
+      trash: {
+        drafts: [],
+        templates: [],
+        signatures: [],
+      },
+    });
+
+    const { result, rerender } = renderHook(
+      ({ snapshot }) =>
+        useDraftPersistenceState({
+          onClearError: vi.fn(),
+          onError: vi.fn(),
+          onNotice: vi.fn(),
+          onResetVariablePresetSelection,
+          onSnapshotChange: vi.fn(),
+          snapshot,
+        }),
+      {
+        initialProps: {
+          snapshot: initialSnapshot,
+        },
+      },
+    );
+
+    expect(result.current.selectedDraftId).toBe("draft-remove");
+
+    rerender({ snapshot: nextSnapshot });
+
+    await waitFor(() => {
+      expect(result.current.selectedDraftId).toBe("draft-keep");
+    });
+
+    expect(result.current.draftForm).toMatchObject({
+      id: "draft-keep",
+      subject: "残る件名",
+    });
+    expect(onResetVariablePresetSelection).toHaveBeenCalledTimes(1);
+    expect(autoSaveMocks.setDraftAutoSaveState).toHaveBeenCalledWith("saved");
+  });
+
+  it("creates a fresh draft from the latest default signature and skips duplicating unsaved input", async () => {
+    const onNotice = vi.fn();
+    const saveDraftSpy = vi.spyOn(maildraftApi, "saveDraft").mockResolvedValue({
+      draft: createDraft({ id: "should-not-run" }),
+      draftHistory: [],
+    });
+    const initialSnapshot = createStoreSnapshot({
+      signatures: [createSignature({ id: "signature-initial", isDefault: true })],
+      templates: [createTemplate()],
+      trash: {
+        drafts: [],
+        templates: [],
+        signatures: [],
+      },
+    });
+    const nextSnapshot = createStoreSnapshot({
+      signatures: [createSignature({ id: "signature-next", isDefault: true })],
+      templates: [createTemplate()],
+      trash: {
+        drafts: [],
+        templates: [],
+        signatures: [],
+      },
+    });
+
+    const { result, rerender } = renderHook(
+      ({ snapshot }) =>
+        useDraftPersistenceState({
+          onClearError: vi.fn(),
+          onError: vi.fn(),
+          onNotice,
+          onResetVariablePresetSelection: vi.fn(),
+          onSnapshotChange: vi.fn(),
+          snapshot,
+        }),
+      {
+        initialProps: {
+          snapshot: initialSnapshot,
+        },
+      },
+    );
+
+    act(() => {
+      result.current.openDraftInput(
+        createDraftInput({
+          id: "draft-unsaved",
+          signatureId: null,
+          title: "未保存の入力",
+        }),
+      );
+    });
+
+    rerender({ snapshot: nextSnapshot });
+
+    await act(async () => {
+      await result.current.duplicateDraft();
+    });
+
+    expect(saveDraftSpy).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.createDraft();
+    });
+
+    expect(autoSaveMocks.flushPendingDraft).toHaveBeenCalledTimes(1);
+    expect(result.current.selectedDraftId).toBeNull();
+    expect(result.current.draftForm.signatureId).toBe("signature-next");
+    expect(onNotice).toHaveBeenCalledWith("新しい下書きを作成しています。");
   });
 });

@@ -117,6 +117,128 @@ fn delete_and_restore_draft_round_trips_draft_and_history() {
 }
 
 #[test]
+fn restore_draft_from_trash_rejects_duplicate_active_ids_without_mutating_trash() {
+    let mut store = StoreSnapshot::seeded();
+    let original_draft = store.drafts[0].clone();
+    let draft_id = original_draft.id.clone();
+
+    assert!(store.delete_draft(&draft_id, "10").is_some());
+    store.upsert_draft(
+        DraftInput {
+            id: draft_id.clone(),
+            title: "競合する下書き".to_string(),
+            is_pinned: true,
+            subject: "競合".to_string(),
+            recipient: String::new(),
+            opening: String::new(),
+            body: "active".to_string(),
+            closing: String::new(),
+            template_id: None,
+            signature_id: None,
+            variable_values: BTreeMap::new(),
+        },
+        "20",
+    );
+
+    assert_eq!(store.restore_draft_from_trash(&draft_id).is_none(), true);
+    assert_eq!(store.drafts.len(), 1);
+    assert_eq!(store.drafts[0].title, "競合する下書き");
+    assert_eq!(store.trash.drafts.len(), 1);
+    assert_eq!(store.trash.drafts[0].draft.title, original_draft.title);
+}
+
+#[test]
+fn restore_template_from_trash_rejects_duplicate_active_ids_without_mutating_trash() {
+    let mut store = StoreSnapshot::seeded();
+
+    assert!(store.delete_template("template-thanks", "10").is_some());
+    store.upsert_template(
+        TemplateInput {
+            id: "template-thanks".to_string(),
+            name: "競合テンプレート".to_string(),
+            is_pinned: true,
+            subject: "競合".to_string(),
+            recipient: String::new(),
+            opening: String::new(),
+            body: "active".to_string(),
+            closing: String::new(),
+            signature_id: None,
+        },
+        "20",
+    );
+
+    assert_eq!(
+        store
+            .restore_template_from_trash("template-thanks")
+            .is_none(),
+        true
+    );
+    assert_eq!(store.templates.len(), 1);
+    assert_eq!(store.templates[0].name, "競合テンプレート");
+    assert_eq!(store.trash.templates.len(), 1);
+    assert_eq!(store.trash.templates[0].template.id, "template-thanks");
+}
+
+#[test]
+fn restore_signature_from_trash_rejects_duplicate_active_ids_without_mutating_trash() {
+    let mut store = StoreSnapshot::seeded();
+
+    assert!(store.delete_signature("signature-default", "10").is_some());
+    store.upsert_signature(
+        SignatureInput {
+            id: "signature-default".to_string(),
+            name: "競合署名".to_string(),
+            is_pinned: true,
+            body: "active".to_string(),
+            is_default: false,
+        },
+        "20",
+    );
+
+    assert_eq!(
+        store
+            .restore_signature_from_trash("signature-default")
+            .is_none(),
+        true
+    );
+    assert_eq!(store.signatures.len(), 1);
+    assert_eq!(store.signatures[0].name, "競合署名");
+    assert_eq!(store.trash.signatures.len(), 1);
+    assert_eq!(store.trash.signatures[0].signature.id, "signature-default");
+}
+
+#[test]
+fn restore_memo_from_trash_rejects_duplicate_active_ids_without_mutating_trash() {
+    let mut store = StoreSnapshot::seeded();
+
+    store.upsert_memo(
+        MemoInput {
+            id: "memo-1".to_string(),
+            title: "会議メモ".to_string(),
+            is_pinned: false,
+            body: "trash".to_string(),
+        },
+        "10",
+    );
+    assert!(store.delete_memo("memo-1", "11").is_some());
+    store.upsert_memo(
+        MemoInput {
+            id: "memo-1".to_string(),
+            title: "競合メモ".to_string(),
+            is_pinned: true,
+            body: "active".to_string(),
+        },
+        "20",
+    );
+
+    assert_eq!(store.restore_memo_from_trash("memo-1").is_none(), true);
+    assert_eq!(store.memos.len(), 1);
+    assert_eq!(store.memos[0].title, "競合メモ");
+    assert_eq!(store.trash.memos.len(), 1);
+    assert_eq!(store.trash.memos[0].memo.body, "trash");
+}
+
+#[test]
 fn ensure_consistency_assigns_a_default_signature_when_missing() {
     let mut store = StoreSnapshot::seeded();
     store.signatures = vec![
@@ -218,7 +340,9 @@ fn template_and_signature_trash_round_trip_and_default_switch_work() {
 
     assert!(store.delete_template("template-thanks", "20").is_some());
     assert_eq!(store.templates.len(), 0);
-    assert!(store.restore_template_from_trash("template-thanks").is_some());
+    assert!(store
+        .restore_template_from_trash("template-thanks")
+        .is_some());
     assert_eq!(store.templates.len(), 1);
 
     assert!(store.delete_signature("signature-alt", "30").is_some());
@@ -230,7 +354,9 @@ fn template_and_signature_trash_round_trip_and_default_switch_work() {
             .any(|entry| entry.signature.id == "signature-alt"),
         true
     );
-    assert!(store.restore_signature_from_trash("signature-alt").is_some());
+    assert!(store
+        .restore_signature_from_trash("signature-alt")
+        .is_some());
     assert_eq!(
         store
             .signatures

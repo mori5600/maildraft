@@ -31,6 +31,44 @@ impl AppState {
         write_app_settings(&self.settings_path, settings)
     }
 
+    pub(super) fn persist_locked_store_with_rollback(
+        &self,
+        store: &mut StoreSnapshot,
+        previous: StoreSnapshot,
+    ) -> AppResult<()> {
+        if let Err(error) = self.persist_locked_store(store) {
+            *store = previous;
+            return Err(error);
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn persist_locked_settings_with_rollback(
+        &self,
+        settings: &mut AppSettings,
+        previous: AppSettings,
+    ) -> AppResult<()> {
+        if let Err(error) = self.persist_locked_settings(settings) {
+            *settings = previous;
+            return Err(error);
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn restore_store_snapshot(&self, snapshot: &StoreSnapshot) -> AppResult<()> {
+        let mut store = self.store.lock().map_err(|error| error.to_string())?;
+        *store = snapshot.clone();
+        self.persist_locked_store(&store)
+    }
+
+    pub(super) fn restore_app_settings(&self, snapshot: &AppSettings) -> AppResult<()> {
+        let mut settings = self.settings.lock().map_err(|error| error.to_string())?;
+        *settings = snapshot.clone();
+        self.persist_locked_settings(&settings)
+    }
+
     pub(super) fn logging_settings_snapshot(&self) -> AppResult<LoggingSettingsSnapshot> {
         let logging_settings = {
             let settings = self.settings.lock().map_err(|error| error.to_string())?;
@@ -84,6 +122,7 @@ impl AppState {
     {
         let started_at = Instant::now();
         let mut store = self.store.lock().map_err(|error| error.to_string())?;
+        let previous = store.clone();
 
         if !mutator(&mut store) {
             self.log_event(LogEntry {
@@ -99,7 +138,7 @@ impl AppState {
         }
 
         store.ensure_consistency();
-        self.persist_locked_store(&store)?;
+        self.persist_locked_store_with_rollback(&mut store, previous)?;
         let safe_context = merge_context(trash_kind_context(kind), snapshot_counts_context(&store));
         let result = build_result(&store);
         drop(store);

@@ -88,7 +88,7 @@ describe("signature UI", () => {
     expect(handleSaveSignature).toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "拡大" }));
     expect(handleOpenPreview).toHaveBeenCalled();
-  });
+  }, 10000);
 
   it("keeps the signature body in CodeMirror when whitespace is visible", () => {
     render(

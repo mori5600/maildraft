@@ -11,6 +11,10 @@ use super::{
     AppResult, AppState,
 };
 
+fn combine_rollback_error(primary: String, label: &str, rollback: String) -> String {
+    format!("{primary} / {label}: {rollback}")
+}
+
 impl AppState {
     /// Returns the current logging settings snapshot.
     ///
@@ -86,22 +90,55 @@ impl AppState {
         let document = decode_backup_document(&content)?;
         let (mut snapshot, settings) = document.into_state()?;
         snapshot.ensure_consistency();
+        let previous_store = {
+            let store = self.store.lock().map_err(|error| error.to_string())?;
+            store.clone()
+        };
+        let previous_settings = {
+            let settings = self.settings.lock().map_err(|error| error.to_string())?;
+            settings.clone()
+        };
 
         {
             let mut store = self.store.lock().map_err(|error| error.to_string())?;
             *store = snapshot.clone();
-            self.persist_locked_store(&store)?;
+            self.persist_locked_store_with_rollback(&mut store, previous_store.clone())?;
         }
 
         {
             let mut app_settings = self.settings.lock().map_err(|error| error.to_string())?;
             *app_settings = settings.clone();
-            self.persist_locked_settings(&app_settings)?;
+            if let Err(error) = self
+                .persist_locked_settings_with_rollback(&mut app_settings, previous_settings.clone())
+            {
+                return match self.restore_store_snapshot(&previous_store) {
+                    Ok(()) => Err(error),
+                    Err(rollback_error) => Err(combine_rollback_error(
+                        error,
+                        "store rollback failed",
+                        rollback_error,
+                    )),
+                };
+            }
         }
 
-        self.logger
+        if let Err(error) = self
+            .logger
             .prune_expired_logs(settings.logging.retention_days)
-            .map_err(|error| error.to_string())?;
+            .map_err(|error| error.to_string())
+        {
+            let rollback_result = self
+                .restore_store_snapshot(&previous_store)
+                .and_then(|()| self.restore_app_settings(&previous_settings));
+            return match rollback_result {
+                Ok(()) => Err(error),
+                Err(rollback_error) => Err(combine_rollback_error(
+                    error,
+                    "state rollback failed",
+                    rollback_error,
+                )),
+            };
+        }
 
         let logging_settings = self.logger_snapshot(&settings.logging)?;
 
@@ -157,16 +194,29 @@ impl AppState {
     ) -> AppResult<LoggingSettingsSnapshot> {
         let started_at = Instant::now();
         let next_settings = input.into_settings();
-
-        {
+        let previous_settings = {
             let mut settings = self.settings.lock().map_err(|error| error.to_string())?;
-            settings.logging = next_settings.clone();
-            self.persist_locked_settings(&settings)?;
-        }
+            let previous = settings.clone();
 
-        self.logger
+            settings.logging = next_settings.clone();
+            self.persist_locked_settings_with_rollback(&mut settings, previous.clone())?;
+            previous
+        };
+
+        if let Err(error) = self
+            .logger
             .prune_expired_logs(next_settings.retention_days)
-            .map_err(|error| error.to_string())?;
+            .map_err(|error| error.to_string())
+        {
+            return match self.restore_app_settings(&previous_settings) {
+                Ok(()) => Err(error),
+                Err(rollback_error) => Err(combine_rollback_error(
+                    error,
+                    "settings rollback failed",
+                    rollback_error,
+                )),
+            };
+        }
 
         self.log_event_with_settings(
             &next_settings,
