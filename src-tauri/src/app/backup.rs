@@ -155,4 +155,31 @@ mod tests {
 
         assert_eq!(decoded.version, BACKUP_DOCUMENT_VERSION);
     }
+
+    #[test]
+    fn backup_document_decoder_defaults_missing_settings_field() {
+        let decoded = decode_backup_document(
+            &serde_json::json!({
+                "app": crate::app::storage::STORAGE_DOCUMENT_APP,
+                "version": BACKUP_DOCUMENT_VERSION,
+                "exportedAtMs": 0,
+                "snapshot": StoreSnapshot::seeded(),
+            })
+            .to_string(),
+        )
+        .expect("decode backup");
+
+        let (_snapshot, settings) = decoded.into_state().expect("into state");
+        assert_eq!(settings.logging.mode, LoggingMode::ErrorsOnly);
+        assert_eq!(settings.logging.retention_days, 14);
+    }
+
+    #[test]
+    fn backup_document_decoder_rejects_missing_version_and_non_object_payloads() {
+        assert_eq!(
+            decode_backup_document("{\"app\":\"maildraft\"}").unwrap_err(),
+            "このバックアップ形式には対応していません。"
+        );
+        assert!(!decode_backup_document("[1,2,3]").unwrap_err().is_empty());
+    }
 }

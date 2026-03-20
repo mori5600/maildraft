@@ -348,6 +348,69 @@ mod tests {
     }
 
     #[test]
+    fn missing_primary_with_broken_backup_quarantines_backup_and_seeds_store() {
+        let directory = tempdir().expect("tempdir");
+        let path = directory.path().join("maildraft-store.json");
+        fs::write(backup_path(&path), "{broken-backup").expect("write broken backup");
+
+        let loaded = load_store_snapshot_with_status(&path).expect("default after broken backup");
+
+        assert_eq!(
+            loaded.startup_notice,
+            Some(StartupNoticeSnapshot {
+                message: "ローカルデータを復旧できなかったため初期状態で起動しました。".to_string(),
+                tone: StartupNoticeTone::Warning,
+            })
+        );
+        assert_eq!(loaded.value.drafts[0].id, "draft-welcome");
+        assert!(!backup_path(&path).exists());
+        assert!(fs::read_dir(directory.path())
+            .expect("read dir")
+            .any(|entry| entry
+                .expect("entry")
+                .file_name()
+                .to_string_lossy()
+                .starts_with("maildraft-store.json.bak.corrupt-")));
+    }
+
+    #[test]
+    fn broken_primary_and_backup_are_both_quarantined_before_store_defaults() {
+        let directory = tempdir().expect("tempdir");
+        let path = directory.path().join("maildraft-store.json");
+        fs::write(&path, "{broken-primary").expect("write broken primary");
+        fs::write(backup_path(&path), "{broken-backup").expect("write broken backup");
+
+        let loaded = load_store_snapshot_with_status(&path).expect("fallback to seeded");
+
+        assert_eq!(
+            loaded.startup_notice,
+            Some(StartupNoticeSnapshot {
+                message: "ローカルデータを復旧できなかったため初期状態で起動しました。".to_string(),
+                tone: StartupNoticeTone::Warning,
+            })
+        );
+        assert_eq!(loaded.value.drafts[0].id, "draft-welcome");
+        assert!(!path.exists());
+        assert!(!backup_path(&path).exists());
+        let quarantined = fs::read_dir(directory.path())
+            .expect("read dir")
+            .map(|entry| {
+                entry
+                    .expect("entry")
+                    .file_name()
+                    .to_string_lossy()
+                    .to_string()
+            })
+            .collect::<Vec<_>>();
+        assert!(quarantined
+            .iter()
+            .any(|name| name.starts_with("maildraft-store.json.corrupt-")));
+        assert!(quarantined
+            .iter()
+            .any(|name| name.starts_with("maildraft-store.json.bak.corrupt-")));
+    }
+
+    #[test]
     fn settings_round_trip_and_accept_legacy_settings() {
         let directory = tempdir().expect("tempdir");
         let path = directory.path().join("maildraft-settings.json");
@@ -415,5 +478,31 @@ mod tests {
         let defaulted = defaulted.value;
         assert_eq!(defaulted.logging.mode, LoggingMode::ErrorsOnly);
         assert_eq!(defaulted.logging.retention_days, 14);
+    }
+
+    #[test]
+    fn missing_primary_with_broken_backup_quarantines_backup_and_defaults_settings() {
+        let directory = tempdir().expect("tempdir");
+        let path = directory.path().join("maildraft-settings.json");
+        fs::write(backup_path(&path), "{broken-backup").expect("write broken backup");
+
+        let loaded = load_app_settings_with_status(&path).expect("default settings");
+
+        assert_eq!(
+            loaded.startup_notice,
+            Some(StartupNoticeSnapshot {
+                message: "診断設定を復旧できなかったため既定値で起動しました。".to_string(),
+                tone: StartupNoticeTone::Warning,
+            })
+        );
+        assert_eq!(loaded.value.logging.mode, LoggingMode::ErrorsOnly);
+        assert!(!backup_path(&path).exists());
+        assert!(fs::read_dir(directory.path())
+            .expect("read dir")
+            .any(|entry| entry
+                .expect("entry")
+                .file_name()
+                .to_string_lossy()
+                .starts_with("maildraft-settings.json.bak.corrupt-")));
     }
 }

@@ -51,3 +51,96 @@ pub(super) fn encode_settings(settings: &AppSettings) -> AppResult<String> {
     })
     .map_err(|error| error.to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use pretty_assertions::assert_eq;
+    use serde_json::json;
+
+    use super::{decode_settings, encode_settings, SETTINGS_DOCUMENT_VERSION};
+    use crate::app::settings::{AppSettings, LoggingMode, LoggingSettings};
+
+    #[test]
+    fn decode_settings_accepts_current_and_legacy_documents() {
+        let current = decode_settings(
+            &json!({
+                "app": crate::app::storage::STORAGE_DOCUMENT_APP,
+                "version": SETTINGS_DOCUMENT_VERSION,
+                "savedAtMs": 0,
+                "settings": {
+                    "logging": {
+                        "mode": "standard",
+                        "retentionDays": 30,
+                    }
+                }
+            })
+            .to_string(),
+        )
+        .expect("decode current settings");
+        assert_eq!(current.logging.mode, LoggingMode::Standard);
+        assert_eq!(current.logging.retention_days, 30);
+
+        let legacy = decode_settings(
+            &json!({
+                "logging": {
+                    "mode": "off",
+                    "retentionDays": 99,
+                }
+            })
+            .to_string(),
+        )
+        .expect("decode legacy settings");
+        assert_eq!(legacy.logging.mode, LoggingMode::Off);
+        assert_eq!(legacy.logging.retention_days, 14);
+    }
+
+    #[test]
+    fn decode_settings_rejects_foreign_apps_future_versions_and_non_objects() {
+        assert_eq!(
+            decode_settings("[1,2,3]").unwrap_err(),
+            "設定ファイルの形式が正しくありません。"
+        );
+        assert_eq!(
+            decode_settings(
+                &json!({
+                    "app": "other-app",
+                    "version": SETTINGS_DOCUMENT_VERSION,
+                    "savedAtMs": 0,
+                    "settings": {},
+                })
+                .to_string(),
+            )
+            .unwrap_err(),
+            "MailDraft の設定ファイルではありません。"
+        );
+        assert_eq!(
+            decode_settings(
+                &json!({
+                    "app": crate::app::storage::STORAGE_DOCUMENT_APP,
+                    "version": SETTINGS_DOCUMENT_VERSION + 1,
+                    "savedAtMs": 0,
+                    "settings": {},
+                })
+                .to_string(),
+            )
+            .unwrap_err(),
+            "この設定形式には対応していません。"
+        );
+    }
+
+    #[test]
+    fn encode_settings_normalizes_and_wraps_document_metadata() {
+        let encoded = encode_settings(&AppSettings {
+            logging: LoggingSettings {
+                mode: LoggingMode::Standard,
+                retention_days: 99,
+            },
+        })
+        .expect("encode settings");
+        let decoded: serde_json::Value = serde_json::from_str(&encoded).expect("decode json");
+
+        assert_eq!(decoded["app"], json!("maildraft"));
+        assert_eq!(decoded["version"], json!(SETTINGS_DOCUMENT_VERSION));
+        assert_eq!(decoded["settings"]["logging"]["retentionDays"], json!(14));
+    }
+}

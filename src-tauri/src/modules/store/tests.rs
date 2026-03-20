@@ -4,7 +4,7 @@ use pretty_assertions::assert_eq;
 
 use super::StoreSnapshot;
 use crate::modules::{
-    drafts::DraftInput,
+    drafts::{DraftHistoryEntry, DraftInput},
     memo::MemoInput,
     signatures::{Signature, SignatureInput},
     templates::TemplateInput,
@@ -114,6 +114,49 @@ fn delete_and_restore_draft_round_trips_draft_and_history() {
     assert_eq!(store.draft_history.len(), 1);
     assert_eq!(store.trash.drafts.len(), 0);
     assert_eq!(store.drafts[0].id, draft_id);
+}
+
+#[test]
+fn restore_draft_from_trash_replaces_stale_active_history_for_same_id() {
+    let mut store = StoreSnapshot::seeded();
+    let draft_id = store.drafts[0].id.clone();
+    let original_body = store.drafts[0].body.clone();
+
+    store.upsert_draft(
+        DraftInput {
+            id: draft_id.clone(),
+            title: "履歴付き".to_string(),
+            is_pinned: false,
+            subject: "件名".to_string(),
+            recipient: "株式会社〇〇".to_string(),
+            opening: "お世話になっております。".to_string(),
+            body: "更新後".to_string(),
+            closing: "よろしくお願いいたします。".to_string(),
+            template_id: Some("template-thanks".to_string()),
+            signature_id: Some("signature-default".to_string()),
+            variable_values: BTreeMap::new(),
+        },
+        "100",
+    );
+    assert!(store.delete_draft(&draft_id, "120").is_some());
+
+    let mut stale_history = DraftHistoryEntry::from_draft(&store.trash.drafts[0].draft, "130");
+    stale_history.id = "history-stale".to_string();
+    stale_history.body = "stale".to_string();
+    store.draft_history.push(stale_history.clone());
+
+    let restored = store.restore_draft_from_trash(&draft_id);
+
+    assert!(restored.is_some());
+    assert_eq!(store.draft_history.len(), 1);
+    assert_eq!(
+        store
+            .draft_history
+            .iter()
+            .all(|entry| entry.id != stale_history.id),
+        true
+    );
+    assert_eq!(store.draft_history[0].body, original_body);
 }
 
 #[test]
@@ -413,6 +456,61 @@ fn variable_presets_can_be_deleted_and_empty_trash_clears_all_kinds() {
     store.empty_trash();
 
     assert_eq!(store.trash.item_count(), 0);
+}
+
+#[test]
+fn empty_trash_then_ensure_consistency_clears_references_that_only_survived_through_trash() {
+    let mut store = StoreSnapshot::seeded();
+    store
+        .draft_history
+        .push(DraftHistoryEntry::from_draft(&store.drafts[0], "5"));
+    store.upsert_template(
+        TemplateInput {
+            id: "template-active".to_string(),
+            name: "現役".to_string(),
+            is_pinned: false,
+            subject: "件名".to_string(),
+            recipient: String::new(),
+            opening: String::new(),
+            body: "本文".to_string(),
+            closing: String::new(),
+            signature_id: Some("signature-default".to_string()),
+        },
+        "10",
+    );
+
+    assert!(store.delete_template("template-thanks", "20").is_some());
+    assert!(store.delete_signature("signature-default", "21").is_some());
+    assert_eq!(
+        store.drafts[0].template_id.as_deref(),
+        Some("template-thanks")
+    );
+    assert_eq!(
+        store.drafts[0].signature_id.as_deref(),
+        Some("signature-default")
+    );
+
+    store.empty_trash();
+    store.ensure_consistency();
+
+    assert_eq!(store.trash.item_count(), 0);
+    assert_eq!(store.drafts[0].template_id, None);
+    assert_eq!(store.drafts[0].signature_id, None);
+    assert_eq!(
+        store
+            .draft_history
+            .iter()
+            .all(|entry| entry.template_id.is_none() && entry.signature_id.is_none()),
+        true
+    );
+    assert_eq!(
+        store
+            .templates
+            .iter()
+            .find(|template| template.id == "template-active")
+            .and_then(|template| template.signature_id.as_deref()),
+        None
+    );
 }
 
 #[test]

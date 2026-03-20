@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, fs, path::Path};
 
 use pretty_assertions::assert_eq;
-use serde_json::json;
+use serde_json::{json, Value};
 use tempfile::tempdir;
 
 use super::{
@@ -48,6 +48,60 @@ fn backup_path(path: &Path) -> std::path::PathBuf {
         .and_then(|name| name.to_str())
         .expect("backup file name");
     path.with_file_name(format!("{}.bak", file_name))
+}
+
+fn snapshot_value(state: &AppState) -> Value {
+    serde_json::to_value(state.load_snapshot().expect("load snapshot")).expect("serialize snapshot")
+}
+
+fn settings_value(state: &AppState) -> Value {
+    let settings = state.settings.lock().expect("settings lock").clone();
+    serde_json::to_value(settings).expect("serialize settings")
+}
+
+fn block_store_persistence(state: &mut AppState, directory: &Path, name: &str) {
+    let blocked_path = directory.join(name);
+    fs::create_dir_all(&blocked_path).expect("create blocked store path");
+    state.store_path = blocked_path;
+}
+
+fn block_settings_persistence(state: &mut AppState, directory: &Path, name: &str) {
+    let blocked_path = directory.join(name);
+    fs::create_dir_all(&blocked_path).expect("create blocked settings path");
+    state.settings_path = blocked_path;
+}
+
+fn replace_logs_directory_with_file(root: &Path) {
+    let logs_path = root.join("logs");
+    if logs_path.exists() {
+        fs::remove_dir_all(&logs_path).expect("remove logs dir");
+    }
+    fs::write(&logs_path, "blocked").expect("block logs path");
+}
+
+fn assert_store_operation_rolls_back_on_persist_failure<T>(
+    state: &mut AppState,
+    directory: &Path,
+    blocked_name: &str,
+    operation: impl FnOnce(&AppState) -> Result<T, String>,
+) {
+    let original_store_path = state.store_path.clone();
+    let before_memory = snapshot_value(state);
+    let before_disk =
+        serde_json::to_value(read_store(&original_store_path)).expect("serialize persisted store");
+    block_store_persistence(state, directory, blocked_name);
+
+    let error = match operation(state) {
+        Ok(_) => panic!("operation unexpectedly succeeded"),
+        Err(error) => error,
+    };
+    assert!(!error.is_empty());
+
+    let after_memory = snapshot_value(state);
+    let after_disk =
+        serde_json::to_value(read_store(&original_store_path)).expect("serialize persisted store");
+    assert_eq!(after_memory, before_memory);
+    assert_eq!(after_disk, before_disk);
 }
 
 #[test]
@@ -713,39 +767,215 @@ fn failed_import_does_not_mutate_existing_store_or_settings() {
 #[test]
 fn save_draft_rolls_back_when_store_persistence_fails() {
     let (mut state, directory) = make_state();
-    let original_store_path = state.store_path.clone();
-    let before_memory =
-        serde_json::to_value(state.load_snapshot().expect("snapshot before failure"))
-            .expect("serialize before");
-    let before_disk =
-        serde_json::to_value(read_store(&original_store_path)).expect("serialize persisted store");
-    let blocked_store_path = directory.path().join("blocked-store-path");
-    fs::create_dir_all(&blocked_store_path).expect("create blocked store path");
-    state.store_path = blocked_store_path;
+    assert_store_operation_rolls_back_on_persist_failure(
+        &mut state,
+        directory.path(),
+        "blocked-store-path",
+        |state| {
+            state.save_draft(DraftInput {
+                id: "draft-welcome".to_string(),
+                title: "壊してはいけない下書き".to_string(),
+                is_pinned: true,
+                subject: "失敗した保存".to_string(),
+                recipient: "株式会社〇〇".to_string(),
+                opening: "お世話になっております。".to_string(),
+                body: "この更新はロールバックされるべきです。".to_string(),
+                closing: "よろしくお願いいたします。".to_string(),
+                template_id: Some("template-thanks".to_string()),
+                signature_id: Some("signature-default".to_string()),
+                variable_values: BTreeMap::new(),
+            })
+        },
+    );
+}
 
-    let error = state
+#[test]
+fn save_template_rolls_back_when_store_persistence_fails() {
+    let (mut state, directory) = make_state();
+    assert_store_operation_rolls_back_on_persist_failure(
+        &mut state,
+        directory.path(),
+        "blocked-template-store-path",
+        |state| {
+            state.save_template(TemplateInput {
+                id: "template-thanks".to_string(),
+                name: "壊してはいけないテンプレート".to_string(),
+                is_pinned: true,
+                subject: "変更されるべきではない".to_string(),
+                recipient: "株式会社〇〇".to_string(),
+                opening: "お世話になっております。".to_string(),
+                body: "ロールバックされる本文".to_string(),
+                closing: "よろしくお願いいたします。".to_string(),
+                signature_id: Some("signature-default".to_string()),
+            })
+        },
+    );
+}
+
+#[test]
+fn save_signature_rolls_back_when_store_persistence_fails() {
+    let (mut state, directory) = make_state();
+    assert_store_operation_rolls_back_on_persist_failure(
+        &mut state,
+        directory.path(),
+        "blocked-signature-store-path",
+        |state| {
+            state.save_signature(SignatureInput {
+                id: "signature-default".to_string(),
+                name: "壊してはいけない署名".to_string(),
+                is_pinned: true,
+                body: "ロールバック対象".to_string(),
+                is_default: false,
+            })
+        },
+    );
+}
+
+#[test]
+fn save_memo_rolls_back_when_store_persistence_fails() {
+    let (mut state, directory) = make_state();
+    assert_store_operation_rolls_back_on_persist_failure(
+        &mut state,
+        directory.path(),
+        "blocked-memo-store-path",
+        |state| {
+            state.save_memo(MemoInput {
+                id: "memo-rollback".to_string(),
+                title: "新規メモ".to_string(),
+                is_pinned: true,
+                body: "保存失敗で残ってはいけない".to_string(),
+            })
+        },
+    );
+}
+
+#[test]
+fn save_variable_preset_rolls_back_when_store_persistence_fails() {
+    let (mut state, directory) = make_state();
+    assert_store_operation_rolls_back_on_persist_failure(
+        &mut state,
+        directory.path(),
+        "blocked-preset-store-path",
+        |state| {
+            state.save_variable_preset(VariablePresetInput {
+                id: "preset-rollback".to_string(),
+                name: "新規セット".to_string(),
+                values: BTreeMap::from([("会社名".to_string(), "株式会社〇〇".to_string())]),
+            })
+        },
+    );
+}
+
+#[test]
+fn delete_template_rolls_back_when_store_persistence_fails() {
+    let (mut state, directory) = make_state();
+    assert_store_operation_rolls_back_on_persist_failure(
+        &mut state,
+        directory.path(),
+        "blocked-delete-template-path",
+        |state| state.delete_template("template-thanks"),
+    );
+}
+
+#[test]
+fn delete_memo_rolls_back_when_store_persistence_fails() {
+    let (mut state, directory) = make_state();
+    state
+        .save_memo(MemoInput {
+            id: "memo-delete".to_string(),
+            title: "削除対象".to_string(),
+            is_pinned: false,
+            body: "削除失敗で残るべき".to_string(),
+        })
+        .expect("save memo");
+    assert_store_operation_rolls_back_on_persist_failure(
+        &mut state,
+        directory.path(),
+        "blocked-delete-memo-path",
+        |state| state.delete_memo("memo-delete"),
+    );
+}
+
+#[test]
+fn restore_draft_history_rolls_back_when_store_persistence_fails() {
+    let (mut state, directory) = make_state();
+    state
         .save_draft(DraftInput {
             id: "draft-welcome".to_string(),
-            title: "壊してはいけない下書き".to_string(),
-            is_pinned: true,
-            subject: "失敗した保存".to_string(),
+            title: "履歴作成".to_string(),
+            is_pinned: false,
+            subject: "件名".to_string(),
             recipient: "株式会社〇〇".to_string(),
             opening: "お世話になっております。".to_string(),
-            body: "この更新はロールバックされるべきです。".to_string(),
+            body: "変更後の本文".to_string(),
             closing: "よろしくお願いいたします。".to_string(),
             template_id: Some("template-thanks".to_string()),
             signature_id: Some("signature-default".to_string()),
             variable_values: BTreeMap::new(),
         })
-        .unwrap_err();
-    assert!(!error.is_empty());
+        .expect("save draft");
+    let history_id = state
+        .load_snapshot()
+        .expect("snapshot")
+        .draft_history
+        .first()
+        .expect("history")
+        .id
+        .clone();
+    assert_store_operation_rolls_back_on_persist_failure(
+        &mut state,
+        directory.path(),
+        "blocked-restore-history-path",
+        |state| state.restore_draft_history("draft-welcome", &history_id),
+    );
+}
 
-    let after_memory = serde_json::to_value(state.load_snapshot().expect("snapshot after failure"))
-        .expect("serialize after");
-    let after_disk =
-        serde_json::to_value(read_store(&original_store_path)).expect("serialize persisted store");
-    assert_eq!(after_memory, before_memory);
-    assert_eq!(after_disk, before_disk);
+#[test]
+fn restore_signature_from_trash_rolls_back_when_store_persistence_fails() {
+    let (mut state, directory) = make_state();
+    state
+        .delete_signature("signature-default")
+        .expect("trash signature");
+    assert_store_operation_rolls_back_on_persist_failure(
+        &mut state,
+        directory.path(),
+        "blocked-restore-signature-path",
+        |state| state.restore_signature_from_trash("signature-default"),
+    );
+}
+
+#[test]
+fn restore_memo_from_trash_rolls_back_when_store_persistence_fails() {
+    let (mut state, directory) = make_state();
+    state
+        .save_memo(MemoInput {
+            id: "memo-restore".to_string(),
+            title: "復元対象".to_string(),
+            is_pinned: false,
+            body: "復元失敗で残るべき".to_string(),
+        })
+        .expect("save memo");
+    state.delete_memo("memo-restore").expect("trash memo");
+    assert_store_operation_rolls_back_on_persist_failure(
+        &mut state,
+        directory.path(),
+        "blocked-restore-memo-path",
+        |state| state.restore_memo_from_trash("memo-restore"),
+    );
+}
+
+#[test]
+fn permanently_delete_signature_from_trash_rolls_back_when_store_persistence_fails() {
+    let (mut state, directory) = make_state();
+    state
+        .delete_signature("signature-default")
+        .expect("trash signature");
+    assert_store_operation_rolls_back_on_persist_failure(
+        &mut state,
+        directory.path(),
+        "blocked-purge-signature-path",
+        |state| state.permanently_delete_signature_from_trash("signature-default"),
+    );
 }
 
 #[test]
@@ -788,9 +1018,7 @@ fn save_logging_settings_rolls_back_when_settings_persistence_fails() {
     let original_settings_path = state.settings_path.clone();
     let before_settings = serde_json::to_value(read_settings_file(&original_settings_path))
         .expect("serialize settings before");
-    let blocked_settings_path = directory.path().join("blocked-settings-path");
-    fs::create_dir_all(&blocked_settings_path).expect("create blocked settings path");
-    state.settings_path = blocked_settings_path;
+    block_settings_persistence(&mut state, directory.path(), "blocked-settings-path");
 
     let error = state
         .save_logging_settings(LoggingSettingsInput {
@@ -807,6 +1035,31 @@ fn save_logging_settings_rolls_back_when_settings_persistence_fails() {
         .expect("serialize settings after");
     assert_eq!(current_logging.mode, LoggingMode::ErrorsOnly);
     assert_eq!(current_logging.retention_days, 14);
+    assert_eq!(after_settings, before_settings);
+}
+
+#[test]
+fn save_logging_settings_rolls_back_when_log_pruning_fails() {
+    let (state, directory) = make_state();
+    let state = state;
+    let original_settings_path = state.settings_path.clone();
+    let before_memory = settings_value(&state);
+    let before_settings = serde_json::to_value(read_settings_file(&original_settings_path))
+        .expect("serialize settings before");
+    replace_logs_directory_with_file(directory.path());
+
+    let error = state
+        .save_logging_settings(LoggingSettingsInput {
+            mode: LoggingMode::Standard,
+            retention_days: 30,
+        })
+        .unwrap_err();
+    assert!(!error.is_empty());
+
+    let after_memory = settings_value(&state);
+    let after_settings = serde_json::to_value(read_settings_file(&original_settings_path))
+        .expect("serialize settings after");
+    assert_eq!(after_memory, before_memory);
     assert_eq!(after_settings, before_settings);
 }
 
@@ -879,6 +1132,74 @@ fn import_backup_rolls_back_store_and_settings_when_settings_persistence_fails()
     assert_eq!(after_settings, before_settings);
     assert_eq!(current_logging.mode, LoggingMode::ErrorsOnly);
     assert_eq!(current_logging.retention_days, 14);
+}
+
+#[test]
+fn import_backup_rolls_back_store_and_settings_when_log_pruning_fails() {
+    let (state, directory) = make_state();
+    let state = state;
+    let original_store_path = state.store_path.clone();
+    let original_settings_path = state.settings_path.clone();
+    let before_memory = snapshot_value(&state);
+    let before_store =
+        serde_json::to_value(read_store(&original_store_path)).expect("serialize store before");
+    let before_settings = serde_json::to_value(read_settings_file(&original_settings_path))
+        .expect("serialize settings before");
+
+    let mut imported_snapshot = StoreSnapshot::seeded();
+    imported_snapshot.memos.push(Memo {
+        id: "memo-imported-log".to_string(),
+        title: "復元メモ".to_string(),
+        is_pinned: true,
+        body: "この内容は log prune failure で残ってはいけません。".to_string(),
+        created_at: "1".to_string(),
+        updated_at: "2".to_string(),
+    });
+    let backup_path = directory.path().join("rollback-import-log.json");
+    fs::write(
+        &backup_path,
+        serde_json::to_string(&BackupDocument::from_state(
+            imported_snapshot,
+            AppSettings {
+                logging: LoggingSettings {
+                    mode: LoggingMode::Standard,
+                    retention_days: 30,
+                },
+            },
+        ))
+        .expect("serialize backup"),
+    )
+    .expect("write backup");
+    replace_logs_directory_with_file(directory.path());
+
+    let error = state
+        .import_backup(backup_path.to_str().expect("backup path"))
+        .unwrap_err();
+    assert!(!error.is_empty());
+
+    let after_memory = snapshot_value(&state);
+    let after_store =
+        serde_json::to_value(read_store(&original_store_path)).expect("serialize store after");
+    let after_settings = serde_json::to_value(read_settings_file(&original_settings_path))
+        .expect("serialize settings after");
+    let after_memory_settings = settings_value(&state);
+
+    assert_eq!(after_memory, before_memory);
+    assert_eq!(after_store, before_store);
+    assert_eq!(after_settings, before_settings);
+    assert_eq!(after_memory_settings, before_settings);
+}
+
+#[test]
+fn load_recent_logs_and_clear_logs_report_corrupted_log_storage() {
+    let (state, directory) = make_state();
+    let before_settings = settings_value(&state);
+    replace_logs_directory_with_file(directory.path());
+
+    assert!(!state.load_logging_settings().unwrap_err().is_empty());
+    assert!(!state.load_recent_logs(Some(10)).unwrap_err().is_empty());
+    assert!(!state.clear_logs().unwrap_err().is_empty());
+    assert_eq!(settings_value(&state), before_settings);
 }
 
 #[test]
