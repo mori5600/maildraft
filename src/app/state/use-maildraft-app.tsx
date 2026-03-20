@@ -167,6 +167,10 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     memoState.createMemo();
   }
 
+  function toggleMemoPinned() {
+    memoState.toggleMemoPinned();
+  }
+
   async function saveDraft() {
     await draftWorkspaceRef.current?.saveDraft();
   }
@@ -193,6 +197,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       saveSignature: signatureState.saveSignature,
       saveTemplate: templateState.saveTemplate,
       toggleDraftPinned,
+      toggleMemoPinned,
       toggleSignaturePinned: signatureState.toggleSignaturePinned,
       toggleTemplatePinned: templateState.toggleTemplatePinned,
     } satisfies ShortcutActionSet,

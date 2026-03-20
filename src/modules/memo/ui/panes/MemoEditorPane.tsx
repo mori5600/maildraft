@@ -9,6 +9,7 @@ import { Button, Input, Panel } from "../../../../shared/ui/primitives";
 import {
   memoCharacterCount,
   type MemoInput,
+  memoLabel,
   memoLineCount,
 } from "../../model";
 
@@ -21,6 +22,7 @@ interface MemoEditorPaneProps {
   onCreateMemo: () => void;
   onDeleteMemo: () => Promise<void>;
   onSaveMemo: () => Promise<void>;
+  onTogglePinned: () => void;
   onStartDraftFromMemo: () => void;
   selectedMemoId: string | null;
   showWhitespace: boolean;
@@ -35,6 +37,7 @@ export function MemoEditorPane({
   onCreateMemo,
   onDeleteMemo,
   onSaveMemo,
+  onTogglePinned,
   onStartDraftFromMemo,
   selectedMemoId,
   showWhitespace,
@@ -48,6 +51,9 @@ export function MemoEditorPane({
           <div className="flex gap-2">
             <Button size="sm" title="Ctrl/Cmd+N" variant="ghost" onClick={onCreateMemo}>
               新規
+            </Button>
+            <Button size="sm" title="Ctrl/Cmd+Shift+P" variant="ghost" onClick={onTogglePinned}>
+              {memoForm.isPinned ? "固定解除" : "固定"}
             </Button>
             <Button
               disabled={!canStartDraftFromMemo}
@@ -65,7 +71,7 @@ export function MemoEditorPane({
             </Button>
           </div>
         }
-        description={autoSaveLabel}
+        description={`${memoForm.isPinned ? "固定・" : ""}${memoLabel(memoForm)}・${autoSaveLabel}`}
         title="メモエディタ"
       />
 

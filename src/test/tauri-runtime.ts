@@ -98,6 +98,7 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
         const nextMemo = {
           id: input.id,
           title: input.title,
+          isPinned: input.isPinned,
           body: input.body,
           createdAt: previous?.createdAt ?? String(Date.now()),
           updatedAt: String(Date.now()),

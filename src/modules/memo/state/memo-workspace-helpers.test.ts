@@ -25,6 +25,7 @@ const snapshot: StoreSnapshot = {
     {
       id: "memo-1",
       title: "商談メモ",
+      isPinned: true,
       body: "確認事項を整理する",
       createdAt: "1",
       updatedAt: "10",
@@ -32,6 +33,7 @@ const snapshot: StoreSnapshot = {
     {
       id: "memo-2",
       title: "",
+      isPinned: false,
       body: "会話ログ\nA社",
       createdAt: "1",
       updatedAt: "5",
@@ -52,6 +54,7 @@ describe("memo workspace helpers", () => {
       memoForm: {
         id: "memo-1",
         title: "商談メモ",
+        isPinned: true,
       },
     });
 
@@ -59,6 +62,7 @@ describe("memo workspace helpers", () => {
       selectedMemoId: "memo-2",
       memoForm: {
         id: "memo-2",
+        isPinned: false,
         body: "会話ログ\nA社",
       },
     });
@@ -74,6 +78,7 @@ describe("memo workspace helpers", () => {
       memoForm: {
         id: "00000000-0000-4000-8000-000000000005",
         title: "",
+        isPinned: false,
         body: "",
       },
     });
@@ -95,6 +100,7 @@ describe("memo workspace helpers", () => {
         {
           id: "memo-3",
           title: "",
+          isPinned: false,
           body: "",
         },
         snapshot,
@@ -106,6 +112,7 @@ describe("memo workspace helpers", () => {
         {
           id: "memo-1",
           title: "商談メモ",
+          isPinned: true,
           body: "確認事項を整理する",
         },
         snapshot,
@@ -117,6 +124,7 @@ describe("memo workspace helpers", () => {
         {
           id: "memo-1",
           title: "商談メモ",
+          isPinned: true,
           body: "更新後の本文",
         },
         snapshot,

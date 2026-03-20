@@ -1,3 +1,4 @@
+import { FlagIcon } from "@heroicons/react/20/solid";
 import { DocumentTextIcon } from "@heroicons/react/24/outline";
 
 import type { MemoSortOption } from "../../../../shared/lib/list-sort";
@@ -5,7 +6,7 @@ import { truncate } from "../../../../shared/lib/text";
 import { formatStoredTime } from "../../../../shared/lib/time";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Input, Panel, Select } from "../../../../shared/ui/primitives";
-import { type Memo,memoExcerpt, memoLabel } from "../../model";
+import { type Memo, memoExcerpt, memoLabel } from "../../model";
 
 interface MemoListPaneProps {
   availableSortOptions: Array<{ value: MemoSortOption; label: string }>;
@@ -123,16 +124,27 @@ export function MemoListPane({
                       className="mt-0.5 h-4 w-4 shrink-0 text-(--color-text-subtle)"
                     />
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-[13px] font-medium text-(--color-text-strong)">
-                        {memoLabel(memo)}
-                      </div>
-                      <div className="mt-1 truncate text-[11px] text-(--color-text-muted)">
-                        {truncate(memoExcerpt(memo), 42)}
-                      </div>
-                      <div className="mt-1.5 text-[10px] text-(--color-text-subtle)">
-                        {formatStoredTime(memo.updatedAt)}
+                      <div className="flex items-center gap-2">
+                        <div className="truncate text-[13px] font-medium text-(--color-text-strong)">
+                          {memoLabel(memo)}
+                        </div>
+                        {memo.isPinned ? (
+                          <span
+                            aria-label="固定"
+                            className="inline-flex rounded-md border border-(--color-panel-border-strong) bg-(--color-field-bg) p-1 text-(--color-text-subtle)"
+                            title="固定"
+                          >
+                            <FlagIcon aria-hidden="true" className="h-3.5 w-3.5" />
+                          </span>
+                        ) : null}
                       </div>
                     </div>
+                  </div>
+                  <div className="mt-1 truncate text-[11px] text-(--color-text-muted)">
+                    {truncate(memoExcerpt(memo), 42)}
+                  </div>
+                  <div className="mt-1.5 text-[10px] text-(--color-text-subtle)">
+                    {formatStoredTime(memo.updatedAt)}
                   </div>
                 </button>
               );

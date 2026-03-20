@@ -1,5 +1,5 @@
 import { type Draft, draftLabel } from "../../modules/drafts/model";
-import { type Memo,memoLabel } from "../../modules/memo/model";
+import { type Memo, memoLabel } from "../../modules/memo/model";
 import type { Signature } from "../../modules/signatures/model";
 import type { Template } from "../../modules/templates/model";
 
@@ -49,7 +49,10 @@ export function sortTemplates(templates: Template[], sort: TemplateSortOption): 
 }
 
 export function sortMemos(memos: Memo[], sort: MemoSortOption): Memo[] {
-  return [...memos].sort((left, right) => compareMemo(left, right, sort));
+  return [...memos].sort(
+    (left, right) =>
+      comparePinned(left.isPinned, right.isPinned) || compareMemo(left, right, sort),
+  );
 }
 
 export function sortSignatures(signatures: Signature[], sort: SignatureSortOption): Signature[] {

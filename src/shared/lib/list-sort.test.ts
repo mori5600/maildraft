@@ -108,6 +108,7 @@ const memos: Memo[] = [
   {
     id: "memo-1",
     title: "商談メモ",
+    isPinned: false,
     body: "",
     createdAt: "1",
     updatedAt: "2",
@@ -115,6 +116,7 @@ const memos: Memo[] = [
   {
     id: "memo-2",
     title: "",
+    isPinned: true,
     body: "Z 行",
     createdAt: "1",
     updatedAt: "8",
@@ -122,6 +124,7 @@ const memos: Memo[] = [
   {
     id: "memo-3",
     title: "営業ログ",
+    isPinned: false,
     body: "本文",
     createdAt: "1",
     updatedAt: "3",
@@ -166,16 +169,16 @@ describe("list-sort", () => {
     ]);
   });
 
-  it("sorts memos by requested strategy without pinning", () => {
+  it("sorts memos with pinned items before the rest", () => {
     expect(sortMemos(memos, "recent").map((memo) => memo.id)).toEqual([
       "memo-2",
       "memo-3",
       "memo-1",
     ]);
     expect(sortMemos(memos, "oldest").map((memo) => memo.id)).toEqual([
+      "memo-2",
       "memo-1",
       "memo-3",
-      "memo-2",
     ]);
     expect(sortMemos(memos, "label").map((memo) => memo.id)).toEqual([
       "memo-2",

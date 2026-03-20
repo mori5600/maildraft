@@ -4,6 +4,7 @@ import {
   createEmptyMemo,
   memoCharacterCount,
   memoExcerpt,
+  memoHasDraftContent,
   memoHasMeaningfulContent,
   memoLabel,
   memoLineCount,
@@ -20,6 +21,7 @@ describe("memo model", () => {
     expect(createEmptyMemo()).toEqual({
       id: "00000000-0000-4000-8000-000000000004",
       title: "",
+      isPinned: false,
       body: "",
     });
 
@@ -27,6 +29,7 @@ describe("memo model", () => {
       toMemoInput({
         id: "memo-1",
         title: "商談メモ",
+        isPinned: true,
         body: "確認事項",
         createdAt: "1",
         updatedAt: "2",
@@ -34,6 +37,7 @@ describe("memo model", () => {
     ).toEqual({
       id: "memo-1",
       title: "商談メモ",
+      isPinned: true,
       body: "確認事項",
     });
   });
@@ -41,10 +45,12 @@ describe("memo model", () => {
   it("derives memo labels, excerpts, and editor metrics", () => {
     const titledMemo = {
       title: "商談メモ",
+      isPinned: false,
       body: "1行目\n2行目",
     };
     const untitledMemo = {
       title: "",
+      isPinned: false,
       body: "\n 会話ログ \n次の行",
     };
 
@@ -61,17 +67,23 @@ describe("memo model", () => {
     const emptyMemo = {
       id: "memo-1",
       title: "",
+      isPinned: false,
       body: "",
     };
 
     expect(memoHasMeaningfulContent(emptyMemo)).toBe(false);
+    expect(memoHasMeaningfulContent({ ...emptyMemo, isPinned: true })).toBe(true);
     expect(memoHasMeaningfulContent({ ...emptyMemo, body: "本文" })).toBe(true);
+    expect(memoHasDraftContent(emptyMemo)).toBe(false);
+    expect(memoHasDraftContent({ ...emptyMemo, isPinned: true })).toBe(false);
+    expect(memoHasDraftContent({ ...emptyMemo, body: "本文" })).toBe(true);
     expect(
       memoMatchesPersistedMemo(
-        { ...emptyMemo, title: "商談メモ", body: "本文" },
+        { ...emptyMemo, title: "商談メモ", isPinned: true, body: "本文" },
         {
           id: "memo-1",
           title: "商談メモ",
+          isPinned: true,
           body: "本文",
           createdAt: "1",
           updatedAt: "2",

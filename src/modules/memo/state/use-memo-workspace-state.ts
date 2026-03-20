@@ -11,7 +11,7 @@ import { createDraftFromMemoInput, type DraftInput } from "../../drafts/model";
 import { buildTrashItemKey } from "../../trash/model";
 import {
   createEmptyMemo,
-  memoHasMeaningfulContent,
+  memoHasDraftContent,
   type MemoInput,
   toMemoInput,
 } from "../model";
@@ -132,10 +132,17 @@ export function useMemoWorkspaceState({
     }));
   }
 
+  function toggleMemoPinned() {
+    setMemoForm((current) => ({
+      ...current,
+      isPinned: !current.isPinned,
+    }));
+  }
+
   const startDraftFromMemo = useCallback(() => {
     const currentMemo = memoFormRef.current;
 
-    if (!memoHasMeaningfulContent(currentMemo)) {
+    if (!memoHasDraftContent(currentMemo)) {
       return;
     }
 
@@ -172,11 +179,12 @@ export function useMemoWorkspaceState({
     flushPendingMemo,
     hydrateMemoState,
     saveMemo,
+    toggleMemoPinned,
     memoWorkspaceProps: {
       activeMemoUpdatedAt: selectedMemoUpdatedAt,
       autoSaveLabel,
       availableSortOptions: MEMO_SORT_OPTIONS,
-      canStartDraftFromMemo: memoHasMeaningfulContent(memoForm),
+      canStartDraftFromMemo: memoHasDraftContent(memoForm),
       memos: filteredMemos,
       memoForm,
       onChangeMemo: changeMemo,
@@ -186,6 +194,7 @@ export function useMemoWorkspaceState({
       onDeleteMemo: deleteMemo,
       onSaveMemo: saveMemo,
       onSelectMemo: selectMemo,
+      onTogglePinned: toggleMemoPinned,
       onStartDraftFromMemo: startDraftFromMemo,
       searchQuery: memoSearchQuery,
       selectedMemoId,

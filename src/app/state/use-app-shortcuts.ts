@@ -21,6 +21,7 @@ export interface ShortcutActionSet {
   saveSignature: () => Promise<void>;
   saveTemplate: () => Promise<void>;
   toggleDraftPinned: () => void;
+  toggleMemoPinned: () => void;
   toggleSignaturePinned: () => void;
   toggleTemplatePinned: () => void;
 }

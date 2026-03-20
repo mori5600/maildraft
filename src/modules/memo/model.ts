@@ -1,6 +1,7 @@
 export interface Memo {
   id: string;
   title: string;
+  isPinned: boolean;
   body: string;
   createdAt: string;
   updatedAt: string;
@@ -9,10 +10,11 @@ export interface Memo {
 export interface MemoInput {
   id: string;
   title: string;
+  isPinned: boolean;
   body: string;
 }
 
-export type MemoLike = Pick<MemoInput, "title" | "body">;
+export type MemoLike = Pick<MemoInput, "title" | "body"> & Partial<Pick<MemoInput, "isPinned">>;
 
 const MEMO_LINE_BREAK_PATTERN = /\r\n|\r|\n/;
 
@@ -20,6 +22,7 @@ export function createEmptyMemo(): MemoInput {
   return {
     id: crypto.randomUUID(),
     title: "",
+    isPinned: false,
     body: "",
   };
 }
@@ -28,6 +31,7 @@ export function toMemoInput(memo: Memo): MemoInput {
   return {
     id: memo.id,
     title: memo.title,
+    isPinned: memo.isPinned,
     body: memo.body,
   };
 }
@@ -37,10 +41,19 @@ export function memoMatchesPersistedMemo(left: MemoInput, right: Memo | null): b
     return false;
   }
 
-  return left.id === right.id && left.title === right.title && left.body === right.body;
+  return (
+    left.id === right.id &&
+    left.title === right.title &&
+    left.isPinned === right.isPinned &&
+    left.body === right.body
+  );
 }
 
 export function memoHasMeaningfulContent(input: MemoLike): boolean {
+  return Boolean(input.isPinned || input.title.trim() || input.body.trim());
+}
+
+export function memoHasDraftContent(input: MemoLike): boolean {
   return Boolean(input.title.trim() || input.body.trim());
 }
 

@@ -191,6 +191,7 @@ function serializeMemoRevision(input: MemoInput): string {
   return JSON.stringify({
     body: input.body,
     id: input.id,
+    isPinned: input.isPinned,
     title: input.title,
   });
 }

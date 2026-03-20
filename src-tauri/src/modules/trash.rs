@@ -119,6 +119,7 @@ mod tests {
                 memo: Memo {
                     id: "memo-1".to_string(),
                     title: "メモ".to_string(),
+                    is_pinned: false,
                     body: "本文".to_string(),
                     created_at: "1".to_string(),
                     updated_at: "1".to_string(),

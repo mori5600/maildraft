@@ -67,6 +67,7 @@ const trash: TrashSnapshot = {
       memo: {
         id: "memo-1",
         title: "確認メモ",
+        isPinned: false,
         body: "段取りを確認",
         createdAt: "1",
         updatedAt: "2",

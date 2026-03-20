@@ -276,6 +276,7 @@ fn variable_presets_can_be_deleted_and_empty_trash_clears_all_kinds() {
         MemoInput {
             id: "memo-trash".to_string(),
             title: "削除予定".to_string(),
+            is_pinned: false,
             body: "本文".to_string(),
         },
         "23",
@@ -296,6 +297,7 @@ fn memo_updates_in_place_after_first_save() {
         MemoInput {
             id: "memo-1".to_string(),
             title: "会議メモ".to_string(),
+            is_pinned: true,
             body: "決定事項".to_string(),
         },
         "10",
@@ -304,13 +306,16 @@ fn memo_updates_in_place_after_first_save() {
         MemoInput {
             id: "memo-1".to_string(),
             title: "会議メモ".to_string(),
+            is_pinned: false,
             body: "決定事項\n宿題".to_string(),
         },
         "20",
     );
 
     assert_eq!(first_saved.id, "memo-1");
+    assert_eq!(first_saved.is_pinned, true);
     assert_eq!(store.memos[0].title, "会議メモ");
+    assert_eq!(store.memos[0].is_pinned, false);
     assert_eq!(store.memos[0].body, "決定事項\n宿題");
     assert_eq!(store.memos[0].created_at, "10");
     assert_eq!(store.memos[0].updated_at, "20");
@@ -324,6 +329,7 @@ fn memo_delete_and_restore_round_trip() {
         MemoInput {
             id: "memo-1".to_string(),
             title: "会議メモ".to_string(),
+            is_pinned: false,
             body: "決定事項".to_string(),
         },
         "10",
@@ -350,6 +356,7 @@ fn ensure_consistency_migrates_legacy_singleton_memo() {
     store.legacy_memo = Some(crate::modules::memo::Memo {
         id: String::new(),
         title: "旧メモ".to_string(),
+        is_pinned: false,
         body: "移行対象".to_string(),
         created_at: "10".to_string(),
         updated_at: "11".to_string(),

@@ -8,6 +8,8 @@ pub struct Memo {
     #[serde(default)]
     pub title: String,
     #[serde(default)]
+    pub is_pinned: bool,
+    #[serde(default)]
     pub body: String,
     #[serde(default = "default_memo_timestamp")]
     pub created_at: String,
@@ -22,6 +24,8 @@ pub struct MemoInput {
     #[serde(default)]
     pub title: String,
     #[serde(default)]
+    pub is_pinned: bool,
+    #[serde(default)]
     pub body: String,
 }
 
@@ -30,6 +34,7 @@ impl Default for Memo {
         Self {
             id: String::new(),
             title: String::new(),
+            is_pinned: false,
             body: String::new(),
             created_at: default_memo_timestamp(),
             updated_at: default_memo_timestamp(),
@@ -42,6 +47,7 @@ impl Memo {
         Self {
             id: input.id,
             title: input.title,
+            is_pinned: input.is_pinned,
             body: input.body,
             created_at: timestamp.to_string(),
             updated_at: timestamp.to_string(),
@@ -51,12 +57,13 @@ impl Memo {
     pub fn update(&mut self, input: MemoInput, timestamp: &str) {
         self.id = input.id;
         self.title = input.title;
+        self.is_pinned = input.is_pinned;
         self.body = input.body;
         self.updated_at = timestamp.to_string();
     }
 
     pub fn is_meaningful(&self) -> bool {
-        !self.title.trim().is_empty() || !self.body.trim().is_empty()
+        self.is_pinned || !self.title.trim().is_empty() || !self.body.trim().is_empty()
     }
 }
 
@@ -76,6 +83,7 @@ mod tests {
             MemoInput {
                 id: "memo-1".to_string(),
                 title: "商談メモ".to_string(),
+                is_pinned: true,
                 body: "初回ヒアリング".to_string(),
             },
             "10",
@@ -83,6 +91,7 @@ mod tests {
 
         assert_eq!(memo.id, "memo-1");
         assert_eq!(memo.title, "商談メモ");
+        assert_eq!(memo.is_pinned, true);
         assert_eq!(memo.body, "初回ヒアリング");
         assert_eq!(memo.created_at, "10");
         assert_eq!(memo.updated_at, "10");
@@ -91,12 +100,14 @@ mod tests {
             MemoInput {
                 id: "memo-1".to_string(),
                 title: "更新後".to_string(),
+                is_pinned: false,
                 body: "次回宿題".to_string(),
             },
             "20",
         );
 
         assert_eq!(memo.title, "更新後");
+        assert_eq!(memo.is_pinned, false);
         assert_eq!(memo.body, "次回宿題");
         assert_eq!(memo.created_at, "10");
         assert_eq!(memo.updated_at, "20");

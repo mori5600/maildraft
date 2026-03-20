@@ -581,6 +581,7 @@ mod tests {
             MemoInput {
                 id: "memo-1".to_string(),
                 title: "打ち合わせ".to_string(),
+                is_pinned: true,
                 body: "確認事項".to_string(),
             },
         )
@@ -588,6 +589,7 @@ mod tests {
 
         assert_eq!(memo.id, "memo-1");
         assert_eq!(memo.title, "打ち合わせ");
+        assert_eq!(memo.is_pinned, true);
         assert_eq!(memo.body, "確認事項");
 
         let snapshot = load_snapshot_impl(&state).expect("load snapshot");
@@ -684,6 +686,7 @@ mod tests {
             MemoInput {
                 id: "memo-trash".to_string(),
                 title: "削除予定".to_string(),
+                is_pinned: false,
                 body: "本文".to_string(),
             },
         )

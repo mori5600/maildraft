@@ -170,6 +170,7 @@ export function createMemo(overrides: Partial<Memo> = {}): Memo {
   return {
     id: "memo-1",
     title: "打ち合わせメモ",
+    isPinned: false,
     body: "確認事項を整理する",
     createdAt: DEFAULT_TIME,
     updatedAt: DEFAULT_TIME,
@@ -181,6 +182,7 @@ export function createMemoInput(overrides: Partial<MemoInput> = {}): MemoInput {
   return {
     id: "memo-input-1",
     title: "打ち合わせメモ",
+    isPinned: false,
     body: "確認事項を整理する",
     ...overrides,
   };

@@ -53,6 +53,7 @@ export type SaveShortcutAction =
   | "saveLoggingSettings";
 export type PinShortcutAction =
   | "toggleDraftPinned"
+  | "toggleMemoPinned"
   | "toggleTemplatePinned"
   | "toggleSignaturePinned";
 
@@ -78,9 +79,9 @@ const SAVE_SHORTCUT_ACTIONS = {
 
 const PIN_SHORTCUT_ACTIONS = {
   drafts: "toggleDraftPinned",
+  memo: "toggleMemoPinned",
   templates: "toggleTemplatePinned",
   signatures: "toggleSignaturePinned",
-  memo: null,
   trash: null,
   settings: null,
   help: null,

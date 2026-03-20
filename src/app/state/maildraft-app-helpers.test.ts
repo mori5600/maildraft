@@ -47,6 +47,7 @@ const populatedSnapshot: StoreSnapshot = {
     {
       id: "memo-1",
       title: "商談メモ",
+      isPinned: false,
       body: "確認事項",
       createdAt: "1",
       updatedAt: "2",
@@ -203,7 +204,7 @@ describe("maildraft app helpers", () => {
 
     expect(resolvePinShortcutAction("drafts")).toBe("toggleDraftPinned");
     expect(resolvePinShortcutAction("signatures")).toBe("toggleSignaturePinned");
-    expect(resolvePinShortcutAction("memo")).toBeNull();
+    expect(resolvePinShortcutAction("memo")).toBe("toggleMemoPinned");
     expect(resolvePinShortcutAction("settings")).toBeNull();
   });
 

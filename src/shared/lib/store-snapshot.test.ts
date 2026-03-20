@@ -84,6 +84,7 @@ const snapshot: StoreSnapshot = {
     {
       id: "memo-1",
       title: "営業メモ",
+      isPinned: false,
       body: "論点整理",
       createdAt: "1",
       updatedAt: "2",
@@ -160,6 +161,7 @@ describe("store-snapshot helpers", () => {
     expect(pickMemoInput(snapshot, "memo-1")).toEqual({
       id: "memo-1",
       title: "営業メモ",
+      isPinned: false,
       body: "論点整理",
     });
     expect(pickMemoInput(emptySnapshot, null).title).toBe("");

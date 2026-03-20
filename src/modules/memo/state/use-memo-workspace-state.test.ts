@@ -112,4 +112,37 @@ describe("memo workspace state", () => {
     expect(onOpenDraftInput).not.toHaveBeenCalled();
     expect(onViewChange).not.toHaveBeenCalled();
   });
+
+  it("toggles the pinned state on the memo form", () => {
+    const { result } = renderHook(() =>
+      useMemoWorkspaceState({
+        onClearError: vi.fn(),
+        onError: vi.fn(),
+        onNotice: vi.fn(),
+        onOpenDraftInput: vi.fn(),
+        onSnapshotChange: vi.fn(),
+        onTrashItemSelect: vi.fn(),
+        onViewChange: vi.fn(),
+        snapshot: createStoreSnapshot({
+          memos: [
+            createMemo({
+              id: "memo-1",
+              title: "",
+              body: "",
+              isPinned: false,
+            }),
+          ],
+        }),
+      }),
+    );
+
+    expect(result.current.memoWorkspaceProps.memoForm.isPinned).toBe(false);
+
+    act(() => {
+      result.current.memoWorkspaceProps.onTogglePinned();
+    });
+
+    expect(result.current.memoWorkspaceProps.memoForm.isPinned).toBe(true);
+    expect(result.current.memoWorkspaceProps.canStartDraftFromMemo).toBe(false);
+  });
 });

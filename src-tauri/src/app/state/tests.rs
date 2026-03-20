@@ -165,6 +165,7 @@ fn input_context_builders_capture_safe_lengths_and_flags() {
     let memo = MemoInput {
         id: "memo-1".to_string(),
         title: "商談".to_string(),
+        is_pinned: false,
         body: "要点".to_string(),
     };
     let logging = LoggingSettings {
@@ -279,16 +280,19 @@ fn save_memo_persists_store_updates() {
         .save_memo(MemoInput {
             id: "memo-1".to_string(),
             title: "打ち合わせメモ".to_string(),
+            is_pinned: true,
             body: "宿題を確認".to_string(),
         })
         .expect("save memo");
 
     assert_eq!(saved_memo.id, "memo-1");
     assert_eq!(saved_memo.title, "打ち合わせメモ");
+    assert_eq!(saved_memo.is_pinned, true);
     assert_eq!(saved_memo.body, "宿題を確認");
 
     let persisted = read_store(&state.store_path);
     assert_eq!(persisted.memos[0].title, "打ち合わせメモ");
+    assert_eq!(persisted.memos[0].is_pinned, true);
     assert_eq!(persisted.memos[0].body, "宿題を確認");
 }
 
@@ -357,6 +361,7 @@ fn trash_operations_round_trip_and_persist_snapshot_changes() {
         .save_memo(MemoInput {
             id: "memo-trash".to_string(),
             title: "会議".to_string(),
+            is_pinned: false,
             body: "確認事項".to_string(),
         })
         .expect("save memo");

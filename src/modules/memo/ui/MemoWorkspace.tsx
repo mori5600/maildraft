@@ -17,6 +17,7 @@ interface MemoWorkspaceProps {
   onDeleteMemo: () => Promise<void>;
   onSaveMemo: () => Promise<void>;
   onSelectMemo: (id: string) => void;
+  onTogglePinned: () => void;
   onStartDraftFromMemo: () => void;
   searchQuery: string;
   selectedMemoId: string | null;
@@ -39,6 +40,7 @@ export function MemoWorkspace({
   onDeleteMemo,
   onSaveMemo,
   onSelectMemo,
+  onTogglePinned,
   onStartDraftFromMemo,
   searchQuery,
   selectedMemoId,
@@ -70,6 +72,7 @@ export function MemoWorkspace({
         onCreateMemo={onCreateMemo}
         onDeleteMemo={onDeleteMemo}
         onSaveMemo={onSaveMemo}
+        onTogglePinned={onTogglePinned}
         onStartDraftFromMemo={onStartDraftFromMemo}
         selectedMemoId={selectedMemoId}
         showWhitespace={showWhitespace}
