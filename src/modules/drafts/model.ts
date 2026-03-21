@@ -93,10 +93,7 @@ export function createDraftFromTemplateInput(
   };
 }
 
-export function createDraftFromMemo(
-  memo: Memo,
-  defaultSignatureId: string | null,
-): DraftInput {
+export function createDraftFromMemo(memo: Memo, defaultSignatureId: string | null): DraftInput {
   return createDraftFromMemoInput(memo, defaultSignatureId);
 }
 

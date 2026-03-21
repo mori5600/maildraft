@@ -19,9 +19,7 @@ describe("settings UI", () => {
   it("renders settings navigation", async () => {
     const user = userEvent.setup();
     const handleSelectSection = vi.fn();
-    render(
-      <SettingsSectionNav activeSection="logging" onSelectSection={handleSelectSection} />,
-    );
+    render(<SettingsSectionNav activeSection="logging" onSelectSection={handleSelectSection} />);
 
     await user.click(screen.getByRole("button", { name: /バックアップ/ }));
     expect(handleSelectSection).toHaveBeenCalledWith("backup");

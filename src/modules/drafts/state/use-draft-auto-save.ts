@@ -11,11 +11,7 @@ import {
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import { applySavedDraftResult } from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot } from "../../../shared/types/store";
-import {
-  type DraftInput,
-  draftMatchesPersistedDraft,
-  toDraftInput,
-} from "../model";
+import { type DraftInput, draftMatchesPersistedDraft, toDraftInput } from "../model";
 import {
   type DraftAutoSaveState,
   hasMeaningfulDraftContent,
@@ -65,16 +61,15 @@ export function useDraftAutoSave({
   snapshot,
   snapshotRef,
 }: DraftAutoSaveOptions) {
-  const [transientDraftAutoSaveState, setTransientDraftAutoSaveState] = useState<
-    TransientDraftAutoSaveState | null
-  >(() =>
-    initialAutoSaveState === "error" || initialAutoSaveState === "saving"
-      ? {
-          draftRevision: serializeDraftRevision(draftForm),
-          kind: initialAutoSaveState,
-        }
-      : null,
-  );
+  const [transientDraftAutoSaveState, setTransientDraftAutoSaveState] =
+    useState<TransientDraftAutoSaveState | null>(() =>
+      initialAutoSaveState === "error" || initialAutoSaveState === "saving"
+        ? {
+            draftRevision: serializeDraftRevision(draftForm),
+            kind: initialAutoSaveState,
+          }
+        : null,
+    );
 
   const persistDraft = useCallback(
     async ({ input, mode }: { input: DraftInput; mode: "manual" | "auto" }) => {
@@ -180,17 +175,20 @@ export function useDraftAutoSave({
     });
   }, [draftFormRef, persistDraft, snapshotRef]);
 
-  const setDraftAutoSaveState = useCallback((nextState: DraftAutoSaveState) => {
-    if (nextState === "error" || nextState === "saving") {
-      setTransientDraftAutoSaveState({
-        draftRevision: serializeDraftRevision(draftFormRef.current),
-        kind: nextState,
-      });
-      return;
-    }
+  const setDraftAutoSaveState = useCallback(
+    (nextState: DraftAutoSaveState) => {
+      if (nextState === "error" || nextState === "saving") {
+        setTransientDraftAutoSaveState({
+          draftRevision: serializeDraftRevision(draftFormRef.current),
+          kind: nextState,
+        });
+        return;
+      }
 
-    setTransientDraftAutoSaveState(null);
-  }, [draftFormRef]);
+      setTransientDraftAutoSaveState(null);
+    },
+    [draftFormRef],
+  );
 
   const saveDraft = useCallback(async () => {
     await persistDraft({

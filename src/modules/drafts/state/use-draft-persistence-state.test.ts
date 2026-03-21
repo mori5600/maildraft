@@ -98,9 +98,9 @@ describe("draft persistence state", () => {
 
     const nextSnapshot = onSnapshotChange.mock.calls[0][0];
     expect(nextSnapshot.drafts.map((draft: { id: string }) => draft.id)).toEqual(["draft-keep"]);
-    expect(
-      nextSnapshot.draftHistory.map((entry: { draftId: string }) => entry.draftId),
-    ).toEqual(["draft-keep"]);
+    expect(nextSnapshot.draftHistory.map((entry: { draftId: string }) => entry.draftId)).toEqual([
+      "draft-keep",
+    ]);
     expect(nextSnapshot.trash.drafts[0]?.draft.id).toBe("draft-delete");
 
     await waitFor(() => {
@@ -252,12 +252,10 @@ describe("draft persistence state", () => {
     const onSnapshotChange = vi.fn();
     const onNotice = vi.fn();
 
-    const restoreDraftHistorySpy = vi
-      .spyOn(maildraftApi, "restoreDraftHistory")
-      .mockResolvedValue({
-        draft: restoredDraft,
-        draftHistory: restoredHistory,
-      });
+    const restoreDraftHistorySpy = vi.spyOn(maildraftApi, "restoreDraftHistory").mockResolvedValue({
+      draft: restoredDraft,
+      draftHistory: restoredHistory,
+    });
 
     const { result } = renderHook(() =>
       useDraftPersistenceState({
@@ -285,9 +283,10 @@ describe("draft persistence state", () => {
       subject: "元の件名",
       body: "元の本文",
     });
-    expect(
-      nextSnapshot.draftHistory.map((entry: { id: string }) => entry.id),
-    ).toEqual(["history-restored", "history-old"]);
+    expect(nextSnapshot.draftHistory.map((entry: { id: string }) => entry.id)).toEqual([
+      "history-restored",
+      "history-old",
+    ]);
     expect(result.current.draftForm.subject).toBe("元の件名");
     expect(autoSaveMocks.setDraftAutoSaveState).toHaveBeenCalledWith("saved");
     expect(onNotice).toHaveBeenCalledWith("履歴から下書きを復元しました。");

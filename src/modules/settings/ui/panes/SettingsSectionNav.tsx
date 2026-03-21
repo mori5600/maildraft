@@ -7,10 +7,7 @@ interface SettingsSectionNavProps {
   onSelectSection: (section: SettingsSection) => void;
 }
 
-export function SettingsSectionNav({
-  activeSection,
-  onSelectSection,
-}: SettingsSectionNavProps) {
+export function SettingsSectionNav({ activeSection, onSelectSection }: SettingsSectionNavProps) {
   return (
     <Panel className="overflow-hidden lg:h-full">
       <PaneHeader description="設定カテゴリ" title="設定" />

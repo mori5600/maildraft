@@ -104,11 +104,9 @@ function createSignature(index, baseTime, { isDefault = false, deletedAt = null 
     id,
     name: isDefault ? "Default Signature" : `Signature ${String(index).padStart(2, "0")}`,
     isPinned: index % 3 === 0,
-    body: [
-      "MailDraft Inc.",
-      `Sales Team ${String(index).padStart(2, "0")}`,
-      "Tokyo Office",
-    ].join("\n"),
+    body: ["MailDraft Inc.", `Sales Team ${String(index).padStart(2, "0")}`, "Tokyo Office"].join(
+      "\n",
+    ),
     isDefault,
     createdAt: timestamp(baseTime, updatedOffset + 5_000),
     updatedAt: timestamp(baseTime, updatedOffset),
@@ -170,7 +168,9 @@ function createDraftHistory(draft, historyIndex, baseTime) {
     templateId: draft.templateId,
     signatureId: draft.signatureId,
     variableValues: draft.variableValues,
-    recordedAt: String(offset || Number.parseInt(timestamp(baseTime, (historyIndex + 1) * 15_000), 10)),
+    recordedAt: String(
+      offset || Number.parseInt(timestamp(baseTime, (historyIndex + 1) * 15_000), 10),
+    ),
   };
 }
 
@@ -204,11 +204,7 @@ function createBackupDocument(options) {
 
   for (let index = 1; index <= options.templates; index += 1) {
     templates.push(
-      createTemplate(
-        index,
-        signatures[(index - 1) % signatures.length]?.id ?? null,
-        baseTime,
-      ),
+      createTemplate(index, signatures[(index - 1) % signatures.length]?.id ?? null, baseTime),
     );
   }
 
@@ -263,7 +259,11 @@ function createBackupDocument(options) {
     );
     const history = [];
 
-    for (let historyIndex = 0; historyIndex < Math.min(4, options.historiesPerDraft); historyIndex += 1) {
+    for (
+      let historyIndex = 0;
+      historyIndex < Math.min(4, options.historiesPerDraft);
+      historyIndex += 1
+    ) {
       history.push(createDraftHistory(draft, historyIndex, baseTime));
     }
 

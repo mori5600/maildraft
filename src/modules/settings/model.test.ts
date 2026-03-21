@@ -34,8 +34,6 @@ describe("settings model", () => {
 
   it("returns a fallback description for an unknown logging mode", () => {
     expect(loggingModeDescription("off")).toBe("ログを書き込みません。");
-    expect(loggingModeDescription("unexpected" as never)).toBe(
-      "ログ設定を選択してください。",
-    );
+    expect(loggingModeDescription("unexpected" as never)).toBe("ログ設定を選択してください。");
   });
 });

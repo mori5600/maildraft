@@ -22,12 +22,7 @@ export function TemplatePreviewPane({
       <PaneHeader
         action={
           <div className="flex gap-2">
-            <Button
-              disabled={!canExpandPreview}
-              size="sm"
-              variant="ghost"
-              onClick={onOpenPreview}
-            >
+            <Button disabled={!canExpandPreview} size="sm" variant="ghost" onClick={onOpenPreview}>
               拡大
             </Button>
             <Button size="sm" variant="ghost" onClick={onStartDraftFromTemplate}>

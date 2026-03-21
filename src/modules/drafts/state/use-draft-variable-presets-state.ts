@@ -167,7 +167,9 @@ export function useDraftVariablePresetsState({
 
     try {
       onClearError();
-      const deletedVariablePreset = await maildraftApi.deleteVariablePreset(selectedVariablePreset.id);
+      const deletedVariablePreset = await maildraftApi.deleteVariablePreset(
+        selectedVariablePreset.id,
+      );
       const nextSnapshot = applyVariablePresetResult(snapshotRef.current, deletedVariablePreset);
       onSnapshotChange(nextSnapshot);
       resetVariablePresetSelection();

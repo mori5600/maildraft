@@ -90,17 +90,10 @@ export function Field({
     return <div className="flex flex-col gap-1.5">{body}</div>;
   }
 
-  return (
-    <label className="flex flex-col gap-1.5">
-      {body}
-    </label>
-  );
+  return <label className="flex flex-col gap-1.5">{body}</label>;
 }
 
-export function Input({
-  className,
-  ...props
-}: InputHTMLAttributes<HTMLInputElement>) {
+export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       className={cn(

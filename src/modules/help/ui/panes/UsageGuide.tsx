@@ -13,8 +13,12 @@ export function UsageGuide() {
             概要
           </div>
           <div className="mt-2.5 space-y-1.5 text-[13px] leading-6 text-(--color-text-muted)">
-            <p>MailDraft は、日本語のメール本文をローカル保存で整えていくための下書きアプリです。</p>
-            <p>まずは下書きを作り、必要に応じてテンプレートや署名を組み合わせる使い方が基本です。</p>
+            <p>
+              MailDraft は、日本語のメール本文をローカル保存で整えていくための下書きアプリです。
+            </p>
+            <p>
+              まずは下書きを作り、必要に応じてテンプレートや署名を組み合わせる使い方が基本です。
+            </p>
           </div>
         </section>
 

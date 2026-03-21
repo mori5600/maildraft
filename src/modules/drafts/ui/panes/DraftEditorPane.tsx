@@ -42,7 +42,7 @@ export function DraftEditorPane({
   );
   const hasMissingSignature = Boolean(
     draftForm.signatureId &&
-      !signatures.some((signature) => signature.id === draftForm.signatureId),
+    !signatures.some((signature) => signature.id === draftForm.signatureId),
   );
 
   return (
@@ -134,7 +134,9 @@ export function DraftEditorPane({
             <Field label="署名">
               <Select
                 value={draftForm.signatureId ?? ""}
-                onChange={(event) => onChangeDraft("signatureId", event.currentTarget.value || null)}
+                onChange={(event) =>
+                  onChangeDraft("signatureId", event.currentTarget.value || null)
+                }
               >
                 <option value="">署名なし</option>
                 {hasMissingSignature ? (

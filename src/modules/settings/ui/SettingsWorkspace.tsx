@@ -2,20 +2,13 @@ import { useState } from "react";
 
 import { PreviewOverlay } from "../../../shared/ui/PreviewOverlay";
 import { Button } from "../../../shared/ui/primitives";
-import type {
-  LogEntrySnapshot,
-  LoggingSettingsInput,
-  LoggingSettingsSnapshot,
-} from "../model";
+import type { LogEntrySnapshot, LoggingSettingsInput, LoggingSettingsSnapshot } from "../model";
 import { BackupPane } from "./panes/BackupPane";
 import { LoggingOverviewPane } from "./panes/LoggingOverviewPane";
 import { LoggingSettingsPane } from "./panes/LoggingSettingsPane";
 import { RecentLogsContent } from "./panes/RecentLogsContent";
 import { SettingsSectionNav } from "./panes/SettingsSectionNav";
-import {
-  RECENT_LOGS_DESCRIPTION,
-  type SettingsSection,
-} from "./settings-workspace-content";
+import { RECENT_LOGS_DESCRIPTION, type SettingsSection } from "./settings-workspace-content";
 
 interface SettingsWorkspaceProps {
   isExportingBackup: boolean;

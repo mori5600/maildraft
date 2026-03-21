@@ -1,11 +1,6 @@
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { highlightSelectionMatches, search, searchKeymap } from "@codemirror/search";
-import {
-  Compartment,
-  EditorState,
-  type Extension,
-  RangeSetBuilder,
-} from "@codemirror/state";
+import { Compartment, EditorState, type Extension, RangeSetBuilder } from "@codemirror/state";
 import {
   Decoration,
   type DecorationSet,
@@ -68,9 +63,7 @@ export function createCodeEditorBaseExtensions(
   ];
 }
 
-export function createCodeEditorPlaceholderExtension(
-  placeholderText?: string,
-): Extension {
+export function createCodeEditorPlaceholderExtension(placeholderText?: string): Extension {
   return placeholderText ? placeholder(placeholderText) : [];
 }
 
@@ -103,7 +96,9 @@ export function createCodeEditorEditorAttributesExtension(
     classNames.push("cm-maildraft-single-line");
   }
 
-  return classNames.length > 0 ? EditorView.editorAttributes.of({ class: classNames.join(" ") }) : [];
+  return classNames.length > 0
+    ? EditorView.editorAttributes.of({ class: classNames.join(" ") })
+    : [];
 }
 
 export function createCodeEditorLayoutExtension(options: { singleLine?: boolean }): Extension {

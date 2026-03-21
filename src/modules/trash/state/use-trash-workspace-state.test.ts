@@ -391,7 +391,9 @@ describe("trash workspace state", () => {
     );
 
     await act(async () => {
-      await result.current.trashWorkspaceProps.onDeleteItemPermanently(result.current.trashItems[0]);
+      await result.current.trashWorkspaceProps.onDeleteItemPermanently(
+        result.current.trashItems[0],
+      );
     });
 
     await waitFor(() => {
@@ -442,7 +444,9 @@ describe("trash workspace state", () => {
     );
 
     await act(async () => {
-      await result.current.trashWorkspaceProps.onDeleteItemPermanently(result.current.trashItems[0]);
+      await result.current.trashWorkspaceProps.onDeleteItemPermanently(
+        result.current.trashItems[0],
+      );
     });
 
     const nextSnapshot = callbacks.onSnapshotChange.mock.calls[0][0];
@@ -496,7 +500,9 @@ describe("trash workspace state", () => {
     );
 
     await act(async () => {
-      await result.current.trashWorkspaceProps.onDeleteItemPermanently(result.current.trashItems[0]);
+      await result.current.trashWorkspaceProps.onDeleteItemPermanently(
+        result.current.trashItems[0],
+      );
     });
 
     const nextSnapshot = callbacks.onSnapshotChange.mock.calls[0][0];
@@ -535,7 +541,9 @@ describe("trash workspace state", () => {
     );
 
     await act(async () => {
-      await result.current.trashWorkspaceProps.onDeleteItemPermanently(result.current.trashItems[0]);
+      await result.current.trashWorkspaceProps.onDeleteItemPermanently(
+        result.current.trashItems[0],
+      );
     });
 
     expect(deleteDraftSpy).not.toHaveBeenCalled();
@@ -689,7 +697,9 @@ describe("trash workspace state", () => {
     );
 
     await act(async () => {
-      await result.current.trashWorkspaceProps.onDeleteItemPermanently(result.current.trashItems[0]);
+      await result.current.trashWorkspaceProps.onDeleteItemPermanently(
+        result.current.trashItems[0],
+      );
     });
 
     expect(callbacks.onError).toHaveBeenCalledWith("delete failed");

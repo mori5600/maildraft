@@ -6,10 +6,7 @@ interface RecentLogsContentProps {
   isLoadingRecentLogs: boolean;
 }
 
-export function RecentLogsContent({
-  recentLogs,
-  isLoadingRecentLogs,
-}: RecentLogsContentProps) {
+export function RecentLogsContent({ recentLogs, isLoadingRecentLogs }: RecentLogsContentProps) {
   return (
     <div className="grid gap-2.5">
       {recentLogs.length === 0 ? (

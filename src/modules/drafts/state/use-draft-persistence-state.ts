@@ -9,10 +9,7 @@ import {
 } from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot } from "../../../shared/types/store";
 import { createEmptyDraft, type DraftInput, duplicateDraftInput, toDraftInput } from "../model";
-import {
-  createInitialDraftState,
-  toDraftWorkspaceErrorMessage,
-} from "./draft-workspace-helpers";
+import { createInitialDraftState, toDraftWorkspaceErrorMessage } from "./draft-workspace-helpers";
 import { useDraftAutoSave } from "./use-draft-auto-save";
 
 interface DraftPersistenceStateOptions {
@@ -78,14 +75,17 @@ export function useDraftPersistenceState({
       snapshotRef,
     });
 
-  const hydrateSnapshot = useCallback((nextSnapshot: StoreSnapshot) => {
-    const initial = createInitialDraftState(nextSnapshot);
+  const hydrateSnapshot = useCallback(
+    (nextSnapshot: StoreSnapshot) => {
+      const initial = createInitialDraftState(nextSnapshot);
 
-    setSelectedDraftId(initial.selectedDraftId);
-    setDraftForm(initial.draftForm);
-    setDraftAutoSaveState(initial.autoSaveState);
-    onResetVariablePresetSelection();
-  }, [onResetVariablePresetSelection, setDraftAutoSaveState]);
+      setSelectedDraftId(initial.selectedDraftId);
+      setDraftForm(initial.draftForm);
+      setDraftAutoSaveState(initial.autoSaveState);
+      onResetVariablePresetSelection();
+    },
+    [onResetVariablePresetSelection, setDraftAutoSaveState],
+  );
 
   const openDraftById = useCallback(
     (draftId: string, sourceSnapshot = snapshotRef.current) => {
@@ -102,12 +102,15 @@ export function useDraftPersistenceState({
     [onResetVariablePresetSelection, setDraftAutoSaveState],
   );
 
-  const openDraftInput = useCallback((input: DraftInput) => {
-    setSelectedDraftId(null);
-    setDraftForm(input);
-    setDraftAutoSaveState("idle");
-    onResetVariablePresetSelection();
-  }, [onResetVariablePresetSelection, setDraftAutoSaveState]);
+  const openDraftInput = useCallback(
+    (input: DraftInput) => {
+      setSelectedDraftId(null);
+      setDraftForm(input);
+      setDraftAutoSaveState("idle");
+      onResetVariablePresetSelection();
+    },
+    [onResetVariablePresetSelection, setDraftAutoSaveState],
+  );
 
   useEffect(() => {
     if (!selectedDraftId) {
@@ -131,13 +134,16 @@ export function useDraftPersistenceState({
     onNotice("新しい下書きを作成しています。");
   }, [flushPendingDraft, onNotice, openDraftInput, snapshotRef]);
 
-  const selectDraft = useCallback((id: string) => {
-    if (selectedDraftIdRef.current !== id) {
-      flushPendingDraft();
-    }
+  const selectDraft = useCallback(
+    (id: string) => {
+      if (selectedDraftIdRef.current !== id) {
+        flushPendingDraft();
+      }
 
-    openDraftById(id);
-  }, [flushPendingDraft, openDraftById]);
+      openDraftById(id);
+    },
+    [flushPendingDraft, openDraftById],
+  );
 
   const toggleDraftPinned = useCallback(() => {
     setDraftForm((current) => ({
@@ -204,30 +210,33 @@ export function useDraftPersistenceState({
     setDraftAutoSaveState,
   ]);
 
-  const restoreDraftHistory = useCallback(async (historyId: string) => {
-    const draftId = selectedDraftId ?? draftForm.id;
+  const restoreDraftHistory = useCallback(
+    async (historyId: string) => {
+      const draftId = selectedDraftId ?? draftForm.id;
 
-    try {
-      onClearError();
-      const restoredDraft = await maildraftApi.restoreDraftHistory(draftId, historyId);
-      const nextSnapshot = applySavedDraftResult(snapshotRef.current, restoredDraft);
-      onSnapshotChange(nextSnapshot);
-      setSelectedDraftId(draftId);
-      setDraftForm(pickDraftInput(nextSnapshot, draftId));
-      setDraftAutoSaveState("saved");
-      onNotice("履歴から下書きを復元しました。");
-    } catch (restoreError) {
-      onError(toDraftWorkspaceErrorMessage(restoreError));
-    }
-  }, [
-    draftForm.id,
-    onClearError,
-    onError,
-    onNotice,
-    onSnapshotChange,
-    selectedDraftId,
-    setDraftAutoSaveState,
-  ]);
+      try {
+        onClearError();
+        const restoredDraft = await maildraftApi.restoreDraftHistory(draftId, historyId);
+        const nextSnapshot = applySavedDraftResult(snapshotRef.current, restoredDraft);
+        onSnapshotChange(nextSnapshot);
+        setSelectedDraftId(draftId);
+        setDraftForm(pickDraftInput(nextSnapshot, draftId));
+        setDraftAutoSaveState("saved");
+        onNotice("履歴から下書きを復元しました。");
+      } catch (restoreError) {
+        onError(toDraftWorkspaceErrorMessage(restoreError));
+      }
+    },
+    [
+      draftForm.id,
+      onClearError,
+      onError,
+      onNotice,
+      onSnapshotChange,
+      selectedDraftId,
+      setDraftAutoSaveState,
+    ],
+  );
 
   return {
     createDraft,

@@ -63,10 +63,7 @@ export function LoggingSettingsPane({
               <Select
                 value={loggingForm.mode}
                 onChange={(event) =>
-                  onChangeLogging(
-                    "mode",
-                    event.currentTarget.value as LoggingSettingsInput["mode"],
-                  )
+                  onChangeLogging("mode", event.currentTarget.value as LoggingSettingsInput["mode"])
                 }
               >
                 {LOGGING_MODE_OPTIONS.map((option) => (

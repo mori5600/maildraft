@@ -230,7 +230,9 @@ describe("draft workspace state", () => {
       result.current.workspaceProps.onApplyTemplate("template-next");
     });
 
-    const updater = setDraftForm.mock.calls[0]?.[0] as (input: typeof draftForm) => typeof draftForm;
+    const updater = setDraftForm.mock.calls[0]?.[0] as (
+      input: typeof draftForm,
+    ) => typeof draftForm;
     expect(updater(draftForm)).toMatchObject({
       title: "既存タイトル",
       subject: "新しい件名",

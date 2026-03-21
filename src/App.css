@@ -355,7 +355,12 @@
 .mail-note-title-input,
 .mail-note-title-input::placeholder {
   font-family:
-    system-ui, -apple-system, "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+    system-ui,
+    -apple-system,
+    "Hiragino Sans",
+    "Yu Gothic",
+    "Meiryo",
+    sans-serif;
   font-size: 14px;
   font-weight: 500;
   line-height: 1.2;
@@ -398,8 +403,7 @@
 }
 
 .mail-note-editor-text {
-  font-family:
-    "Cascadia Mono", Consolas, "BIZ UDGothic", "SFMono-Regular", monospace;
+  font-family: "Cascadia Mono", Consolas, "BIZ UDGothic", "SFMono-Regular", monospace;
   font-size: 14px;
   font-weight: 400;
   line-height: 1.68;
@@ -410,7 +414,12 @@
 
 .mail-editor-text {
   font-family:
-    system-ui, -apple-system, "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+    system-ui,
+    -apple-system,
+    "Hiragino Sans",
+    "Yu Gothic",
+    "Meiryo",
+    sans-serif;
   font-size: 14px;
   font-weight: 400;
   line-height: normal;
@@ -421,7 +430,12 @@
 
 .mail-field-text {
   font-family:
-    system-ui, -apple-system, "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+    system-ui,
+    -apple-system,
+    "Hiragino Sans",
+    "Yu Gothic",
+    "Meiryo",
+    sans-serif;
   font-size: 13px;
   font-weight: 400;
   line-height: normal;
@@ -432,7 +446,12 @@
 
 .mail-compose-text {
   font-family:
-    system-ui, -apple-system, "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+    system-ui,
+    -apple-system,
+    "Hiragino Sans",
+    "Yu Gothic",
+    "Meiryo",
+    sans-serif;
   font-size: 14px;
   font-weight: 400;
   line-height: normal;
@@ -472,7 +491,12 @@
 
 .mail-signature-edit-text {
   font-family:
-    system-ui, -apple-system, "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+    system-ui,
+    -apple-system,
+    "Hiragino Sans",
+    "Yu Gothic",
+    "Meiryo",
+    sans-serif;
   font-size: 13px;
   font-weight: 400;
   line-height: normal;

@@ -44,7 +44,11 @@ export type ShortcutIntent =
   | { kind: "pinForView"; view: WorkspaceView }
   | { kind: "copyDraftPreview" };
 
-export type CreateShortcutAction = "createDraft" | "createMemo" | "createTemplate" | "createSignature";
+export type CreateShortcutAction =
+  | "createDraft"
+  | "createMemo"
+  | "createTemplate"
+  | "createSignature";
 export type SaveShortcutAction =
   | "saveDraft"
   | "saveMemo"
@@ -87,9 +91,7 @@ const PIN_SHORTCUT_ACTIONS = {
   help: null,
 } satisfies Record<WorkspaceView, PinShortcutAction | null>;
 
-export function buildWorkspaceSummaries(
-  counts: WorkspaceSummaryCounts,
-): WorkspaceSummary[] {
+export function buildWorkspaceSummaries(counts: WorkspaceSummaryCounts): WorkspaceSummary[] {
   return [
     { id: "drafts", label: "下書き", count: counts.draftCount },
     { id: "templates", label: "テンプレート", count: counts.templateCount },

@@ -84,9 +84,7 @@ describe("CodeEditor", () => {
   });
 
   it("renders visible whitespace markers without changing the document", () => {
-    render(
-      <CodeEditor ariaLabel="本文" showWhitespace value={"A B\u3000C"} onChange={vi.fn()} />,
-    );
+    render(<CodeEditor ariaLabel="本文" showWhitespace value={"A B\u3000C"} onChange={vi.fn()} />);
 
     const view = getEditorView("本文");
 

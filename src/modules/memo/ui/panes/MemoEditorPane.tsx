@@ -6,12 +6,7 @@ import { visualizeWhitespace } from "../../../../shared/lib/whitespace";
 import { CodeEditor } from "../../../../shared/ui/code-editor/CodeEditor";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Input, Panel } from "../../../../shared/ui/primitives";
-import {
-  memoCharacterCount,
-  type MemoInput,
-  memoLabel,
-  memoLineCount,
-} from "../../model";
+import { memoCharacterCount, type MemoInput, memoLabel, memoLineCount } from "../../model";
 
 interface MemoEditorPaneProps {
   activeMemoUpdatedAt: string | null;
@@ -66,7 +61,12 @@ export function MemoEditorPane({
             <Button size="sm" variant="ghost" onClick={() => void onDeleteMemo()}>
               {selectedMemoId ? "ゴミ箱へ移動" : "リセット"}
             </Button>
-            <Button size="sm" title="Ctrl/Cmd+S" variant="primary" onClick={() => void onSaveMemo()}>
+            <Button
+              size="sm"
+              title="Ctrl/Cmd+S"
+              variant="primary"
+              onClick={() => void onSaveMemo()}
+            >
               保存
             </Button>
           </div>
@@ -107,7 +107,9 @@ export function MemoEditorPane({
       <div className="flex items-center gap-4 border-t border-(--color-panel-border-strong) bg-(--color-sidebar-bg) px-4 py-2 text-[11px] text-(--color-text-muted)">
         <div>行 {memoLineCount(memoForm)}</div>
         <div>文字 {memoCharacterCount(memoForm)}</div>
-        <div>{activeMemoUpdatedAt ? `保存: ${formatStoredTime(activeMemoUpdatedAt)}` : "未保存"}</div>
+        <div>
+          {activeMemoUpdatedAt ? `保存: ${formatStoredTime(activeMemoUpdatedAt)}` : "未保存"}
+        </div>
         <div className="ml-auto truncate text-(--color-text-subtle)">
           {previewBody.trim() ? truncate(previewBody.replace(/\s+/g, " "), 64) : "本文なし"}
         </div>

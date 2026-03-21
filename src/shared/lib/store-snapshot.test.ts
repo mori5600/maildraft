@@ -311,9 +311,7 @@ describe("store-snapshot helpers", () => {
     expect(restoredTemplateSnapshot.templates[0]?.id).toBe("template-1");
     expect(restoredTemplateSnapshot.trash.templates).toHaveLength(1);
     expect(
-      restoredTemplateSnapshot.trash.templates.some(
-        (entry) => entry.template.id === "template-1",
-      ),
+      restoredTemplateSnapshot.trash.templates.some((entry) => entry.template.id === "template-1"),
     ).toBe(false);
 
     const deletedSignatureSnapshot = applyDeletedSignatureResult(snapshot, {

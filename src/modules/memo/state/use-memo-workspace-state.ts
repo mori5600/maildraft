@@ -2,19 +2,11 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } f
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import { MEMO_SORT_OPTIONS, type MemoSortOption } from "../../../shared/lib/list-sort";
-import {
-  applyDeletedMemoResult,
-  getDefaultSignatureId,
-} from "../../../shared/lib/store-snapshot";
+import { applyDeletedMemoResult, getDefaultSignatureId } from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot, WorkspaceView } from "../../../shared/types/store";
 import { createDraftFromMemoInput, type DraftInput } from "../../drafts/model";
 import { buildTrashItemKey } from "../../trash/model";
-import {
-  createEmptyMemo,
-  memoHasDraftContent,
-  type MemoInput,
-  toMemoInput,
-} from "../model";
+import { createEmptyMemo, memoHasDraftContent, type MemoInput, toMemoInput } from "../model";
 import {
   buildMemoEditingState,
   createInitialMemoState,
@@ -147,7 +139,9 @@ export function useMemoWorkspaceState({
     }
 
     flushPendingMemo();
-    onOpenDraftInput(createDraftFromMemoInput(currentMemo, getDefaultSignatureId(snapshotRef.current)));
+    onOpenDraftInput(
+      createDraftFromMemoInput(currentMemo, getDefaultSignatureId(snapshotRef.current)),
+    );
     onViewChange("drafts");
     onNotice("メモから新しい下書きを起こしました。");
   }, [flushPendingMemo, onNotice, onOpenDraftInput, onViewChange]);

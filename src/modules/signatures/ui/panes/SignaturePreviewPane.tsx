@@ -16,12 +16,7 @@ export function SignaturePreviewPane({
     <Panel className="flex min-h-0 flex-col overflow-hidden">
       <PaneHeader
         action={
-          <Button
-            disabled={!canExpandPreview}
-            size="sm"
-            variant="ghost"
-            onClick={onOpenPreview}
-          >
+          <Button disabled={!canExpandPreview} size="sm" variant="ghost" onClick={onOpenPreview}>
             拡大
           </Button>
         }

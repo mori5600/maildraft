@@ -1,8 +1,5 @@
 import type { Signature } from "../../signatures/model";
-import {
-  type TrashedSignature,
-  type TrashItem,
-} from "../model";
+import { type TrashedSignature, type TrashItem } from "../model";
 import { TrashDetailPane } from "./panes/TrashDetailPane";
 import { TrashListPane } from "./panes/TrashListPane";
 

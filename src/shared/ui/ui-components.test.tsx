@@ -8,7 +8,9 @@ import { WhitespaceInput } from "./WhitespaceInput";
 
 describe("shared UI components", () => {
   it("renders pane header and action", () => {
-    render(<PaneHeader action={<button type="button">操作</button>} description="補足" title="見出し" />);
+    render(
+      <PaneHeader action={<button type="button">操作</button>} description="補足" title="見出し" />,
+    );
 
     expect(screen.getByText("見出し")).toBeInTheDocument();
     expect(screen.getByText("補足")).toBeInTheDocument();

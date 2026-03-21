@@ -10,11 +10,7 @@ import {
   applyTrashMutationResult,
 } from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot, WorkspaceView } from "../../../shared/types/store";
-import {
-  collectTrashItems,
-  type TrashedSignature,
-  type TrashItem,
-} from "../model";
+import { collectTrashItems, type TrashedSignature, type TrashItem } from "../model";
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {

@@ -16,10 +16,7 @@ import {
 } from "../../renderer/render-draft";
 import { findTrashSignature } from "../../trash/model";
 import { applyTemplateToDraft, type DraftInput } from "../model";
-import {
-  formatDraftAutoSaveState,
-  toDraftWorkspaceErrorMessage,
-} from "./draft-workspace-helpers";
+import { formatDraftAutoSaveState, toDraftWorkspaceErrorMessage } from "./draft-workspace-helpers";
 import { useDraftPersistenceState } from "./use-draft-persistence-state";
 import { useDraftVariablePresetsState } from "./use-draft-variable-presets-state";
 

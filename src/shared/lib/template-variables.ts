@@ -36,7 +36,9 @@ export function resolveVariableTokens(
     const resolved = variableValues[name];
 
     resolvedParts.push(text.slice(cursor, match.index));
-    resolvedParts.push(typeof resolved === "string" && resolved.trim().length > 0 ? resolved : token);
+    resolvedParts.push(
+      typeof resolved === "string" && resolved.trim().length > 0 ? resolved : token,
+    );
 
     cursor = match.index + token.length;
     match = tokenRegex.exec(text);
@@ -71,7 +73,9 @@ export function resolveVariableTokensWithNames(
     if (name) {
       appendVariableName(name, found, variableNames);
     }
-    resolvedParts.push(typeof resolved === "string" && resolved.trim().length > 0 ? resolved : token);
+    resolvedParts.push(
+      typeof resolved === "string" && resolved.trim().length > 0 ? resolved : token,
+    );
 
     cursor = match.index + token.length;
     match = tokenRegex.exec(text);
@@ -99,11 +103,7 @@ export function collectMissingVariableNames(
   return variableNames.filter((name) => (variableValues[name] ?? "").trim().length === 0);
 }
 
-function collectTextVariableNames(
-  text: string,
-  found: Set<string>,
-  ordered: string[],
-) {
+function collectTextVariableNames(text: string, found: Set<string>, ordered: string[]) {
   const tokenRegex = createTokenRegex();
   let match = tokenRegex.exec(text);
 

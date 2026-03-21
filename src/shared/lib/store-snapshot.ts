@@ -119,8 +119,7 @@ export function applySavedDraftResult(
   const draftHistory = [
     ...retainOtherDraftHistory(snapshot, savedDraft.draft.id),
     ...savedDraft.draftHistory,
-  ]
-    .sort((left, right) => Number(right.recordedAt) - Number(left.recordedAt));
+  ].sort((left, right) => Number(right.recordedAt) - Number(left.recordedAt));
 
   return {
     ...snapshot,
@@ -260,7 +259,10 @@ export function applyDeletedMemoResult(
 }
 
 /** Restores one memo from trash using the same compact shape as save. */
-export function applyRestoredMemoResult(snapshot: StoreSnapshot, restoredMemo: Memo): StoreSnapshot {
+export function applyRestoredMemoResult(
+  snapshot: StoreSnapshot,
+  restoredMemo: Memo,
+): StoreSnapshot {
   const nextSnapshot = applySavedMemoResult(snapshot, restoredMemo);
 
   return {
@@ -345,11 +347,7 @@ function retainOtherDraftHistory(snapshot: StoreSnapshot, draftId: string) {
   return snapshot.draftHistory.filter((entry) => entry.draftId !== draftId);
 }
 
-function removeTrashEntry<T>(
-  entries: T[],
-  itemId: string,
-  getId: (entry: T) => string,
-): T[] {
+function removeTrashEntry<T>(entries: T[], itemId: string, getId: (entry: T) => string): T[] {
   return entries.filter((entry) => getId(entry) !== itemId);
 }
 

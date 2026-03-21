@@ -60,9 +60,15 @@ describe("trash UI", () => {
     const signatures = [createSignature()];
     const trashedSignatures = [createTrashedSignature()];
 
-    expect(buildTrashDetail(createTrashDraftItem(), signatures, trashedSignatures).meta).toContain("履歴");
-    expect(buildTrashDetail(createTrashTemplateItem(), signatures, trashedSignatures).meta).toContain("署名");
-    expect(buildTrashDetail(createTrashSignatureItem(), signatures, trashedSignatures).body).toContain("株式会社△△");
+    expect(buildTrashDetail(createTrashDraftItem(), signatures, trashedSignatures).meta).toContain(
+      "履歴",
+    );
+    expect(
+      buildTrashDetail(createTrashTemplateItem(), signatures, trashedSignatures).meta,
+    ).toContain("署名");
+    expect(
+      buildTrashDetail(createTrashSignatureItem(), signatures, trashedSignatures).body,
+    ).toContain("株式会社△△");
   });
 
   it("connects trash workspace panes", () => {

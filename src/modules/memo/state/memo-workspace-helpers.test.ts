@@ -89,9 +89,7 @@ describe("memo workspace helpers", () => {
       "memo-1",
       "memo-2",
     ]);
-    expect(filterMemos(snapshot.memos, "A社", "recent").map((memo) => memo.id)).toEqual([
-      "memo-2",
-    ]);
+    expect(filterMemos(snapshot.memos, "A社", "recent").map((memo) => memo.id)).toEqual(["memo-2"]);
     expect(getMemoUpdatedAt(snapshot.memos, "memo-2")).toBe("5");
     expect(getMemoUpdatedAt(snapshot.memos, "missing")).toBeNull();
 
@@ -139,12 +137,8 @@ describe("memo workspace helpers", () => {
     expect(formatMemoAutoSaveState("saved")).toBe("自動保存済み");
     expect(formatMemoAutoSaveState("error")).toBe("自動保存に失敗しました");
 
-    expect(toMemoWorkspaceErrorMessage(new Error("保存に失敗しました"))).toBe(
-      "保存に失敗しました",
-    );
-    expect(toMemoWorkspaceErrorMessage("読み込みに失敗しました")).toBe(
-      "読み込みに失敗しました",
-    );
+    expect(toMemoWorkspaceErrorMessage(new Error("保存に失敗しました"))).toBe("保存に失敗しました");
+    expect(toMemoWorkspaceErrorMessage("読み込みに失敗しました")).toBe("読み込みに失敗しました");
     expect(toMemoWorkspaceErrorMessage({ reason: "unknown" })).toBe("処理に失敗しました。");
   });
 });

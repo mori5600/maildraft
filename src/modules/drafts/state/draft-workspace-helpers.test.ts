@@ -211,9 +211,7 @@ describe("draft workspace helpers", () => {
     expect(toDraftWorkspaceErrorMessage(new Error("保存に失敗しました"))).toBe(
       "保存に失敗しました",
     );
-    expect(toDraftWorkspaceErrorMessage("読み込みに失敗しました")).toBe(
-      "読み込みに失敗しました",
-    );
+    expect(toDraftWorkspaceErrorMessage("読み込みに失敗しました")).toBe("読み込みに失敗しました");
     expect(toDraftWorkspaceErrorMessage({ reason: "unknown" })).toBe("処理に失敗しました。");
   });
 });

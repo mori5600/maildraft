@@ -73,12 +73,7 @@ export function DraftPreviewPane({
             >
               履歴
             </Button>
-            <Button
-              disabled={!canExpandPreview}
-              size="sm"
-              variant="ghost"
-              onClick={onOpenPreview}
-            >
+            <Button disabled={!canExpandPreview} size="sm" variant="ghost" onClick={onOpenPreview}>
               拡大
             </Button>
             <Button
@@ -114,7 +109,9 @@ export function DraftPreviewPane({
                       <Field label="差し込みセット">
                         <Select
                           value={selectedVariablePresetId ?? ""}
-                          onChange={(event) => onSelectVariablePreset(event.currentTarget.value || null)}
+                          onChange={(event) =>
+                            onSelectVariablePreset(event.currentTarget.value || null)
+                          }
                         >
                           <option value="">保存済みセットを選択</option>
                           {variablePresets.map((preset) => (
@@ -130,7 +127,9 @@ export function DraftPreviewPane({
                           placeholder="A社向け"
                           showWhitespace={showWhitespace}
                           value={variablePresetName}
-                          onChange={(event) => onChangeVariablePresetName(event.currentTarget.value)}
+                          onChange={(event) =>
+                            onChangeVariablePresetName(event.currentTarget.value)
+                          }
                         />
                       </Field>
                     </div>
@@ -178,7 +177,8 @@ export function DraftPreviewPane({
                   </Field>
                 ))}
                 <div className="rounded-[7px] border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3 py-2.5 text-[13px] leading-6 text-(--color-text-muted)">
-                  本文中の <code>{`{{...}}`}</code> はそのまま保存し、プレビューとコピー時に差し込みます。
+                  本文中の <code>{`{{...}}`}</code>{" "}
+                  はそのまま保存し、プレビューとコピー時に差し込みます。
                 </div>
               </>
             )}

@@ -11,11 +11,7 @@ import {
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import { applySavedMemoResult, pickMemoInput } from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot } from "../../../shared/types/store";
-import {
-  memoHasMeaningfulContent,
-  type MemoInput,
-  memoMatchesPersistedMemo,
-} from "../model";
+import { memoHasMeaningfulContent, type MemoInput, memoMatchesPersistedMemo } from "../model";
 import {
   formatMemoAutoSaveState,
   type MemoAutoSaveState,

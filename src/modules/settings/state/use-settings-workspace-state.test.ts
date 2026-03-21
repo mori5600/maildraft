@@ -268,7 +268,10 @@ describe("settings workspace state", () => {
       snapshot: ReturnType<typeof createStoreSnapshot>;
     }>();
 
-    confirmMock.mockResolvedValueOnce(false).mockResolvedValueOnce(true).mockResolvedValueOnce(true);
+    confirmMock
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(true);
     openMock.mockResolvedValueOnce(null).mockResolvedValueOnce("C:/tmp/backup.json");
     vi.spyOn(maildraftApi, "importBackup").mockReturnValue(importDeferred.promise);
 

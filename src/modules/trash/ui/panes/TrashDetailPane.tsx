@@ -3,11 +3,7 @@ import { visualizeWhitespace } from "../../../../shared/lib/whitespace";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Panel, Pill } from "../../../../shared/ui/primitives";
 import type { Signature } from "../../../signatures/model";
-import {
-  type TrashedSignature,
-  type TrashItem,
-  trashItemTypeLabel,
-} from "../../model";
+import { type TrashedSignature, type TrashItem, trashItemTypeLabel } from "../../model";
 import { buildTrashDetail } from "../trash-detail";
 
 interface TrashDetailPaneProps {
@@ -36,20 +32,14 @@ export function TrashDetailPane({
               <Button size="sm" variant="ghost" onClick={() => void onRestoreItem(item)}>
                 復元
               </Button>
-              <Button
-                size="sm"
-                variant="danger"
-                onClick={() => void onDeleteItemPermanently(item)}
-              >
+              <Button size="sm" variant="danger" onClick={() => void onDeleteItemPermanently(item)}>
                 完全削除
               </Button>
             </div>
           ) : null
         }
         description={
-          item
-            ? "削除済みの項目を復元または完全削除できます。"
-            : "削除済みの項目はありません。"
+          item ? "削除済みの項目を復元または完全削除できます。" : "削除済みの項目はありません。"
         }
         title="詳細"
       />

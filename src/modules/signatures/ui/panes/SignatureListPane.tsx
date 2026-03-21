@@ -1,10 +1,7 @@
 import { FlagIcon } from "@heroicons/react/20/solid";
 import { memo } from "react";
 
-import {
-  SIGNATURE_SORT_OPTIONS,
-  type SignatureSortOption,
-} from "../../../../shared/lib/list-sort";
+import { SIGNATURE_SORT_OPTIONS, type SignatureSortOption } from "../../../../shared/lib/list-sort";
 import { formatStoredTime } from "../../../../shared/lib/time";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Input, Panel, Select } from "../../../../shared/ui/primitives";

@@ -451,9 +451,7 @@ describe("template workspace state", () => {
       }),
     );
     expect(onViewChange).toHaveBeenCalledWith("drafts");
-    expect(onNotice).toHaveBeenCalledWith(
-      "未保存のテンプレートから新しい下書きを起こしました。",
-    );
+    expect(onNotice).toHaveBeenCalledWith("未保存のテンプレートから新しい下書きを起こしました。");
   });
 });
 

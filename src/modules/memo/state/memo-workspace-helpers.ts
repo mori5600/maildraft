@@ -54,11 +54,7 @@ export function createInitialMemoState(snapshot: StoreSnapshot): InitialMemoStat
   };
 }
 
-export function filterMemos(
-  memos: Memo[],
-  searchQuery: string,
-  sort: MemoSortOption,
-): Memo[] {
+export function filterMemos(memos: Memo[], searchQuery: string, sort: MemoSortOption): Memo[] {
   const searchTokens = createSearchTokens(searchQuery);
 
   return sortMemos(
@@ -96,10 +92,7 @@ export function shouldAutoPersistMemo(input: MemoInput, snapshot: StoreSnapshot)
   return !memoMatchesPersistedMemo(input, persistedMemo);
 }
 
-export function getMemoUpdatedAt(
-  memos: Memo[],
-  selectedMemoId: string | null,
-): string | null {
+export function getMemoUpdatedAt(memos: Memo[], selectedMemoId: string | null): string | null {
   return memos.find((memo) => memo.id === selectedMemoId)?.updatedAt ?? null;
 }
 

@@ -9,11 +9,7 @@ interface HelpSectionNavProps {
   onSelectSection: (section: HelpSection) => void;
 }
 
-export function HelpSectionNav({
-  activeSection,
-  appInfo,
-  onSelectSection,
-}: HelpSectionNavProps) {
+export function HelpSectionNav({ activeSection, appInfo, onSelectSection }: HelpSectionNavProps) {
   return (
     <Panel className="flex flex-col overflow-hidden lg:h-full">
       <PaneHeader description="ヘルプカテゴリ" title="ヘルプ" />
@@ -46,7 +42,9 @@ export function HelpSectionNav({
 
       <div className="border-t border-(--color-panel-border-strong) px-3.5 py-2.5">
         <div className="text-[11px] font-medium text-(--color-text-subtle)">{appInfo.name}</div>
-        <div className="mt-0.5 text-[11px] text-(--color-text-faint)">バージョン {appInfo.version}</div>
+        <div className="mt-0.5 text-[11px] text-(--color-text-faint)">
+          バージョン {appInfo.version}
+        </div>
       </div>
     </Panel>
   );

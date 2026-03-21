@@ -105,7 +105,7 @@ export function DraftWorkspace({
   const selectedSignature = signatures.find((signature) => signature.id === draftForm.signatureId);
   const hasMissingSignature = Boolean(
     draftForm.signatureId &&
-      !signatures.some((signature) => signature.id === draftForm.signatureId),
+    !signatures.some((signature) => signature.id === draftForm.signatureId),
   );
   const previewDescription =
     selectedSignature?.name ?? (hasMissingSignature ? "ゴミ箱の署名を参照中" : "署名なし");

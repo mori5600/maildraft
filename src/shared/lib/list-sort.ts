@@ -50,8 +50,7 @@ export function sortTemplates(templates: Template[], sort: TemplateSortOption): 
 
 export function sortMemos(memos: Memo[], sort: MemoSortOption): Memo[] {
   return [...memos].sort(
-    (left, right) =>
-      comparePinned(left.isPinned, right.isPinned) || compareMemo(left, right, sort),
+    (left, right) => comparePinned(left.isPinned, right.isPinned) || compareMemo(left, right, sort),
   );
 }
 

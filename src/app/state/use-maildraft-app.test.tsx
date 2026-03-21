@@ -35,7 +35,9 @@ const mockState = vi.hoisted(() => ({
     onTrashItemSelect: (key: string | null) => void;
     onViewChange: (view: string) => void;
   }>,
-  settingsOptions: [] as Array<{ onBackupImported: (snapshot: ReturnType<typeof createStoreSnapshot>) => void }>,
+  settingsOptions: [] as Array<{
+    onBackupImported: (snapshot: ReturnType<typeof createStoreSnapshot>) => void;
+  }>,
   signatureOptions: [] as Array<{
     onFlushDraft: () => void;
     onTrashItemSelect: (key: string | null) => void;
@@ -217,7 +219,9 @@ vi.mock("../../modules/signatures/state/use-signature-workspace-state", () => ({
 }));
 
 vi.mock("../../modules/settings/state/use-settings-workspace-state", () => ({
-  useSettingsWorkspaceState: (options: { onBackupImported: (snapshot: ReturnType<typeof createStoreSnapshot>) => void }) => {
+  useSettingsWorkspaceState: (options: {
+    onBackupImported: (snapshot: ReturnType<typeof createStoreSnapshot>) => void;
+  }) => {
     mockState.settingsOptions.push(options);
     return {
       hydrateLoggingSettings: mockState.settingsHydrateLogging,
@@ -246,12 +250,12 @@ vi.mock("../../modules/trash/state/use-trash-workspace-state", () => ({
   }) => {
     mockState.trashOptions.push(options);
     return {
-    trashItems: mockState.trashItems,
-    trashWorkspaceProps: {
-      items: mockState.trashItems,
-      selectedItemKey: options.selectedTrashItemKey,
-      showWhitespace: false,
-    },
+      trashItems: mockState.trashItems,
+      trashWorkspaceProps: {
+        items: mockState.trashItems,
+        selectedItemKey: options.selectedTrashItemKey,
+        showWhitespace: false,
+      },
     };
   },
 }));

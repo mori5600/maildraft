@@ -44,9 +44,10 @@ export const codeEditorTheme = EditorView.theme({
   ".cm-placeholder": {
     color: "var(--color-text-placeholder)",
   },
-  "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, ::selection": {
-    backgroundColor: "var(--color-selection)",
-  },
+  "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, ::selection":
+    {
+      backgroundColor: "var(--color-selection)",
+    },
   "&.cm-focused > .cm-scroller > .cm-cursorLayer .cm-cursor": {
     borderLeftColor: "var(--color-field-focus)",
   },
@@ -72,8 +73,7 @@ export const codeEditorTheme = EditorView.theme({
     color: "var(--color-text)",
   },
   ".cm-panel.cm-search": {
-    background:
-      "linear-gradient(180deg, var(--color-panel-bg) 0%, var(--color-preview-bg) 100%)",
+    background: "linear-gradient(180deg, var(--color-panel-bg) 0%, var(--color-preview-bg) 100%)",
     boxShadow: "inset 0 1px 0 var(--color-panel-highlight)",
   },
   ".cm-panels-top": {

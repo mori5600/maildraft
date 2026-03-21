@@ -49,14 +49,8 @@ export function formatDraftAutoSaveState(state: DraftAutoSaveState): string {
   }
 }
 
-export function hasMeaningfulDraftContent(
-  input: DraftInput,
-  snapshot: StoreSnapshot,
-): boolean {
-  return (
-    draftHasMeaningfulContent(input) ||
-    input.signatureId !== getDefaultSignatureId(snapshot)
-  );
+export function hasMeaningfulDraftContent(input: DraftInput, snapshot: StoreSnapshot): boolean {
+  return draftHasMeaningfulContent(input) || input.signatureId !== getDefaultSignatureId(snapshot);
 }
 
 export function shouldAutoPersistDraft(input: DraftInput, snapshot: StoreSnapshot): boolean {

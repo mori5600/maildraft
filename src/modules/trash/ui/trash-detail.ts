@@ -1,19 +1,9 @@
 import { toDraftInput } from "../../drafts/model";
-import {
-  memoCharacterCount,
-  memoLineCount,
-} from "../../memo/model";
-import {
-  buildDraftRenderResult,
-  renderTemplatePreview,
-} from "../../renderer/render-draft";
+import { memoCharacterCount, memoLineCount } from "../../memo/model";
+import { buildDraftRenderResult, renderTemplatePreview } from "../../renderer/render-draft";
 import type { Signature } from "../../signatures/model";
 import { toTemplateInput } from "../../templates/model";
-import {
-  findTrashSignature,
-  type TrashedSignature,
-  type TrashItem,
-} from "../model";
+import { findTrashSignature, type TrashedSignature, type TrashItem } from "../model";
 
 export function buildTrashDetail(
   item: TrashItem,
