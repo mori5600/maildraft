@@ -60,11 +60,13 @@
 
 ## Validation Checklist
 
+- After making code or documentation changes, always run `npm run format`
 - Run `npm run lint`
 - Run `npm test`
 - Run `npm run build`
 - Run `npm run format:check`
 - Run `cargo check --manifest-path src-tauri\\Cargo.toml`
+- Treat `npm run format` as a required step before finalizing or committing work
 - Treat a failing `npm run format:check` as a blocking issue for release-preflight verification
 - If formatting needs to be fixed, run `npm run format` and then re-run `npm run format:check`
 
