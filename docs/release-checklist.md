@@ -23,6 +23,7 @@ Run the standard validation set:
 ```bash
 npm run lint
 npm test
+npm run format:check
 cargo test --manifest-path src-tauri/Cargo.toml
 ```
 
@@ -31,6 +32,8 @@ Run frontend production build if the release changed UI or packaging-adjacent co
 ```bash
 npm run build
 ```
+
+Do not skip `npm run format:check` during release verification. Treat any formatting failure as a release blocker until it is fixed or explicitly resolved in the release decision.
 
 ## 3. Verify On Real Machines
 

@@ -61,9 +61,12 @@
 ## Validation Checklist
 
 - Run `npm run lint`
+- Run `npm test`
 - Run `npm run build`
+- Run `npm run format:check`
 - Run `cargo check --manifest-path src-tauri\\Cargo.toml`
-- If you touch formatting-heavy files, also run `npm run format`
+- Treat a failing `npm run format:check` as a blocking issue for release-preflight verification
+- If formatting needs to be fixed, run `npm run format` and then re-run `npm run format:check`
 
 ## Version Control
 
