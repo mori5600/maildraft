@@ -75,7 +75,7 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(screen.getByText("ローカルワークスペースを起動しています")).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "読み込み中" })).toBeInTheDocument();
   });
 
   it("renders sidebar and handles global controls", async () => {

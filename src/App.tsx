@@ -16,7 +16,7 @@ import { SettingsWorkspace } from "./modules/settings/ui/SettingsWorkspace";
 import { SignatureWorkspace } from "./modules/signatures/ui/SignatureWorkspace";
 import { TemplateWorkspace } from "./modules/templates/ui/TemplateWorkspace";
 import { TrashWorkspace } from "./modules/trash/ui/TrashWorkspace";
-import { Button, Panel } from "./shared/ui/primitives";
+import { Button } from "./shared/ui/primitives";
 
 function App() {
   const draftWorkspaceRef = useRef<DraftWorkspaceHandle>(null);
@@ -32,24 +32,14 @@ function App() {
 
   if (app.isLoading) {
     return (
-      <main className="min-h-screen bg-(--color-app-bg) px-6 py-6 text-(--color-text)">
-        <div className="mx-auto max-w-4xl">
-          <Panel className="px-6 py-5">
-            <div className="text-[11px] tracking-[0.22em] text-(--color-text-faint) uppercase">
-              MailDraft
-            </div>
-            <h1 className="mt-3 text-lg font-medium text-(--color-text-strong)">
-              ローカルワークスペースを起動しています
-            </h1>
-            <div className="mt-2 flex items-center gap-2 text-sm text-(--color-text-muted)">
-              <ArrowPathIcon
-                aria-hidden="true"
-                className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none"
-                strokeWidth={1.8}
-              />
-              <p>下書き、テンプレート、署名、メモを読み込み中です。</p>
-            </div>
-          </Panel>
+      <main className="grid min-h-screen place-items-center bg-(--color-app-bg) text-(--color-text)">
+        <div aria-label="読み込み中" role="status">
+          <ArrowPathIcon
+            aria-hidden="true"
+            className="h-7 w-7 animate-spin text-(--color-text-muted) motion-reduce:animate-none"
+            strokeWidth={1.7}
+          />
+          <span className="sr-only">読み込み中</span>
         </div>
       </main>
     );
