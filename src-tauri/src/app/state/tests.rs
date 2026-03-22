@@ -7,7 +7,8 @@ use tempfile::tempdir;
 use super::{
     context::{
         draft_context, logging_settings_context, memo_context, merge_context,
-        snapshot_counts_context, template_context, trash_kind_context, variable_preset_context,
+        proofreading_settings_context, snapshot_counts_context, template_context,
+        trash_kind_context, variable_preset_context,
     },
     AppState,
 };
@@ -15,7 +16,10 @@ use crate::{
     app::{
         backup::{decode_backup_document, BackupDocument},
         logging::{LogEntry, LogLevel},
-        settings::{AppSettings, LoggingMode, LoggingSettings, LoggingSettingsInput},
+        settings::{
+            AppSettings, LoggingMode, LoggingSettings, LoggingSettingsInput, ProofreadingSettings,
+            ProofreadingSettingsInput,
+        },
         storage::{load_app_settings, load_store_snapshot, StartupNoticeTone},
     },
     modules::{
@@ -112,12 +116,16 @@ fn load_settings_defaults_missing_files_and_normalizes_saved_values() {
     let default_settings = load_app_settings(&missing_path).expect("default settings");
     assert_eq!(default_settings.logging.mode, LoggingMode::ErrorsOnly);
     assert_eq!(default_settings.logging.retention_days, 14);
+    assert!(default_settings.proofreading.disabled_rule_ids.is_empty());
 
     let saved_path = directory.path().join("settings.json");
     let content = serde_json::to_string(&AppSettings {
         logging: LoggingSettings {
             mode: LoggingMode::Standard,
             retention_days: 99,
+        },
+        proofreading: ProofreadingSettings {
+            disabled_rule_ids: vec![" prh ".to_string(), "whitespace.trailing".to_string()],
         },
     })
     .expect("serialize settings");
@@ -126,6 +134,10 @@ fn load_settings_defaults_missing_files_and_normalizes_saved_values() {
     let loaded = load_app_settings(&saved_path).expect("load settings");
     assert_eq!(loaded.logging.mode, LoggingMode::Standard);
     assert_eq!(loaded.logging.retention_days, 14);
+    assert_eq!(
+        loaded.proofreading.disabled_rule_ids,
+        vec!["prh".to_string(), "whitespace.trailing".to_string()]
+    );
 }
 
 #[test]
@@ -178,6 +190,15 @@ fn snapshot_counts_context_reports_current_collection_sizes() {
     assert_eq!(context.get("signature_count"), Some(&json!(1)));
     assert_eq!(context.get("memo_count"), Some(&json!(0)));
     assert_eq!(context.get("trash_count"), Some(&json!(0)));
+}
+
+#[test]
+fn proofreading_settings_context_reports_disabled_rule_count() {
+    let context = proofreading_settings_context(&ProofreadingSettings {
+        disabled_rule_ids: vec!["prh".to_string(), "whitespace.trailing".to_string()],
+    });
+
+    assert_eq!(context.get("disabled_rule_count"), Some(&json!(2)));
 }
 
 #[test]
@@ -546,10 +567,23 @@ fn logging_settings_and_backup_methods_round_trip_state() {
         .expect("save logging settings");
     assert_eq!(settings_snapshot.mode, LoggingMode::Standard);
     assert_eq!(settings_snapshot.retention_days, 30);
+    let proofreading_snapshot = state
+        .save_proofreading_settings(ProofreadingSettingsInput {
+            disabled_rule_ids: vec![" prh ".to_string(), "whitespace.trailing".to_string()],
+        })
+        .expect("save proofreading settings");
+    assert_eq!(
+        proofreading_snapshot.disabled_rule_ids,
+        vec!["prh".to_string(), "whitespace.trailing".to_string()]
+    );
 
     let persisted_settings = read_settings_file(&state.settings_path);
     assert_eq!(persisted_settings.logging.mode, LoggingMode::Standard);
     assert_eq!(persisted_settings.logging.retention_days, 30);
+    assert_eq!(
+        persisted_settings.proofreading.disabled_rule_ids,
+        vec!["prh".to_string(), "whitespace.trailing".to_string()]
+    );
 
     state.log_event_with_settings(
         &LoggingSettings {
@@ -586,6 +620,10 @@ fn logging_settings_and_backup_methods_round_trip_state() {
     assert_eq!(imported.snapshot.templates.len(), 2);
     assert_eq!(imported.logging_settings.mode, LoggingMode::Standard);
     assert_eq!(imported.logging_settings.retention_days, 30);
+    assert_eq!(
+        imported.proofreading_settings.disabled_rule_ids,
+        vec!["prh".to_string(), "whitespace.trailing".to_string()]
+    );
 }
 
 #[test]
@@ -625,6 +663,9 @@ fn import_backup_normalizes_snapshot_and_logging_settings_before_persisting() {
                     mode: LoggingMode::Standard,
                     retention_days: 99,
                 },
+                proofreading: ProofreadingSettings {
+                    disabled_rule_ids: vec![" whitespace.trailing ".to_string(), "prh".to_string()],
+                },
             },
         ))
         .expect("serialize backup"),
@@ -637,6 +678,10 @@ fn import_backup_normalizes_snapshot_and_logging_settings_before_persisting() {
 
     assert_eq!(imported.logging_settings.mode, LoggingMode::Standard);
     assert_eq!(imported.logging_settings.retention_days, 14);
+    assert_eq!(
+        imported.proofreading_settings.disabled_rule_ids,
+        vec!["prh".to_string(), "whitespace.trailing".to_string()]
+    );
     assert_eq!(imported.snapshot.drafts[0].template_id, None);
     assert_eq!(imported.snapshot.drafts[0].signature_id, None);
     assert_eq!(imported.snapshot.templates[0].signature_id, None);
@@ -683,6 +728,10 @@ fn import_backup_normalizes_snapshot_and_logging_settings_before_persisting() {
     assert_eq!(persisted_store.drafts[0].signature_id, None);
     assert_eq!(persisted_store.templates[0].signature_id, None);
     assert_eq!(persisted_settings.logging.retention_days, 14);
+    assert_eq!(
+        persisted_settings.proofreading.disabled_rule_ids,
+        vec!["prh".to_string(), "whitespace.trailing".to_string()]
+    );
 }
 
 #[test]
@@ -700,6 +749,7 @@ fn export_backup_writes_a_normalized_document_from_inconsistent_runtime_state() 
     {
         let mut settings = state.settings.lock().expect("settings lock");
         settings.logging.retention_days = 99;
+        settings.proofreading.disabled_rule_ids = vec![" prh ".to_string()];
     }
 
     state
@@ -722,6 +772,10 @@ fn export_backup_writes_a_normalized_document_from_inconsistent_runtime_state() 
         1
     );
     assert_eq!(document.settings.logging.retention_days, 14);
+    assert_eq!(
+        document.settings.proofreading.disabled_rule_ids,
+        vec!["prh".to_string()]
+    );
 }
 
 #[test]
@@ -1098,6 +1152,9 @@ fn import_backup_rolls_back_store_and_settings_when_settings_persistence_fails()
                     mode: LoggingMode::Standard,
                     retention_days: 30,
                 },
+                proofreading: ProofreadingSettings {
+                    disabled_rule_ids: vec!["prh".to_string()],
+                },
             },
         ))
         .expect("serialize backup"),
@@ -1164,6 +1221,9 @@ fn import_backup_rolls_back_store_and_settings_when_log_pruning_fails() {
                 logging: LoggingSettings {
                     mode: LoggingMode::Standard,
                     retention_days: 30,
+                },
+                proofreading: ProofreadingSettings {
+                    disabled_rule_ids: vec!["prh".to_string()],
                 },
             },
         ))

@@ -1,12 +1,16 @@
 import { useEffect, useRef } from "react";
 
-import type { LoggingSettingsSnapshot } from "../../modules/settings/model";
+import type {
+  LoggingSettingsSnapshot,
+  ProofreadingSettingsSnapshot,
+} from "../../modules/settings/model";
 import { maildraftApi } from "../../shared/api/maildraft-api";
 import type { StartupNoticeSnapshot, StoreSnapshot } from "../../shared/types/store";
 import { toErrorMessage } from "./maildraft-app-helpers";
 
 interface AppBootstrapOptions {
   hydrateLoggingSettings: (settings: LoggingSettingsSnapshot) => void;
+  hydrateProofreadingSettings: (settings: ProofreadingSettingsSnapshot) => void;
   hydrateSnapshot: (snapshot: StoreSnapshot) => void;
   onClearError: () => void;
   onError: (message: string) => void;
@@ -41,6 +45,7 @@ function applyStartupNotice(
  */
 export function useAppBootstrap({
   hydrateLoggingSettings,
+  hydrateProofreadingSettings,
   hydrateSnapshot,
   onClearError,
   onError,
@@ -49,6 +54,7 @@ export function useAppBootstrap({
   onWarning,
 }: AppBootstrapOptions) {
   const hydrateLoggingSettingsRef = useRef(hydrateLoggingSettings);
+  const hydrateProofreadingSettingsRef = useRef(hydrateProofreadingSettings);
   const hydrateSnapshotRef = useRef(hydrateSnapshot);
   const clearErrorRef = useRef(onClearError);
   const errorRef = useRef(onError);
@@ -59,6 +65,10 @@ export function useAppBootstrap({
   useEffect(() => {
     hydrateLoggingSettingsRef.current = hydrateLoggingSettings;
   }, [hydrateLoggingSettings]);
+
+  useEffect(() => {
+    hydrateProofreadingSettingsRef.current = hydrateProofreadingSettings;
+  }, [hydrateProofreadingSettings]);
 
   useEffect(() => {
     hydrateSnapshotRef.current = hydrateSnapshot;
@@ -89,13 +99,16 @@ export function useAppBootstrap({
       try {
         loadingChangeRef.current(true);
         clearErrorRef.current();
-        const [nextSnapshot, nextLoggingSettings, startupNotice] = await Promise.all([
-          maildraftApi.loadSnapshot(),
-          maildraftApi.loadLoggingSettings(),
-          maildraftApi.loadStartupNotice(),
-        ]);
+        const [nextSnapshot, nextLoggingSettings, nextProofreadingSettings, startupNotice] =
+          await Promise.all([
+            maildraftApi.loadSnapshot(),
+            maildraftApi.loadLoggingSettings(),
+            maildraftApi.loadProofreadingSettings(),
+            maildraftApi.loadStartupNotice(),
+          ]);
         hydrateSnapshotRef.current(nextSnapshot);
         hydrateLoggingSettingsRef.current(nextLoggingSettings);
+        hydrateProofreadingSettingsRef.current(nextProofreadingSettings);
         applyStartupNotice(startupNotice, noticeRef.current, warningRef.current);
       } catch (loadError) {
         errorRef.current(toErrorMessage(loadError));

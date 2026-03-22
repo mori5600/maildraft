@@ -2,10 +2,16 @@ import { useState } from "react";
 
 import { PreviewOverlay } from "../../../shared/ui/PreviewOverlay";
 import { Button } from "../../../shared/ui/primitives";
-import type { LogEntrySnapshot, LoggingSettingsInput, LoggingSettingsSnapshot } from "../model";
+import type {
+  LogEntrySnapshot,
+  LoggingSettingsInput,
+  LoggingSettingsSnapshot,
+  ProofreadingSettingsSnapshot,
+} from "../model";
 import { BackupPane } from "./panes/BackupPane";
 import { LoggingOverviewPane } from "./panes/LoggingOverviewPane";
 import { LoggingSettingsPane } from "./panes/LoggingSettingsPane";
+import { ProofreadingSettingsPane } from "./panes/ProofreadingSettingsPane";
 import { RecentLogsContent } from "./panes/RecentLogsContent";
 import { SettingsSectionNav } from "./panes/SettingsSectionNav";
 import { RECENT_LOGS_DESCRIPTION, type SettingsSection } from "./settings-workspace-content";
@@ -13,8 +19,10 @@ import { RECENT_LOGS_DESCRIPTION, type SettingsSection } from "./settings-worksp
 interface SettingsWorkspaceProps {
   isExportingBackup: boolean;
   isImportingBackup: boolean;
+  isSavingProofreadingSettings: boolean;
   loggingSettings: LoggingSettingsSnapshot;
   loggingForm: LoggingSettingsInput;
+  proofreadingSettings: ProofreadingSettingsSnapshot;
   recentLogs: LogEntrySnapshot[];
   isLoadingRecentLogs: boolean;
   onChangeLogging: <K extends keyof LoggingSettingsInput>(
@@ -23,6 +31,8 @@ interface SettingsWorkspaceProps {
   ) => void;
   onExportBackup: () => Promise<void>;
   onImportBackup: () => Promise<void>;
+  onEnableProofreadingRule: (ruleId: string) => Promise<void>;
+  onResetDisabledProofreadingRules: () => Promise<void>;
   onSaveLoggingSettings: () => Promise<void>;
   onClearLogs: () => Promise<void>;
   onRefreshRecentLogs: (options?: { silent?: boolean }) => Promise<void>;
@@ -31,13 +41,17 @@ interface SettingsWorkspaceProps {
 export function SettingsWorkspace({
   isExportingBackup,
   isImportingBackup,
+  isSavingProofreadingSettings,
   loggingSettings,
   loggingForm,
+  proofreadingSettings,
   recentLogs,
   isLoadingRecentLogs,
   onChangeLogging,
   onExportBackup,
   onImportBackup,
+  onEnableProofreadingRule,
+  onResetDisabledProofreadingRules,
   onSaveLoggingSettings,
   onClearLogs,
   onRefreshRecentLogs,
@@ -72,6 +86,15 @@ export function SettingsWorkspace({
                 loggingSettings={loggingSettings}
                 onClearLogs={onClearLogs}
                 onOpenLogViewer={openLogViewer}
+              />
+            </div>
+          ) : activeSection === "proofreading" ? (
+            <div className="grid content-start gap-3">
+              <ProofreadingSettingsPane
+                disabledRuleIds={proofreadingSettings.disabledRuleIds}
+                isSaving={isSavingProofreadingSettings}
+                onEnableRule={onEnableProofreadingRule}
+                onResetRules={onResetDisabledProofreadingRules}
               />
             </div>
           ) : (

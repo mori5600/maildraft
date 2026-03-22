@@ -32,6 +32,8 @@ describe("DraftWorkspaceScreen", () => {
     render(
       <DraftWorkspaceScreen
         ref={ref}
+        disabledProofreadingRuleIds={[]}
+        onDisableProofreadingRule={vi.fn(async () => {})}
         showWhitespace
         snapshot={{
           drafts: [],
@@ -40,7 +42,7 @@ describe("DraftWorkspaceScreen", () => {
           templates: [],
           signatures: [],
           memos: [],
-          trash: { drafts: [], templates: [], signatures: [] },
+          trash: { drafts: [], templates: [], signatures: [], memos: [] },
         }}
         onClearError={vi.fn()}
         onError={vi.fn()}

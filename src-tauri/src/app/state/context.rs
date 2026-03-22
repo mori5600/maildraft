@@ -2,7 +2,7 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use serde_json::{json, Map, Value};
 
-use crate::app::settings::LoggingSettings;
+use crate::app::settings::{LoggingSettings, ProofreadingSettings};
 use crate::modules::{
     drafts::DraftInput, memo::MemoInput, signatures::SignatureInput, store::StoreSnapshot,
     templates::TemplateInput, variable_presets::VariablePresetInput,
@@ -150,6 +150,15 @@ pub(super) fn logging_settings_context(settings: &LoggingSettings) -> Map<String
     let mut context = Map::new();
     context.insert("retention_days".to_string(), json!(settings.retention_days));
     context.insert("mode".to_string(), json!(settings.mode.as_str()));
+    context
+}
+
+pub(super) fn proofreading_settings_context(settings: &ProofreadingSettings) -> Map<String, Value> {
+    let mut context = Map::new();
+    context.insert(
+        "disabled_rule_count".to_string(),
+        json!(settings.disabled_rule_ids.len()),
+    );
     context
 }
 

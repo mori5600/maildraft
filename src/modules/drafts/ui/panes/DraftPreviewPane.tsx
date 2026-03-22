@@ -2,15 +2,19 @@ import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Field, Panel, Select } from "../../../../shared/ui/primitives";
 import { WhitespaceInput } from "../../../../shared/ui/WhitespaceInput";
 import type { DraftInput } from "../../model";
+import type { DraftProofreadingIssue } from "../../proofreading/model";
 import type { VariablePreset } from "../../variable-presets";
-import { DraftCheckList } from "./DraftCheckList";
+import { DraftIssueList } from "./DraftIssueList";
 
 interface DraftPreviewPaneProps {
+  detailedCheckStatus: "idle" | "pending" | "running" | "ready" | "error";
+  detailedCheckStatusLabel: string;
   draftForm: DraftInput;
   draftHistoryCount: number;
   previewSubject: string;
   previewBodyText: string;
-  checks: string[];
+  issues: DraftProofreadingIssue[];
+  selectedIssueId: string | null;
   variableNames: string[];
   variablePresets: VariablePreset[];
   selectedVariablePresetId: string | null;
@@ -23,22 +27,30 @@ interface DraftPreviewPaneProps {
   canApplyVariablePreset: boolean;
   onOpenHistory: () => void;
   onOpenPreview: () => void;
+  onApplyIssueSuggestion: (issueId: string) => void;
   onCopyPreview: () => Promise<void>;
   onChangeDraftVariable: (name: string, value: string) => void;
   onSelectVariablePreset: (id: string | null) => void;
   onChangeVariablePresetName: (value: string) => void;
   onCreateVariablePreset: () => void;
   onApplyVariablePreset: () => void;
+  onDisableIssueRule: (ruleId: string) => void;
+  onIgnoreIssue: (issueId: string) => void;
   onSaveVariablePreset: () => Promise<void>;
   onDeleteVariablePreset: () => Promise<void>;
+  onRunDetailedCheck: () => void;
+  onSelectIssue: (issueId: string) => void;
 }
 
 export function DraftPreviewPane({
+  detailedCheckStatus,
+  detailedCheckStatusLabel,
   draftForm,
   draftHistoryCount,
   previewSubject,
   previewBodyText,
-  checks,
+  issues,
+  selectedIssueId,
   variableNames,
   variablePresets,
   selectedVariablePresetId,
@@ -51,14 +63,19 @@ export function DraftPreviewPane({
   canApplyVariablePreset,
   onOpenHistory,
   onOpenPreview,
+  onApplyIssueSuggestion,
   onCopyPreview,
   onChangeDraftVariable,
   onSelectVariablePreset,
   onChangeVariablePresetName,
   onCreateVariablePreset,
   onApplyVariablePreset,
+  onDisableIssueRule,
+  onIgnoreIssue,
   onSaveVariablePreset,
   onDeleteVariablePreset,
+  onRunDetailedCheck,
+  onSelectIssue,
 }: DraftPreviewPaneProps) {
   return (
     <Panel className="flex min-h-0 flex-col overflow-hidden">
@@ -195,10 +212,30 @@ export function DraftPreviewPane({
         </div>
 
         <div className="border-b border-(--color-panel-border-strong) px-3.5 py-3">
-          <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
-            確認
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-[10px] tracking-[0.14em] text-(--color-text-subtle) uppercase">
+              校正結果
+            </div>
+            <Button
+              disabled={detailedCheckStatus === "running"}
+              size="sm"
+              variant="ghost"
+              onClick={onRunDetailedCheck}
+            >
+              詳細チェック
+            </Button>
           </div>
-          <DraftCheckList checks={checks} />
+          <div className="mt-1.5 text-xs leading-5 text-(--color-text-muted)">
+            {detailedCheckStatusLabel}
+          </div>
+          <DraftIssueList
+            issues={issues}
+            selectedIssueId={selectedIssueId}
+            onApplyIssueSuggestion={onApplyIssueSuggestion}
+            onDisableIssueRule={onDisableIssueRule}
+            onIgnoreIssue={onIgnoreIssue}
+            onSelectIssue={onSelectIssue}
+          />
         </div>
 
         <div className="px-3.5 py-3">

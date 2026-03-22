@@ -1,4 +1,4 @@
-import { EditorState, type Extension } from "@codemirror/state";
+import { EditorSelection, EditorState, type Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { useEffect, useEffectEvent, useRef } from "react";
 
@@ -31,8 +31,14 @@ function normalizeEditorText(value: string, singleLine: boolean): string {
 export interface CodeEditorProps {
   ariaLabel?: string;
   className?: string;
+  isHighlighted?: boolean;
   onChange: (value: string) => void;
   placeholder?: string;
+  selectionRequest?: {
+    from: number;
+    key: number;
+    to: number;
+  } | null;
   showLineNumbers?: boolean;
   showWhitespace?: boolean;
   singleLine?: boolean;
@@ -44,9 +50,11 @@ export interface CodeEditorProps {
 export function CodeEditor({
   ariaLabel,
   className,
+  isHighlighted = false,
   textClassName = "mail-editor-text",
   onChange,
   placeholder,
+  selectionRequest,
   showLineNumbers = false,
   showWhitespace = false,
   singleLine = false,
@@ -58,6 +66,9 @@ export function CodeEditor({
   const normalizedValue = normalizeEditorText(value, singleLine);
   const normalizedPlaceholder =
     typeof placeholder === "string" ? normalizeEditorText(placeholder, singleLine) : placeholder;
+  const selectionRequestFrom = selectionRequest?.from ?? null;
+  const selectionRequestKey = selectionRequest?.key ?? null;
+  const selectionRequestTo = selectionRequest?.to ?? null;
   const initialConfigRef = useRef({
     ariaLabel,
     normalizedPlaceholder,
@@ -227,10 +238,39 @@ export function CodeEditor({
     });
   }, [normalizedValue]);
 
+  useEffect(() => {
+    const view = viewRef.current;
+    if (
+      !view ||
+      selectionRequestFrom === null ||
+      selectionRequestKey === null ||
+      selectionRequestTo === null
+    ) {
+      return;
+    }
+
+    const documentLength = view.state.doc.length;
+    const from = clamp(selectionRequestFrom, 0, documentLength);
+    const to = clamp(selectionRequestTo, from, documentLength);
+
+    view.dom.scrollIntoView?.({
+      block: "center",
+    });
+    view.focus();
+    view.dispatch({
+      effects: EditorView.scrollIntoView(from, {
+        y: "center",
+      }),
+      selection: from === to ? EditorSelection.single(from) : EditorSelection.range(from, to),
+    });
+  }, [selectionRequestFrom, selectionRequestKey, selectionRequestTo]);
+
   return (
     <div
       className={cn(
         "mail-editor-frame w-full overflow-hidden rounded-[7px]",
+        isHighlighted &&
+          "border-(--color-field-focus) shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-focus-ring)]",
         singleLine ? "min-h-8.5" : "min-h-28",
         className,
       )}
@@ -238,4 +278,8 @@ export function CodeEditor({
       <div ref={containerRef} style={{ minHeight: "inherit" }} />
     </div>
   );
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
 }

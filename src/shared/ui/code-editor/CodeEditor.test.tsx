@@ -163,4 +163,23 @@ describe("CodeEditor", () => {
     expect(textbox).toHaveFocus();
     expect(getEditorView("本文").state.doc.toString()).toContain("\n");
   });
+
+  it("focuses and selects the requested range", async () => {
+    render(
+      <CodeEditor
+        ariaLabel="本文"
+        selectionRequest={{ from: 6, key: 1, to: 10 }}
+        value="alpha beta gamma"
+        onChange={vi.fn()}
+      />,
+    );
+
+    const view = getEditorView("本文");
+
+    await waitFor(() => {
+      expect(view.hasFocus).toBe(true);
+      expect(view.state.selection.main.from).toBe(6);
+      expect(view.state.selection.main.to).toBe(10);
+    });
+  });
 });

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
-    app::settings::{AppSettings, LoggingSettingsSnapshot},
+    app::settings::{AppSettings, LoggingSettingsSnapshot, ProofreadingSettingsSnapshot},
     app::storage::STORAGE_DOCUMENT_APP,
     modules::store::StoreSnapshot,
 };
@@ -27,6 +27,7 @@ pub struct BackupDocument {
 pub struct ImportedBackupSnapshot {
     pub snapshot: StoreSnapshot,
     pub logging_settings: LoggingSettingsSnapshot,
+    pub proofreading_settings: ProofreadingSettingsSnapshot,
 }
 
 impl BackupDocument {
@@ -89,7 +90,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use super::{decode_backup_document, BackupDocument, BACKUP_DOCUMENT_VERSION};
-    use crate::app::settings::{AppSettings, LoggingMode, LoggingSettings};
+    use crate::app::settings::{AppSettings, LoggingMode, LoggingSettings, ProofreadingSettings};
     use crate::modules::store::StoreSnapshot;
 
     #[test]
@@ -102,6 +103,9 @@ mod tests {
                     mode: LoggingMode::Standard,
                     retention_days: 99,
                 },
+                proofreading: ProofreadingSettings {
+                    disabled_rule_ids: vec![" whitespace.trailing ".to_string(), "prh".to_string()],
+                },
             },
         );
 
@@ -110,6 +114,10 @@ mod tests {
         assert_eq!(restored_snapshot.drafts.len(), snapshot.drafts.len());
         assert_eq!(restored_settings.logging.mode, LoggingMode::Standard);
         assert_eq!(restored_settings.logging.retention_days, 14);
+        assert_eq!(
+            restored_settings.proofreading.disabled_rule_ids,
+            vec!["prh".to_string(), "whitespace.trailing".to_string()]
+        );
     }
 
     #[test]
@@ -172,6 +180,7 @@ mod tests {
         let (_snapshot, settings) = decoded.into_state().expect("into state");
         assert_eq!(settings.logging.mode, LoggingMode::ErrorsOnly);
         assert_eq!(settings.logging.retention_days, 14);
+        assert!(settings.proofreading.disabled_rule_ids.is_empty());
     }
 
     #[test]

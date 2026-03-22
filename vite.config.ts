@@ -46,14 +46,39 @@ export default defineConfig(async () => ({
       },
     },
   },
+  optimizeDeps: {
+    // Avoid scanning generated Rust docs under src-tauri/target/doc during dev startup.
+    entries: ["index.html"],
+  },
   define: {
     __APP_NAME__: JSON.stringify(tauriConfig.productName),
     __APP_VERSION__: JSON.stringify(tauriConfig.version),
   },
   plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      assert: fileURLToPath(
+        new URL("./src/shared/lib/browser-node-shims/assert.cjs", import.meta.url),
+      ),
+      fs: fileURLToPath(new URL("./src/shared/lib/browser-node-shims/fs.ts", import.meta.url)),
+      "node:assert": fileURLToPath(
+        new URL("./src/shared/lib/browser-node-shims/assert.cjs", import.meta.url),
+      ),
+      path: fileURLToPath(new URL("./src/shared/lib/browser-node-shims/path.ts", import.meta.url)),
+      "node:os": fileURLToPath(
+        new URL("./src/shared/lib/browser-node-shims/os.ts", import.meta.url),
+      ),
+      "node:path": fileURLToPath(
+        new URL("./src/shared/lib/browser-node-shims/path.ts", import.meta.url),
+      ),
+    },
+  },
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
+  },
+  worker: {
+    format: "es",
   },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`

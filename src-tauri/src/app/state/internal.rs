@@ -2,7 +2,9 @@ use std::time::Instant;
 
 use crate::app::{
     logging::{LogEntry, LogLevel},
-    settings::{AppSettings, LoggingSettings, LoggingSettingsSnapshot},
+    settings::{
+        AppSettings, LoggingSettings, LoggingSettingsSnapshot, ProofreadingSettingsSnapshot,
+    },
     storage::{write_app_settings, write_store_snapshot},
 };
 use crate::modules::store::StoreSnapshot;
@@ -80,6 +82,15 @@ impl AppState {
             .map_err(|error| error.to_string())?;
 
         self.logger_snapshot(&logging_settings)
+    }
+
+    pub(super) fn proofreading_settings_snapshot(&self) -> AppResult<ProofreadingSettingsSnapshot> {
+        let proofreading_settings = {
+            let settings = self.settings.lock().map_err(|error| error.to_string())?;
+            settings.proofreading.clone()
+        };
+
+        Ok(ProofreadingSettingsSnapshot::from(&proofreading_settings))
     }
 
     pub(super) fn logger_snapshot(

@@ -250,7 +250,7 @@ mod tests {
         StartupNoticeSnapshot, StartupNoticeTone,
     };
     use crate::{
-        app::settings::{AppSettings, LoggingMode, LoggingSettings},
+        app::settings::{AppSettings, LoggingMode, LoggingSettings, ProofreadingSettings},
         modules::store::StoreSnapshot,
     };
 
@@ -419,6 +419,9 @@ mod tests {
                 mode: LoggingMode::Standard,
                 retention_days: 30,
             },
+            proofreading: ProofreadingSettings {
+                disabled_rule_ids: vec![" whitespace.trailing ".to_string(), "prh".to_string()],
+            },
         };
 
         write_app_settings(&path, &settings).expect("write settings");
@@ -435,6 +438,10 @@ mod tests {
         let loaded = load_app_settings(&path).expect("load legacy settings");
         assert_eq!(loaded.logging.mode, LoggingMode::Standard);
         assert_eq!(loaded.logging.retention_days, 30);
+        assert_eq!(
+            loaded.proofreading.disabled_rule_ids,
+            vec!["prh".to_string(), "whitespace.trailing".to_string()]
+        );
     }
 
     #[test]
@@ -448,6 +455,9 @@ mod tests {
                 logging: LoggingSettings {
                     mode: LoggingMode::Standard,
                     retention_days: 30,
+                },
+                proofreading: ProofreadingSettings {
+                    disabled_rule_ids: vec!["prh".to_string()],
                 },
             })
             .expect("backup settings"),
@@ -464,6 +474,10 @@ mod tests {
         );
         let recovered = recovered.value;
         assert_eq!(recovered.logging.mode, LoggingMode::Standard);
+        assert_eq!(
+            recovered.proofreading.disabled_rule_ids,
+            vec!["prh".to_string()]
+        );
 
         fs::write(&path, "{broken-again").expect("write broken settings again");
         fs::write(backup_path(&path), "{broken-backup").expect("write broken backup");
@@ -478,6 +492,7 @@ mod tests {
         let defaulted = defaulted.value;
         assert_eq!(defaulted.logging.mode, LoggingMode::ErrorsOnly);
         assert_eq!(defaulted.logging.retention_days, 14);
+        assert!(defaulted.proofreading.disabled_rule_ids.is_empty());
     }
 
     #[test]

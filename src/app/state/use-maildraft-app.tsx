@@ -92,6 +92,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
 
   useAppBootstrap({
     hydrateLoggingSettings: settingsState.hydrateLoggingSettings,
+    hydrateProofreadingSettings: settingsState.hydrateProofreadingSettings,
     hydrateSnapshot: hydrateAll,
     onClearError: shell.clearError,
     onError: shell.setError,
@@ -207,6 +208,9 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
 
   return {
     draftWorkspaceProps: {
+      disabledProofreadingRuleIds:
+        settingsState.settingsWorkspaceProps.proofreadingSettings.disabledRuleIds,
+      onDisableProofreadingRule: settingsState.disableProofreadingRule,
       onClearError: shell.clearError,
       onError: (message: string) => shell.setError(message),
       onNotice: (message: string) => shell.setNotice(message),

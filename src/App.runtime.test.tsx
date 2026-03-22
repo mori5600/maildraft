@@ -100,9 +100,10 @@ describe("App runtime integration", () => {
     render(<App />);
 
     await expectEditorText("一覧名", "4/12 打ち合わせお礼");
-    expect(runtime.commandCalls.slice(0, 3).map((call) => call.cmd)).toEqual([
+    expect(runtime.commandCalls.slice(0, 4).map((call) => call.cmd)).toEqual([
       "load_snapshot",
       "load_logging_settings",
+      "load_proofreading_settings",
       "load_startup_notice",
     ]);
 

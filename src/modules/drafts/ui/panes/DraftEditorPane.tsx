@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 import { CodeEditor } from "../../../../shared/ui/code-editor/CodeEditor";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Field, Panel, Select } from "../../../../shared/ui/primitives";
@@ -5,8 +7,15 @@ import type { Signature } from "../../../signatures/model";
 import type { Template } from "../../../templates/model";
 import type { DraftInput } from "../../model";
 import { draftLabel } from "../../model";
+import type { DraftProofreadingIssue } from "../../proofreading/model";
+
+function cn(...classNames: Array<string | false | null | undefined>): string {
+  return classNames.filter(Boolean).join(" ");
+}
 
 interface DraftEditorPaneProps {
+  activeIssue: DraftProofreadingIssue | null;
+  activeIssueRequestKey: number;
   draftForm: DraftInput;
   templates: Template[];
   signatures: Signature[];
@@ -23,6 +32,8 @@ interface DraftEditorPaneProps {
 }
 
 export function DraftEditorPane({
+  activeIssue,
+  activeIssueRequestKey,
   draftForm,
   templates,
   signatures,
@@ -37,6 +48,7 @@ export function DraftEditorPane({
   onTogglePinned,
   onApplyTemplate,
 }: DraftEditorPaneProps) {
+  const signatureSelectRef = useRef<HTMLSelectElement>(null);
   const hasMissingTemplate = Boolean(
     draftForm.templateId && !templates.some((template) => template.id === draftForm.templateId),
   );
@@ -44,6 +56,34 @@ export function DraftEditorPane({
     draftForm.signatureId &&
     !signatures.some((signature) => signature.id === draftForm.signatureId),
   );
+  const activeIssueField = activeIssue?.field ?? null;
+
+  useEffect(() => {
+    if (activeIssueField !== "signature") {
+      return;
+    }
+
+    signatureSelectRef.current?.focus();
+    signatureSelectRef.current?.scrollIntoView({
+      block: "center",
+    });
+  }, [activeIssueField, activeIssueRequestKey]);
+
+  function selectionRequestFor(field: "subject" | "recipient" | "opening" | "body" | "closing") {
+    if (activeIssueField !== field) {
+      return null;
+    }
+
+    const documentLength = draftForm[field].length;
+    const from = clamp(activeIssue?.location?.from ?? 0, 0, documentLength);
+    const to = clamp(activeIssue?.location?.to ?? from, from, documentLength);
+
+    return {
+      from,
+      key: activeIssueRequestKey,
+      to,
+    };
+  }
 
   return (
     <Panel className="flex min-h-0 flex-col overflow-hidden">
@@ -97,6 +137,8 @@ export function DraftEditorPane({
               <CodeEditor
                 ariaLabel="件名"
                 className="min-h-8.5"
+                isHighlighted={activeIssueField === "subject"}
+                selectionRequest={selectionRequestFor("subject")}
                 textClassName="mail-field-text"
                 placeholder="件名"
                 singleLine
@@ -133,6 +175,11 @@ export function DraftEditorPane({
             </Field>
             <Field label="署名">
               <Select
+                className={cn(
+                  activeIssueField === "signature" &&
+                    "border-(--color-field-focus) shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-focus-ring)]",
+                )}
+                ref={signatureSelectRef}
                 value={draftForm.signatureId ?? ""}
                 onChange={(event) =>
                   onChangeDraft("signatureId", event.currentTarget.value || null)
@@ -156,6 +203,8 @@ export function DraftEditorPane({
             <CodeEditor
               ariaLabel="宛名メモ"
               className="min-h-24"
+              isHighlighted={activeIssueField === "recipient"}
+              selectionRequest={selectionRequestFor("recipient")}
               textClassName="mail-compose-text"
               placeholder={"株式会社〇〇\n営業部\n佐藤 様"}
               showWhitespace={showWhitespace}
@@ -168,6 +217,8 @@ export function DraftEditorPane({
             <CodeEditor
               ariaLabel="書き出し"
               className="min-h-33"
+              isHighlighted={activeIssueField === "opening"}
+              selectionRequest={selectionRequestFor("opening")}
               textClassName="mail-compose-text"
               placeholder={"いつもお世話になっております。\n株式会社△△の田中です。"}
               showWhitespace={showWhitespace}
@@ -180,6 +231,8 @@ export function DraftEditorPane({
             <CodeEditor
               ariaLabel="本文"
               className="min-h-70"
+              isHighlighted={activeIssueField === "body"}
+              selectionRequest={selectionRequestFor("body")}
               textClassName="mail-compose-text"
               placeholder="本文"
               showWhitespace={showWhitespace}
@@ -192,6 +245,8 @@ export function DraftEditorPane({
             <CodeEditor
               ariaLabel="結び"
               className="min-h-33"
+              isHighlighted={activeIssueField === "closing"}
+              selectionRequest={selectionRequestFor("closing")}
               textClassName="mail-compose-text"
               placeholder="引き続きよろしくお願いいたします。"
               showWhitespace={showWhitespace}
@@ -203,4 +258,8 @@ export function DraftEditorPane({
       </div>
     </Panel>
   );
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
 }

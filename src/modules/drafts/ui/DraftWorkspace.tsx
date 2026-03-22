@@ -7,6 +7,7 @@ import { Button } from "../../../shared/ui/primitives";
 import type { Signature } from "../../signatures/model";
 import type { Template } from "../../templates/model";
 import type { Draft, DraftHistoryEntry, DraftInput } from "../model";
+import type { DraftProofreadingIssue } from "../proofreading/model";
 import type { VariablePreset } from "../variable-presets";
 import { DraftHistoryOverlay } from "./DraftHistoryOverlay";
 import { DraftEditorPane } from "./panes/DraftEditorPane";
@@ -21,10 +22,12 @@ interface DraftWorkspaceProps {
   templates: Template[];
   signatures: Signature[];
   selectedDraftId: string | null;
+  detailedCheckStatus: "idle" | "pending" | "running" | "ready" | "error";
+  detailedCheckStatusLabel: string;
   draftForm: DraftInput;
   previewSubject: string;
   previewText: string;
-  checks: string[];
+  issues: DraftProofreadingIssue[];
   variableNames: string[];
   variablePresets: VariablePreset[];
   selectedVariablePresetId: string | null;
@@ -45,6 +48,7 @@ interface DraftWorkspaceProps {
   onSelectVariablePreset: (id: string | null) => void;
   onChangeVariablePresetName: (value: string) => void;
   onCreateVariablePreset: () => void;
+  onApplyIssueSuggestion: (issueId: string) => void;
   onApplyVariablePreset: () => void;
   onSaveVariablePreset: () => Promise<void>;
   onDeleteVariablePreset: () => Promise<void>;
@@ -52,6 +56,9 @@ interface DraftWorkspaceProps {
   onSaveDraft: () => Promise<void>;
   onDeleteDraft: () => Promise<void>;
   onDuplicateDraft: () => Promise<void>;
+  onDisableIssueRule: (ruleId: string) => void;
+  onIgnoreIssue: (issueId: string) => void;
+  onRunDetailedCheck: () => void;
   onTogglePinned: () => void;
   onRestoreDraftHistory: (historyId: string) => Promise<void>;
   onApplyTemplate: (templateId: string) => void;
@@ -64,10 +71,12 @@ export function DraftWorkspace({
   templates,
   signatures,
   selectedDraftId,
+  detailedCheckStatus,
+  detailedCheckStatusLabel,
   draftForm,
   previewSubject,
   previewText,
-  checks,
+  issues,
   variableNames,
   variablePresets,
   selectedVariablePresetId,
@@ -88,6 +97,7 @@ export function DraftWorkspace({
   onSelectVariablePreset,
   onChangeVariablePresetName,
   onCreateVariablePreset,
+  onApplyIssueSuggestion,
   onApplyVariablePreset,
   onSaveVariablePreset,
   onDeleteVariablePreset,
@@ -95,12 +105,17 @@ export function DraftWorkspace({
   onSaveDraft,
   onDeleteDraft,
   onDuplicateDraft,
+  onDisableIssueRule,
+  onIgnoreIssue,
+  onRunDetailedCheck,
   onTogglePinned,
   onRestoreDraftHistory,
   onApplyTemplate,
 }: DraftWorkspaceProps) {
   const [isWidePreviewOpen, setIsWidePreviewOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
+  const [selectedIssueRequestKey, setSelectedIssueRequestKey] = useState(0);
 
   const selectedSignature = signatures.find((signature) => signature.id === draftForm.signatureId);
   const hasMissingSignature = Boolean(
@@ -111,10 +126,17 @@ export function DraftWorkspace({
     selectedSignature?.name ?? (hasMissingSignature ? "ゴミ箱の署名を参照中" : "署名なし");
   const canCopyPreview = previewText.trim().length > 0;
   const canExpandPreview =
-    previewText.trim().length > 0 || draftForm.subject.trim().length > 0 || checks.length > 0;
+    previewText.trim().length > 0 || draftForm.subject.trim().length > 0 || issues.length > 0;
   const previewBodyText =
     (showWhitespace ? visualizeWhitespace(previewText) : previewText) ||
     "本文プレビューがここに表示されます。";
+  const activeIssue = issues.find((issue) => issue.id === selectedIssueId) ?? null;
+
+  function selectIssue(issueId: string) {
+    setSelectedIssueId(issueId);
+    setSelectedIssueRequestKey((current) => current + 1);
+    setIsWidePreviewOpen(false);
+  }
 
   return (
     <>
@@ -132,6 +154,8 @@ export function DraftWorkspace({
         />
 
         <DraftEditorPane
+          activeIssue={activeIssue}
+          activeIssueRequestKey={selectedIssueRequestKey}
           autoSaveLabel={autoSaveLabel}
           canDuplicate={canDuplicate}
           draftForm={draftForm}
@@ -152,26 +176,34 @@ export function DraftWorkspace({
           canCopyPreview={canCopyPreview}
           canExpandPreview={canExpandPreview}
           canSaveVariablePreset={canSaveVariablePreset}
-          checks={checks}
+          detailedCheckStatus={detailedCheckStatus}
+          detailedCheckStatusLabel={detailedCheckStatusLabel}
           draftForm={draftForm}
           draftHistoryCount={draftHistory.length}
+          issues={issues}
           previewBodyText={previewBodyText}
           previewDescription={previewDescription}
           previewSubject={previewSubject}
+          selectedIssueId={selectedIssueId}
           selectedVariablePresetId={selectedVariablePresetId}
           showWhitespace={showWhitespace}
           variableNames={variableNames}
           variablePresetName={variablePresetName}
           variablePresets={variablePresets}
+          onApplyIssueSuggestion={onApplyIssueSuggestion}
           onApplyVariablePreset={onApplyVariablePreset}
           onChangeDraftVariable={onChangeDraftVariable}
           onChangeVariablePresetName={onChangeVariablePresetName}
           onCopyPreview={onCopyPreview}
           onCreateVariablePreset={onCreateVariablePreset}
           onDeleteVariablePreset={onDeleteVariablePreset}
+          onDisableIssueRule={onDisableIssueRule}
+          onIgnoreIssue={onIgnoreIssue}
           onOpenHistory={() => setIsHistoryOpen(true)}
           onOpenPreview={() => setIsWidePreviewOpen(true)}
+          onRunDetailedCheck={onRunDetailedCheck}
           onSaveVariablePreset={onSaveVariablePreset}
+          onSelectIssue={selectIssue}
           onSelectVariablePreset={onSelectVariablePreset}
         />
       </div>
@@ -194,9 +226,17 @@ export function DraftWorkspace({
         onClose={() => setIsWidePreviewOpen(false)}
       >
         <DraftPreviewDialogContent
-          checks={checks}
+          detailedCheckStatus={detailedCheckStatus}
+          detailedCheckStatusLabel={detailedCheckStatusLabel}
+          issues={issues}
+          onApplyIssueSuggestion={onApplyIssueSuggestion}
+          onDisableIssueRule={onDisableIssueRule}
+          onIgnoreIssue={onIgnoreIssue}
+          onRunDetailedCheck={onRunDetailedCheck}
           previewBodyText={previewBodyText}
           previewSubject={previewSubject}
+          selectedIssueId={selectedIssueId}
+          onSelectIssue={selectIssue}
         />
       </PreviewOverlay>
 

@@ -3,11 +3,17 @@ use std::{fs, time::Instant};
 use crate::app::{
     backup::{decode_backup_document, BackupDocument, ImportedBackupSnapshot},
     logging::{LogEntry, LogEntrySnapshot, LogLevel},
-    settings::{LoggingSettingsInput, LoggingSettingsSnapshot},
+    settings::{
+        LoggingSettingsInput, LoggingSettingsSnapshot, ProofreadingSettingsInput,
+        ProofreadingSettingsSnapshot,
+    },
 };
 
 use super::{
-    context::{elapsed_millis, logging_settings_context, snapshot_counts_context},
+    context::{
+        elapsed_millis, logging_settings_context, proofreading_settings_context,
+        snapshot_counts_context,
+    },
     AppResult, AppState,
 };
 
@@ -21,6 +27,11 @@ impl AppState {
     /// This does not touch the store or log files.
     pub fn load_logging_settings(&self) -> AppResult<LoggingSettingsSnapshot> {
         self.logging_settings_snapshot()
+    }
+
+    /// Returns the current proofreading settings snapshot.
+    pub fn load_proofreading_settings(&self) -> AppResult<ProofreadingSettingsSnapshot> {
+        self.proofreading_settings_snapshot()
     }
 
     /// Exports the current store snapshot and app settings to a backup file.
@@ -141,6 +152,7 @@ impl AppState {
         }
 
         let logging_settings = self.logger_snapshot(&settings.logging)?;
+        let proofreading_settings = ProofreadingSettingsSnapshot::from(&settings.proofreading);
 
         self.log_event_with_settings(
             &settings.logging,
@@ -158,6 +170,7 @@ impl AppState {
         Ok(ImportedBackupSnapshot {
             snapshot,
             logging_settings,
+            proofreading_settings,
         })
     }
 
@@ -232,6 +245,39 @@ impl AppState {
         );
 
         self.logger_snapshot(&next_settings)
+    }
+
+    /// Saves proofreading settings.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the settings lock cannot be acquired or persistence fails.
+    pub fn save_proofreading_settings(
+        &self,
+        input: ProofreadingSettingsInput,
+    ) -> AppResult<ProofreadingSettingsSnapshot> {
+        let started_at = Instant::now();
+        let next_settings = input.into_settings();
+
+        {
+            let mut settings = self.settings.lock().map_err(|error| error.to_string())?;
+            let previous = settings.clone();
+
+            settings.proofreading = next_settings.clone();
+            self.persist_locked_settings_with_rollback(&mut settings, previous)?;
+        }
+
+        self.log_event(LogEntry {
+            level: LogLevel::Info,
+            event_name: "settings.proofreading_saved",
+            module: "settings",
+            result: "success",
+            duration_ms: Some(elapsed_millis(started_at)),
+            error_code: None,
+            safe_context: proofreading_settings_context(&next_settings),
+        });
+
+        Ok(ProofreadingSettingsSnapshot::from(&next_settings))
     }
 
     /// Deletes retained log files and returns the current logging settings snapshot.

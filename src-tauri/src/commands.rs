@@ -2,7 +2,10 @@ use crate::app::state::AppState;
 use crate::app::{
     backup::ImportedBackupSnapshot,
     logging::LogEntrySnapshot,
-    settings::{LoggingSettingsInput, LoggingSettingsSnapshot},
+    settings::{
+        LoggingSettingsInput, LoggingSettingsSnapshot, ProofreadingSettingsInput,
+        ProofreadingSettingsSnapshot,
+    },
     storage::StartupNoticeSnapshot,
 };
 use crate::modules::{
@@ -144,6 +147,12 @@ fn load_logging_settings_impl(state: &AppState) -> Result<LoggingSettingsSnapsho
     state.load_logging_settings()
 }
 
+fn load_proofreading_settings_impl(
+    state: &AppState,
+) -> Result<ProofreadingSettingsSnapshot, String> {
+    state.load_proofreading_settings()
+}
+
 fn export_backup_impl(state: &AppState, path: String) -> Result<String, String> {
     state.export_backup(&path)
 }
@@ -164,6 +173,13 @@ fn save_logging_settings_impl(
     input: LoggingSettingsInput,
 ) -> Result<LoggingSettingsSnapshot, String> {
     state.save_logging_settings(input)
+}
+
+fn save_proofreading_settings_impl(
+    state: &AppState,
+    input: ProofreadingSettingsInput,
+) -> Result<ProofreadingSettingsSnapshot, String> {
+    state.save_proofreading_settings(input)
 }
 
 fn clear_logs_impl(state: &AppState) -> Result<LoggingSettingsSnapshot, String> {
@@ -350,6 +366,13 @@ pub(crate) fn load_logging_settings(
 }
 
 #[tauri::command]
+pub(crate) fn load_proofreading_settings(
+    state: tauri::State<'_, AppState>,
+) -> Result<ProofreadingSettingsSnapshot, String> {
+    load_proofreading_settings_impl(&state)
+}
+
+#[tauri::command]
 pub(crate) fn export_backup(
     state: tauri::State<'_, AppState>,
     path: String,
@@ -379,6 +402,14 @@ pub(crate) fn save_logging_settings(
     input: LoggingSettingsInput,
 ) -> Result<LoggingSettingsSnapshot, String> {
     save_logging_settings_impl(&state, input)
+}
+
+#[tauri::command]
+pub(crate) fn save_proofreading_settings(
+    state: tauri::State<'_, AppState>,
+    input: ProofreadingSettingsInput,
+) -> Result<ProofreadingSettingsSnapshot, String> {
+    save_proofreading_settings_impl(&state, input)
 }
 
 #[tauri::command]
@@ -630,6 +661,9 @@ mod tests {
 
         let initial = load_logging_settings_impl(&state).expect("load settings");
         assert_eq!(initial.mode, crate::app::settings::LoggingMode::ErrorsOnly);
+        let initial_proofreading =
+            load_proofreading_settings_impl(&state).expect("load proofreading settings");
+        assert!(initial_proofreading.disabled_rule_ids.is_empty());
 
         let saved = save_logging_settings_impl(
             &state,
@@ -640,6 +674,17 @@ mod tests {
         )
         .expect("save settings");
         assert_eq!(saved.retention_days, 30);
+        let saved_proofreading = save_proofreading_settings_impl(
+            &state,
+            ProofreadingSettingsInput {
+                disabled_rule_ids: vec![" whitespace.trailing ".to_string(), "prh".to_string()],
+            },
+        )
+        .expect("save proofreading settings");
+        assert_eq!(
+            saved_proofreading.disabled_rule_ids,
+            vec!["prh".to_string(), "whitespace.trailing".to_string()]
+        );
 
         let recent = load_recent_logs_impl(&state, Some(5)).expect("load recent logs");
         assert!(recent.len() <= 5);
@@ -1082,6 +1127,30 @@ mod tests {
         assert_eq!(saved.retention_days, 14);
         assert_eq!(saved_json["mode"], json!("off"));
         assert_eq!(saved_json["retentionDays"], json!(14));
+
+        let saved_proofreading = save_proofreading_settings_impl(
+            &state,
+            ProofreadingSettingsInput {
+                disabled_rule_ids: vec![
+                    " ".to_string(),
+                    " prh ".to_string(),
+                    "whitespace.trailing".to_string(),
+                    "prh".to_string(),
+                ],
+            },
+        )
+        .expect("save proofreading settings");
+        let proofreading_json =
+            serde_json::to_value(&saved_proofreading).expect("serialize proofreading settings");
+
+        assert_eq!(
+            saved_proofreading.disabled_rule_ids,
+            vec!["prh".to_string(), "whitespace.trailing".to_string()]
+        );
+        assert_eq!(
+            proofreading_json["disabledRuleIds"],
+            json!(["prh", "whitespace.trailing"])
+        );
     }
 
     #[test]
@@ -1278,6 +1347,9 @@ mod tests {
         let logging_before =
             load_logging_settings(as_tauri_state(&state)).expect("load logging settings");
         assert_eq!(logging_before.retention_days, 14);
+        let proofreading_before =
+            load_proofreading_settings(as_tauri_state(&state)).expect("load proofreading settings");
+        assert!(proofreading_before.disabled_rule_ids.is_empty());
 
         let saved_template = save_template(
             as_tauri_state(&state),
@@ -1376,6 +1448,17 @@ mod tests {
         )
         .expect("save logging");
         assert_eq!(saved_logging.retention_days, 14);
+        let saved_proofreading = save_proofreading_settings(
+            as_tauri_state(&state),
+            ProofreadingSettingsInput {
+                disabled_rule_ids: vec![" whitespace.trailing ".to_string(), "prh".to_string()],
+            },
+        )
+        .expect("save proofreading");
+        assert_eq!(
+            saved_proofreading.disabled_rule_ids,
+            vec!["prh".to_string(), "whitespace.trailing".to_string()]
+        );
 
         let recent_logs = load_recent_logs(as_tauri_state(&state), Some(5)).expect("load logs");
         assert!(recent_logs.len() <= 5);
@@ -1391,6 +1474,10 @@ mod tests {
 
         let imported = import_backup(as_tauri_state(&state), exported_path).expect("import backup");
         assert_eq!(imported.snapshot.templates.len(), 1);
+        assert_eq!(
+            imported.proofreading_settings.disabled_rule_ids,
+            vec!["prh".to_string(), "whitespace.trailing".to_string()]
+        );
 
         let emptied = empty_trash(as_tauri_state(&state)).expect("empty trash");
         assert!(emptied.trash.drafts.is_empty());

@@ -6,10 +6,12 @@ import {
   createLogEntry,
   createLoggingSettingsInput,
   createLoggingSettingsSnapshot,
+  createProofreadingSettingsSnapshot,
 } from "../../../test/ui-fixtures";
 import { BackupPane } from "./panes/BackupPane";
 import { LoggingOverviewPane } from "./panes/LoggingOverviewPane";
 import { LoggingSettingsPane } from "./panes/LoggingSettingsPane";
+import { ProofreadingSettingsPane } from "./panes/ProofreadingSettingsPane";
 import { RecentLogsContent } from "./panes/RecentLogsContent";
 import { SettingsSectionNav } from "./panes/SettingsSectionNav";
 import { RECENT_LOGS_DESCRIPTION } from "./settings-workspace-content";
@@ -21,6 +23,8 @@ describe("settings UI", () => {
     const handleSelectSection = vi.fn();
     render(<SettingsSectionNav activeSection="logging" onSelectSection={handleSelectSection} />);
 
+    await user.click(screen.getByRole("button", { name: /校正/ }));
+    expect(handleSelectSection).toHaveBeenCalledWith("proofreading");
     await user.click(screen.getByRole("button", { name: /バックアップ/ }));
     expect(handleSelectSection).toHaveBeenCalledWith("backup");
   });
@@ -86,6 +90,31 @@ describe("settings UI", () => {
     expect(screen.getByText("foo: bar")).toBeInTheDocument();
   });
 
+  it("renders proofreading settings and enable actions", async () => {
+    const user = userEvent.setup();
+    const handleEnableRule = vi.fn(async () => {});
+    const handleResetRules = vi.fn(async () => {});
+
+    render(
+      <ProofreadingSettingsPane
+        disabledRuleIds={
+          createProofreadingSettingsSnapshot({
+            disabledRuleIds: ["prh", "whitespace.trailing"],
+          }).disabledRuleIds
+        }
+        isSaving={false}
+        onEnableRule={handleEnableRule}
+        onResetRules={handleResetRules}
+      />,
+    );
+
+    expect(screen.getByText("prh 言い換え")).toBeInTheDocument();
+    await user.click(screen.getAllByRole("button", { name: "有効化" })[0]!);
+    expect(handleEnableRule).toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "すべて有効化" }));
+    expect(handleResetRules).toHaveBeenCalled();
+  });
+
   it("connects settings workspace overlay", async () => {
     const user = userEvent.setup();
     const handleRefreshRecentLogs = vi.fn(async () => {});
@@ -94,13 +123,17 @@ describe("settings UI", () => {
         isExportingBackup={false}
         isImportingBackup={false}
         isLoadingRecentLogs={false}
+        isSavingProofreadingSettings={false}
         loggingForm={createLoggingSettingsInput()}
         loggingSettings={createLoggingSettingsSnapshot()}
+        proofreadingSettings={createProofreadingSettingsSnapshot()}
         recentLogs={[createLogEntry()]}
         onChangeLogging={vi.fn()}
         onClearLogs={vi.fn(async () => {})}
+        onEnableProofreadingRule={vi.fn(async () => {})}
         onExportBackup={vi.fn(async () => {})}
         onImportBackup={vi.fn(async () => {})}
+        onResetDisabledProofreadingRules={vi.fn(async () => {})}
         onRefreshRecentLogs={handleRefreshRecentLogs}
         onSaveLoggingSettings={vi.fn(async () => {})}
       />,
@@ -112,6 +145,8 @@ describe("settings UI", () => {
     expect(screen.getByText(RECENT_LOGS_DESCRIPTION)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "更新" }));
     expect(handleRefreshRecentLogs).toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: /校正/ }));
+    expect(screen.getByText("校正ルール")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /バックアップ/ }));
     expect(screen.getByRole("button", { name: "書き出し" })).toBeInTheDocument();
   });

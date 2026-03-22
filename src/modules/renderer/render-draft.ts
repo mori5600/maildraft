@@ -1,26 +1,28 @@
 import {
-  collectMissingVariableNames,
   extractVariableNames,
   resolveVariableTokens,
   resolveVariableTokensWithNames,
 } from "../../shared/lib/template-variables";
 import type { DraftInput } from "../drafts/model";
+import { buildDraftProofreadingIssues } from "../drafts/proofreading/build-proofreading-issues";
+import type { DraftProofreadingIssue } from "../drafts/proofreading/model";
 import type { Signature } from "../signatures/model";
 import type { TemplateInput } from "../templates/model";
 
 export interface DraftRenderResult {
-  checks: string[];
+  issues: DraftProofreadingIssue[];
   previewSubject: string;
   previewText: string;
   variableNames: string[];
 }
 
 /**
- * Builds the derived preview, validation messages, and variable list for one draft form.
+ * Builds the derived preview, proofreading issues, and variable list for one draft form.
  *
  * @remarks
- * Variable resolution runs once per section and the collected names are reused for both checks and
- * preview output. This keeps editor updates consistent while avoiding duplicate token parsing.
+ * Variable resolution runs once per section and the collected names are reused for both
+ * proofreading and preview output. This keeps editor updates consistent while avoiding duplicate
+ * token parsing.
  */
 export function buildDraftRenderResult(
   draft: DraftInput,
@@ -41,10 +43,8 @@ export function buildDraftRenderResult(
     closingResult.variableNames,
     signatureResult.variableNames,
   ]);
-  const missingVariables = collectMissingVariableNames(variableNames, variableValues);
-
   return {
-    checks: buildDraftChecks(draft, signature, missingVariables),
+    issues: buildDraftProofreadingIssues(draft, signature),
     previewSubject: subjectResult.resolvedText,
     previewText: joinSections([
       recipientResult.resolvedText,
@@ -83,11 +83,13 @@ export function renderTemplatePreview(
 }
 
 export function collectDraftChecks(draft: DraftInput, signature: Signature | undefined): string[] {
-  return buildDraftChecks(
-    draft,
-    signature,
-    collectMissingVariableNames(collectDraftVariableNames(draft, signature), draft.variableValues),
-  );
+  const issues = buildDraftProofreadingIssues(draft, signature);
+
+  if (issues.length === 0) {
+    return ["送信前チェックはすべて通っています。"];
+  }
+
+  return issues.map((issue) => issue.title);
 }
 
 export function collectDraftVariableNames(
@@ -106,40 +108,6 @@ export function collectDraftVariableNames(
 
 export function renderDraftSubject(draft: DraftInput): string {
   return resolveVariableTokens(draft.subject, draft.variableValues);
-}
-
-function buildDraftChecks(
-  draft: DraftInput,
-  signature: Signature | undefined,
-  missingVariables: string[],
-): string[] {
-  const checks: string[] = [];
-
-  if (!draft.subject.trim()) {
-    checks.push("件名が未入力です。");
-  }
-
-  if (!draft.opening.trim() && !draft.recipient.trim()) {
-    checks.push("宛名または書き出しが未入力です。");
-  }
-
-  if (!draft.body.trim()) {
-    checks.push("本文が未入力です。");
-  }
-
-  if (!signature?.body.trim()) {
-    checks.push("署名が未設定です。");
-  }
-
-  if (missingVariables.length > 0) {
-    checks.push(`未置換の変数があります: ${missingVariables.join(", ")}`);
-  }
-
-  if (checks.length === 0) {
-    checks.push("送信前チェックはすべて通っています。");
-  }
-
-  return checks;
 }
 
 function joinSections(sections: string[]): string {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { DraftInput } from "../drafts/model";
+import { DRAFT_SUBJECT_WARNING_LENGTH } from "../drafts/proofreading/model";
 import type { Signature } from "../signatures/model";
 import {
   buildDraftRenderResult,
@@ -40,9 +41,9 @@ const signature: Signature = {
 };
 
 describe("render-draft", () => {
-  it("builds preview, subject, checks, and variable names together", () => {
+  it("builds preview, subject, issues, and variable names together", () => {
     expect(buildDraftRenderResult(baseDraft, signature)).toEqual({
-      checks: ["送信前チェックはすべて通っています。"],
+      issues: [],
       previewSubject: "導入相談のお礼",
       previewText: [
         "株式会社〇〇\n佐藤 様",
@@ -134,5 +135,17 @@ describe("render-draft", () => {
         signature,
       ),
     ).toEqual(["未置換の変数があります: 案件名, 担当者名"]);
+  });
+
+  it("adds a lightweight subject length issue when the threshold is exceeded", () => {
+    expect(
+      buildDraftRenderResult(
+        {
+          ...baseDraft,
+          subject: "あ".repeat(DRAFT_SUBJECT_WARNING_LENGTH + 1),
+        },
+        signature,
+      ).issues.some((issue) => issue.ruleId === "subject.length"),
+    ).toBe(true);
   });
 });

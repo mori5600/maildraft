@@ -58,7 +58,7 @@ mod tests {
     use serde_json::json;
 
     use super::{decode_settings, encode_settings, SETTINGS_DOCUMENT_VERSION};
-    use crate::app::settings::{AppSettings, LoggingMode, LoggingSettings};
+    use crate::app::settings::{AppSettings, LoggingMode, LoggingSettings, ProofreadingSettings};
 
     #[test]
     fn decode_settings_accepts_current_and_legacy_documents() {
@@ -71,6 +71,9 @@ mod tests {
                     "logging": {
                         "mode": "standard",
                         "retentionDays": 30,
+                    },
+                    "proofreading": {
+                        "disabledRuleIds": [" whitespace.trailing ", "prh"],
                     }
                 }
             })
@@ -79,6 +82,10 @@ mod tests {
         .expect("decode current settings");
         assert_eq!(current.logging.mode, LoggingMode::Standard);
         assert_eq!(current.logging.retention_days, 30);
+        assert_eq!(
+            current.proofreading.disabled_rule_ids,
+            vec!["prh".to_string(), "whitespace.trailing".to_string()]
+        );
 
         let legacy = decode_settings(
             &json!({
@@ -92,6 +99,7 @@ mod tests {
         .expect("decode legacy settings");
         assert_eq!(legacy.logging.mode, LoggingMode::Off);
         assert_eq!(legacy.logging.retention_days, 14);
+        assert!(legacy.proofreading.disabled_rule_ids.is_empty());
     }
 
     #[test]
@@ -135,6 +143,9 @@ mod tests {
                 mode: LoggingMode::Standard,
                 retention_days: 99,
             },
+            proofreading: ProofreadingSettings {
+                disabled_rule_ids: vec![" whitespace.trailing ".to_string(), "prh".to_string()],
+            },
         })
         .expect("encode settings");
         let decoded: serde_json::Value = serde_json::from_str(&encoded).expect("decode json");
@@ -142,5 +153,9 @@ mod tests {
         assert_eq!(decoded["app"], json!("maildraft"));
         assert_eq!(decoded["version"], json!(SETTINGS_DOCUMENT_VERSION));
         assert_eq!(decoded["settings"]["logging"]["retentionDays"], json!(14));
+        assert_eq!(
+            decoded["settings"]["proofreading"]["disabledRuleIds"],
+            json!(["prh", "whitespace.trailing"])
+        );
     }
 }

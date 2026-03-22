@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
@@ -48,14 +49,31 @@ impl LoggingSettings {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
+pub struct ProofreadingSettings {
+    #[serde(default)]
+    pub disabled_rule_ids: Vec<String>,
+}
+
+impl ProofreadingSettings {
+    pub fn normalized(mut self) -> Self {
+        self.disabled_rule_ids = normalize_rule_ids(self.disabled_rule_ids);
+        self
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     #[serde(default)]
     pub logging: LoggingSettings,
+    #[serde(default)]
+    pub proofreading: ProofreadingSettings,
 }
 
 impl AppSettings {
     pub fn normalized(mut self) -> Self {
         self.logging = self.logging.normalized();
+        self.proofreading = self.proofreading.normalized();
         self
     }
 }
@@ -90,11 +108,53 @@ pub struct LoggingSettingsSnapshot {
     pub max_rotated_files: usize,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProofreadingSettingsInput {
+    pub disabled_rule_ids: Vec<String>,
+}
+
+impl ProofreadingSettingsInput {
+    pub fn into_settings(self) -> ProofreadingSettings {
+        ProofreadingSettings {
+            disabled_rule_ids: self.disabled_rule_ids,
+        }
+        .normalized()
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProofreadingSettingsSnapshot {
+    pub disabled_rule_ids: Vec<String>,
+}
+
+impl From<&ProofreadingSettings> for ProofreadingSettingsSnapshot {
+    fn from(settings: &ProofreadingSettings) -> Self {
+        Self {
+            disabled_rule_ids: settings.disabled_rule_ids.clone(),
+        }
+    }
+}
+
+fn normalize_rule_ids(rule_ids: Vec<String>) -> Vec<String> {
+    rule_ids
+        .into_iter()
+        .map(|rule_id| rule_id.trim().to_string())
+        .filter(|rule_id| !rule_id.is_empty())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use pretty_assertions::assert_eq;
 
-    use super::{AppSettings, LoggingMode, LoggingSettings, LoggingSettingsInput};
+    use super::{
+        AppSettings, LoggingMode, LoggingSettings, LoggingSettingsInput, ProofreadingSettings,
+        ProofreadingSettingsInput,
+    };
 
     #[test]
     fn logging_settings_normalized_limits_retention_days() {
@@ -134,8 +194,38 @@ mod tests {
                 mode: LoggingMode::Standard,
                 retention_days: 3,
             },
+            proofreading: ProofreadingSettings {
+                disabled_rule_ids: vec![
+                    " whitespace.trailing ".to_string(),
+                    "".to_string(),
+                    "whitespace.trailing".to_string(),
+                    "prh".to_string(),
+                ],
+            },
         }
         .normalized();
         assert_eq!(app_settings.logging.retention_days, 14);
+        assert_eq!(
+            app_settings.proofreading.disabled_rule_ids,
+            vec!["prh".to_string(), "whitespace.trailing".to_string()]
+        );
+    }
+
+    #[test]
+    fn proofreading_settings_normalize_rule_ids() {
+        let settings = ProofreadingSettingsInput {
+            disabled_rule_ids: vec![
+                " ".to_string(),
+                " prh ".to_string(),
+                "whitespace.trailing".to_string(),
+                "prh".to_string(),
+            ],
+        }
+        .into_settings();
+
+        assert_eq!(
+            settings.disabled_rule_ids,
+            vec!["prh".to_string(), "whitespace.trailing".to_string()]
+        );
     }
 }

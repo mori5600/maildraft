@@ -1,6 +1,6 @@
 import { RECENT_LOG_LIMIT } from "../model";
 
-export type SettingsSection = "logging" | "backup";
+export type SettingsSection = "logging" | "proofreading" | "backup";
 
 export const SETTINGS_SECTIONS: Array<{
   id: SettingsSection;
@@ -11,6 +11,11 @@ export const SETTINGS_SECTIONS: Array<{
     id: "logging",
     label: "ログ",
     description: "記録方法と診断ログ",
+  },
+  {
+    id: "proofreading",
+    label: "校正",
+    description: "無効化したルールの管理",
   },
   {
     id: "backup",

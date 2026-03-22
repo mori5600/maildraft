@@ -1,10 +1,15 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createLoggingSettingsSnapshot, createStoreSnapshot } from "../../test/ui-fixtures";
+import {
+  createLoggingSettingsSnapshot,
+  createProofreadingSettingsSnapshot,
+  createStoreSnapshot,
+} from "../../test/ui-fixtures";
 
 const apiMocks = vi.hoisted(() => ({
   loadLoggingSettings: vi.fn(),
+  loadProofreadingSettings: vi.fn(),
   loadSnapshot: vi.fn(),
   loadStartupNotice: vi.fn(),
 }));
@@ -12,6 +17,7 @@ const apiMocks = vi.hoisted(() => ({
 vi.mock("../../shared/api/maildraft-api", () => ({
   maildraftApi: {
     loadLoggingSettings: apiMocks.loadLoggingSettings,
+    loadProofreadingSettings: apiMocks.loadProofreadingSettings,
     loadSnapshot: apiMocks.loadSnapshot,
     loadStartupNotice: apiMocks.loadStartupNotice,
   },
@@ -32,6 +38,7 @@ function deferred<T>() {
 function createCallbacks() {
   return {
     hydrateLoggingSettings: vi.fn(),
+    hydrateProofreadingSettings: vi.fn(),
     hydrateSnapshot: vi.fn(),
     onClearError: vi.fn(),
     onError: vi.fn(),
@@ -49,10 +56,12 @@ describe("useAppBootstrap", () => {
   it("loads snapshot and logging settings and shows the default notice when startup is clean", async () => {
     const snapshot = createStoreSnapshot();
     const loggingSettings = createLoggingSettingsSnapshot();
+    const proofreadingSettings = createProofreadingSettingsSnapshot();
     const callbacks = createCallbacks();
 
     apiMocks.loadSnapshot.mockResolvedValue(snapshot);
     apiMocks.loadLoggingSettings.mockResolvedValue(loggingSettings);
+    apiMocks.loadProofreadingSettings.mockResolvedValue(proofreadingSettings);
     apiMocks.loadStartupNotice.mockResolvedValue(null);
 
     renderHook(() => useAppBootstrap(callbacks));
@@ -60,6 +69,7 @@ describe("useAppBootstrap", () => {
     await waitFor(() => {
       expect(callbacks.hydrateSnapshot).toHaveBeenCalledWith(snapshot);
       expect(callbacks.hydrateLoggingSettings).toHaveBeenCalledWith(loggingSettings);
+      expect(callbacks.hydrateProofreadingSettings).toHaveBeenCalledWith(proofreadingSettings);
     });
 
     expect(callbacks.onLoadingChange).toHaveBeenNthCalledWith(1, true);
@@ -73,10 +83,12 @@ describe("useAppBootstrap", () => {
   it("surfaces a startup notice with notice tone as-is", async () => {
     const snapshot = createStoreSnapshot();
     const loggingSettings = createLoggingSettingsSnapshot();
+    const proofreadingSettings = createProofreadingSettingsSnapshot();
     const callbacks = createCallbacks();
 
     apiMocks.loadSnapshot.mockResolvedValue(snapshot);
     apiMocks.loadLoggingSettings.mockResolvedValue(loggingSettings);
+    apiMocks.loadProofreadingSettings.mockResolvedValue(proofreadingSettings);
     apiMocks.loadStartupNotice.mockResolvedValue({
       message: "バックアップを読み込みました。",
       tone: "notice",
@@ -94,14 +106,19 @@ describe("useAppBootstrap", () => {
   it("uses the latest callbacks after rerender while an in-flight bootstrap resolves", async () => {
     const snapshot = createStoreSnapshot();
     const loggingSettings = createLoggingSettingsSnapshot();
+    const proofreadingSettings = createProofreadingSettingsSnapshot({
+      disabledRuleIds: ["prh"],
+    });
     const snapshotDeferred = deferred<typeof snapshot>();
     const loggingDeferred = deferred<typeof loggingSettings>();
+    const proofreadingDeferred = deferred<typeof proofreadingSettings>();
     const startupDeferred = deferred<{ message: string; tone: "warning" }>();
     const initialCallbacks = createCallbacks();
     const latestCallbacks = createCallbacks();
 
     apiMocks.loadSnapshot.mockReturnValue(snapshotDeferred.promise);
     apiMocks.loadLoggingSettings.mockReturnValue(loggingDeferred.promise);
+    apiMocks.loadProofreadingSettings.mockReturnValue(proofreadingDeferred.promise);
     apiMocks.loadStartupNotice.mockReturnValue(startupDeferred.promise);
 
     const { rerender } = renderHook((callbacks) => useAppBootstrap(callbacks), {
@@ -116,6 +133,7 @@ describe("useAppBootstrap", () => {
     rerender(latestCallbacks);
     snapshotDeferred.resolve(snapshot);
     loggingDeferred.resolve(loggingSettings);
+    proofreadingDeferred.resolve(proofreadingSettings);
     startupDeferred.resolve({
       message: "ローカルデータを復旧しました。",
       tone: "warning",
@@ -124,12 +142,16 @@ describe("useAppBootstrap", () => {
     await waitFor(() => {
       expect(latestCallbacks.hydrateSnapshot).toHaveBeenCalledWith(snapshot);
       expect(latestCallbacks.hydrateLoggingSettings).toHaveBeenCalledWith(loggingSettings);
+      expect(latestCallbacks.hydrateProofreadingSettings).toHaveBeenCalledWith(
+        proofreadingSettings,
+      );
       expect(latestCallbacks.onWarning).toHaveBeenCalledWith("ローカルデータを復旧しました。");
       expect(latestCallbacks.onLoadingChange).toHaveBeenCalledWith(false);
     });
 
     expect(initialCallbacks.hydrateSnapshot).not.toHaveBeenCalled();
     expect(initialCallbacks.hydrateLoggingSettings).not.toHaveBeenCalled();
+    expect(initialCallbacks.hydrateProofreadingSettings).not.toHaveBeenCalled();
     expect(initialCallbacks.onWarning).not.toHaveBeenCalled();
   });
 
@@ -138,6 +160,7 @@ describe("useAppBootstrap", () => {
 
     apiMocks.loadSnapshot.mockRejectedValue(new Error("読み込みに失敗しました。"));
     apiMocks.loadLoggingSettings.mockResolvedValue(createLoggingSettingsSnapshot());
+    apiMocks.loadProofreadingSettings.mockResolvedValue(createProofreadingSettingsSnapshot());
     apiMocks.loadStartupNotice.mockResolvedValue(null);
 
     renderHook(() => useAppBootstrap(callbacks));
@@ -148,6 +171,7 @@ describe("useAppBootstrap", () => {
 
     expect(callbacks.hydrateSnapshot).not.toHaveBeenCalled();
     expect(callbacks.hydrateLoggingSettings).not.toHaveBeenCalled();
+    expect(callbacks.hydrateProofreadingSettings).not.toHaveBeenCalled();
     expect(callbacks.onLoadingChange).toHaveBeenLastCalledWith(false);
   });
 });

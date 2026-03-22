@@ -1,14 +1,18 @@
 import { confirm, open, save } from "@tauri-apps/plugin-dialog";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import { BACKUP_FILE_FILTER, createBackupDefaultFileName } from "../../../shared/lib/backup";
 import type { StoreSnapshot } from "../../../shared/types/store";
+import { draftProofreadingRuleLabel } from "../../drafts/proofreading/model";
 import {
   createDefaultLoggingSettingsSnapshot,
+  createDefaultProofreadingSettingsSnapshot,
   type LogEntrySnapshot,
   type LoggingSettingsInput,
   type LoggingSettingsSnapshot,
+  normalizeProofreadingRuleIds,
+  type ProofreadingSettingsSnapshot,
   RECENT_LOG_LIMIT,
   toLoggingSettingsInput,
 } from "../model";
@@ -52,14 +56,31 @@ export function useSettingsWorkspaceState({
   const [loggingForm, setLoggingForm] = useState<LoggingSettingsInput>(
     toLoggingSettingsInput(createDefaultLoggingSettingsSnapshot()),
   );
+  const [proofreadingSettings, setProofreadingSettings] = useState<ProofreadingSettingsSnapshot>(
+    createDefaultProofreadingSettingsSnapshot(),
+  );
   const [recentLogs, setRecentLogs] = useState<LogEntrySnapshot[]>([]);
   const [isLoadingRecentLogs, setIsLoadingRecentLogs] = useState(false);
   const [isExportingBackup, setIsExportingBackup] = useState(false);
   const [isImportingBackup, setIsImportingBackup] = useState(false);
+  const [isSavingProofreadingSettings, setIsSavingProofreadingSettings] = useState(false);
+  const proofreadingSettingsRef = useRef(proofreadingSettings);
+
+  useEffect(() => {
+    proofreadingSettingsRef.current = proofreadingSettings;
+  }, [proofreadingSettings]);
 
   function hydrateLoggingSettings(nextLoggingSettings: LoggingSettingsSnapshot) {
     setLoggingSettings(nextLoggingSettings);
     setLoggingForm(toLoggingSettingsInput(nextLoggingSettings));
+  }
+
+  function hydrateProofreadingSettings(nextProofreadingSettings: ProofreadingSettingsSnapshot) {
+    const normalized = {
+      disabledRuleIds: normalizeProofreadingRuleIds(nextProofreadingSettings.disabledRuleIds),
+    };
+    proofreadingSettingsRef.current = normalized;
+    setProofreadingSettings(normalized);
   }
 
   function changeLogging<K extends keyof LoggingSettingsInput>(
@@ -93,6 +114,61 @@ export function useSettingsWorkspaceState({
     } catch (clearError) {
       onError(toErrorMessage(clearError));
     }
+  }
+
+  async function saveProofreadingRuleIds(
+    nextRuleIds: string[],
+    successMessage: string,
+  ): Promise<void> {
+    try {
+      onClearError();
+      setIsSavingProofreadingSettings(true);
+      const nextProofreadingSettings = await maildraftApi.saveProofreadingSettings({
+        disabledRuleIds: normalizeProofreadingRuleIds(nextRuleIds),
+      });
+      hydrateProofreadingSettings(nextProofreadingSettings);
+      onNotice(successMessage);
+    } catch (saveError) {
+      onError(toErrorMessage(saveError));
+    } finally {
+      setIsSavingProofreadingSettings(false);
+    }
+  }
+
+  async function disableProofreadingRule(ruleId: string) {
+    const normalizedRuleId = normalizeProofreadingRuleIds([ruleId])[0];
+    const currentRuleIds = proofreadingSettingsRef.current.disabledRuleIds;
+
+    if (!normalizedRuleId || currentRuleIds.includes(normalizedRuleId)) {
+      return;
+    }
+
+    await saveProofreadingRuleIds(
+      [...currentRuleIds, normalizedRuleId],
+      `校正ルール「${draftProofreadingRuleLabel(normalizedRuleId)}」を無効化しました。`,
+    );
+  }
+
+  async function enableProofreadingRule(ruleId: string) {
+    const normalizedRuleId = normalizeProofreadingRuleIds([ruleId])[0];
+    const currentRuleIds = proofreadingSettingsRef.current.disabledRuleIds;
+
+    if (!normalizedRuleId || !currentRuleIds.includes(normalizedRuleId)) {
+      return;
+    }
+
+    await saveProofreadingRuleIds(
+      currentRuleIds.filter((currentRuleId) => currentRuleId !== normalizedRuleId),
+      `校正ルール「${draftProofreadingRuleLabel(normalizedRuleId)}」を有効化しました。`,
+    );
+  }
+
+  async function resetDisabledProofreadingRules() {
+    if (proofreadingSettingsRef.current.disabledRuleIds.length === 0) {
+      return;
+    }
+
+    await saveProofreadingRuleIds([], "無効化していた校正ルールをすべて有効化しました。");
   }
 
   async function refreshRecentLogs({ silent = false }: { silent?: boolean } = {}) {
@@ -169,6 +245,7 @@ export function useSettingsWorkspaceState({
       const imported = await maildraftApi.importBackup(selected);
       onBackupImported(imported.snapshot);
       hydrateLoggingSettings(imported.loggingSettings);
+      hydrateProofreadingSettings(imported.proofreadingSettings);
       onNotice("バックアップを読み込みました。");
     } catch (importError) {
       onError(toErrorMessage(importError));
@@ -179,17 +256,25 @@ export function useSettingsWorkspaceState({
 
   return {
     hydrateLoggingSettings,
+    hydrateProofreadingSettings,
+    disableProofreadingRule,
+    enableProofreadingRule,
+    resetDisabledProofreadingRules,
     saveLoggingSettings,
     settingsWorkspaceProps: {
       isExportingBackup,
       isImportingBackup,
       isLoadingRecentLogs,
+      isSavingProofreadingSettings,
       loggingForm,
       loggingSettings,
+      proofreadingSettings,
       onChangeLogging: changeLogging,
       onClearLogs: clearLogs,
+      onEnableProofreadingRule: enableProofreadingRule,
       onExportBackup: exportBackup,
       onImportBackup: importBackup,
+      onResetDisabledProofreadingRules: resetDisabledProofreadingRules,
       onRefreshRecentLogs: refreshRecentLogs,
       onSaveLoggingSettings: saveLoggingSettings,
       recentLogs,

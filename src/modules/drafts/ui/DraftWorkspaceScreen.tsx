@@ -8,6 +8,8 @@ import {
 import { DraftWorkspace } from "./DraftWorkspace";
 
 interface DraftWorkspaceScreenProps {
+  disabledProofreadingRuleIds: string[];
+  onDisableProofreadingRule: (ruleId: string) => Promise<void>;
   onClearError: () => void;
   onError: (message: string) => void;
   onNotice: (message: string) => void;
@@ -20,10 +22,21 @@ export type { DraftWorkspaceHandle } from "../state/use-draft-workspace-state";
 
 export const DraftWorkspaceScreen = forwardRef<DraftWorkspaceHandle, DraftWorkspaceScreenProps>(
   function DraftWorkspaceScreen(
-    { onClearError, onError, onNotice, onSnapshotChange, showWhitespace, snapshot },
+    {
+      disabledProofreadingRuleIds,
+      onClearError,
+      onDisableProofreadingRule,
+      onError,
+      onNotice,
+      onSnapshotChange,
+      showWhitespace,
+      snapshot,
+    },
     ref,
   ) {
     const state = useDraftWorkspaceState({
+      disabledRuleIds: disabledProofreadingRuleIds,
+      onDisableProofreadingRule,
       onClearError,
       onError,
       onNotice,

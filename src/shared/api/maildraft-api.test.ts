@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DraftInput } from "../../modules/drafts/model";
 import type { VariablePresetInput } from "../../modules/drafts/variable-presets";
-import type { LoggingSettingsInput } from "../../modules/settings/model";
+import type { LoggingSettingsInput, ProofreadingSettingsInput } from "../../modules/settings/model";
 import type { SignatureInput } from "../../modules/signatures/model";
 import type { TemplateInput } from "../../modules/templates/model";
 
@@ -64,6 +64,10 @@ const SIGNATURE_INPUT: SignatureInput = {
 const LOGGING_SETTINGS_INPUT: LoggingSettingsInput = {
   mode: "errors_only",
   retentionDays: 14,
+};
+
+const PROOFREADING_SETTINGS_INPUT: ProofreadingSettingsInput = {
+  disabledRuleIds: ["whitespace.trailing", "prh"],
 };
 
 describe("maildraftApi", () => {
@@ -161,6 +165,10 @@ describe("maildraftApi", () => {
       run: () => maildraftApi.loadLoggingSettings(),
     },
     {
+      expectedArgs: ["load_proofreading_settings"],
+      run: () => maildraftApi.loadProofreadingSettings(),
+    },
+    {
       expectedArgs: ["export_backup", { path: "/tmp/backup.json" }],
       run: () => maildraftApi.exportBackup("/tmp/backup.json"),
     },
@@ -179,6 +187,10 @@ describe("maildraftApi", () => {
     {
       expectedArgs: ["save_logging_settings", { input: LOGGING_SETTINGS_INPUT }],
       run: () => maildraftApi.saveLoggingSettings(LOGGING_SETTINGS_INPUT),
+    },
+    {
+      expectedArgs: ["save_proofreading_settings", { input: PROOFREADING_SETTINGS_INPUT }],
+      run: () => maildraftApi.saveProofreadingSettings(PROOFREADING_SETTINGS_INPUT),
     },
     {
       expectedArgs: ["clear_logs"],

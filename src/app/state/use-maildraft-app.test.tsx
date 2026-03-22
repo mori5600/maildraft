@@ -5,6 +5,7 @@ import {
   createDraftInput,
   createLoggingSettingsSnapshot,
   createMemoInput,
+  createProofreadingSettingsSnapshot,
   createSignature,
   createStoreSnapshot,
   createTemplate,
@@ -28,6 +29,8 @@ const mockState = vi.hoisted(() => ({
   signatureSave: vi.fn(async () => {}),
   signatureTogglePinned: vi.fn(),
   settingsHydrateLogging: vi.fn(),
+  settingsHydrateProofreading: vi.fn(),
+  settingsDisableProofreadingRule: vi.fn(async () => {}),
   settingsSaveLogging: vi.fn(async () => {}),
   memoOptions: [] as Array<{
     onOpenDraftInput: (input: ReturnType<typeof createDraftInput>) => void;
@@ -45,6 +48,9 @@ const mockState = vi.hoisted(() => ({
   }>,
   bootstrapOptions: [] as Array<{
     hydrateLoggingSettings: (settings: ReturnType<typeof createLoggingSettingsSnapshot>) => void;
+    hydrateProofreadingSettings: (
+      settings: ReturnType<typeof createProofreadingSettingsSnapshot>,
+    ) => void;
     hydrateSnapshot: (snapshot: ReturnType<typeof createStoreSnapshot>) => void;
     onClearError: () => void;
     onError: (message: string) => void;
@@ -224,10 +230,15 @@ vi.mock("../../modules/settings/state/use-settings-workspace-state", () => ({
   }) => {
     mockState.settingsOptions.push(options);
     return {
+      disableProofreadingRule: mockState.settingsDisableProofreadingRule,
       hydrateLoggingSettings: mockState.settingsHydrateLogging,
+      hydrateProofreadingSettings: mockState.settingsHydrateProofreading,
       saveLoggingSettings: mockState.settingsSaveLogging,
       settingsWorkspaceProps: {
         loggingSettings: createLoggingSettingsSnapshot(),
+        proofreadingSettings: createProofreadingSettingsSnapshot({
+          disabledRuleIds: ["prh"],
+        }),
       },
     };
   },
@@ -263,6 +274,9 @@ vi.mock("../../modules/trash/state/use-trash-workspace-state", () => ({
 vi.mock("./use-app-bootstrap", () => ({
   useAppBootstrap: (options: {
     hydrateLoggingSettings: (settings: ReturnType<typeof createLoggingSettingsSnapshot>) => void;
+    hydrateProofreadingSettings: (
+      settings: ReturnType<typeof createProofreadingSettingsSnapshot>,
+    ) => void;
     hydrateSnapshot: (snapshot: ReturnType<typeof createStoreSnapshot>) => void;
     onClearError: () => void;
     onError: (message: string) => void;
@@ -357,6 +371,7 @@ describe("useMaildraftApp", () => {
     expect(result.current.templateWorkspaceProps.showWhitespace).toBe(true);
     expect(result.current.signatureWorkspaceProps.showWhitespace).toBe(true);
     expect(result.current.trashWorkspaceProps.showWhitespace).toBe(true);
+    expect(result.current.draftWorkspaceProps.disabledProofreadingRuleIds).toEqual(["prh"]);
 
     act(() => {
       mockState.shortcutOptions[mockState.shortcutOptions.length - 1]?.actions.createDraft();
@@ -467,6 +482,10 @@ describe("useMaildraftApp", () => {
       result.current.draftWorkspaceProps.onNotice("下書き通知");
     });
     expect(result.current.notice).toBe("下書き通知");
+    act(() => {
+      void result.current.draftWorkspaceProps.onDisableProofreadingRule("whitespace.trailing");
+    });
+    expect(mockState.settingsDisableProofreadingRule).toHaveBeenCalledWith("whitespace.trailing");
 
     const nextSnapshot = createStoreSnapshot({
       memos: [createStoreSnapshot().memos[0]],
@@ -575,6 +594,9 @@ describe("useMaildraftApp", () => {
       bootstrap?.onClearError();
       bootstrap?.onNotice("読み込み完了");
       bootstrap?.hydrateLoggingSettings(createLoggingSettingsSnapshot({ mode: "standard" }));
+      bootstrap?.hydrateProofreadingSettings(
+        createProofreadingSettingsSnapshot({ disabledRuleIds: ["whitespace.trailing"] }),
+      );
       bootstrap?.hydrateSnapshot(nextSnapshot);
     });
 
@@ -583,6 +605,7 @@ describe("useMaildraftApp", () => {
     expect(result.current.warning).toBeNull();
     expect(result.current.notice).toBe("読み込み完了");
     expect(mockState.settingsHydrateLogging).toHaveBeenCalled();
+    expect(mockState.settingsHydrateProofreading).toHaveBeenCalled();
     expect(mockState.memoHydrate).toHaveBeenCalledWith(nextSnapshot);
     expect(mockState.templateHydrate).toHaveBeenCalledWith(nextSnapshot, "template-restored");
     expect(mockState.signatureHydrate).toHaveBeenCalledWith(nextSnapshot, "signature-restored");

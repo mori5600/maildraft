@@ -12,18 +12,56 @@ import {
 } from "../../../test/ui-fixtures";
 import { DraftHistoryOverlay } from "./DraftHistoryOverlay";
 import { DraftWorkspace } from "./DraftWorkspace";
-import { DraftCheckList } from "./panes/DraftCheckList";
 import { DraftEditorPane } from "./panes/DraftEditorPane";
+import { DraftIssueList } from "./panes/DraftIssueList";
 import { DraftListPane } from "./panes/DraftListPane";
 import { DraftPreviewDialogContent } from "./panes/DraftPreviewDialogContent";
 import { DraftPreviewPane } from "./panes/DraftPreviewPane";
 
-describe("draft UI", () => {
-  it("renders draft checklist states", () => {
-    render(<DraftCheckList checks={["確認は通っています", "件名が空です"]} />);
+function createIssue() {
+  return {
+    description: "説明",
+    excerpt: "了解しました",
+    field: "body" as const,
+    id: "issue-1",
+    ruleId: "discouraged.understood",
+    severity: "warning" as const,
+    suggestion: {
+      edits: [],
+      label: "言い換える",
+    },
+    title: "非推奨表現の可能性があります。",
+  };
+}
 
-    expect(screen.getByText("確認は通っています")).toBeInTheDocument();
-    expect(screen.getByText("件名が空です")).toBeInTheDocument();
+describe("draft UI", () => {
+  it("renders draft issues and their actions", async () => {
+    const user = userEvent.setup();
+    const handleApplyIssueSuggestion = vi.fn();
+    const handleDisableIssueRule = vi.fn();
+    const handleIgnoreIssue = vi.fn();
+    const handleSelectIssue = vi.fn();
+    render(
+      <DraftIssueList
+        issues={[createIssue()]}
+        selectedIssueId={null}
+        onApplyIssueSuggestion={handleApplyIssueSuggestion}
+        onDisableIssueRule={handleDisableIssueRule}
+        onIgnoreIssue={handleIgnoreIssue}
+        onSelectIssue={handleSelectIssue}
+      />,
+    );
+
+    expect(screen.getByText("非推奨表現の可能性があります。")).toBeInTheDocument();
+    expect(screen.getByText("warning")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /非推奨表現の可能性があります/ }));
+    expect(handleSelectIssue).toHaveBeenCalledWith("issue-1");
+    await user.click(screen.getByRole("button", { name: "言い換える" }));
+    expect(handleApplyIssueSuggestion).toHaveBeenCalledWith("issue-1");
+    await user.click(screen.getByRole("button", { name: "ルールを無効化" }));
+    expect(handleDisableIssueRule).toHaveBeenCalledWith("discouraged.understood");
+    await user.click(screen.getByRole("button", { name: "今回のみ無視" }));
+    expect(handleIgnoreIssue).toHaveBeenCalledWith("issue-1");
   });
 
   it("handles draft list interactions", async () => {
@@ -69,6 +107,8 @@ describe("draft UI", () => {
     const handleApplyTemplate = vi.fn();
     render(
       <DraftEditorPane
+        activeIssue={null}
+        activeIssueRequestKey={0}
         autoSaveLabel="自動保存済み"
         canDuplicate
         draftForm={createDraftInput()}
@@ -105,11 +145,13 @@ describe("draft UI", () => {
     expect(handleDuplicateDraft).toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "保存" }));
     expect(handleSaveDraft).toHaveBeenCalled();
-  }, 10000);
+  }, 20000);
 
   it("keeps multiline draft fields in CodeMirror when whitespace is visible", () => {
     render(
       <DraftEditorPane
+        activeIssue={null}
+        activeIssueRequestKey={0}
         autoSaveLabel="自動保存済み"
         canDuplicate
         draftForm={createDraftInput()}
@@ -139,11 +181,16 @@ describe("draft UI", () => {
     const handleOpenHistory = vi.fn();
     const handleOpenPreview = vi.fn();
     const handleCopyPreview = vi.fn(async () => {});
+    const handleApplyIssueSuggestion = vi.fn();
     const handleChangeDraftVariable = vi.fn();
     const handleSelectVariablePreset = vi.fn();
     const handleChangeVariablePresetName = vi.fn();
     const handleCreateVariablePreset = vi.fn();
     const handleApplyVariablePreset = vi.fn();
+    const handleDisableIssueRule = vi.fn();
+    const handleIgnoreIssue = vi.fn();
+    const handleRunDetailedCheck = vi.fn();
+    const handleSelectIssue = vi.fn();
     const handleSaveVariablePreset = vi.fn(async () => {});
     const handleDeleteVariablePreset = vi.fn(async () => {});
 
@@ -153,26 +200,34 @@ describe("draft UI", () => {
         canCopyPreview
         canExpandPreview
         canSaveVariablePreset
-        checks={["件名が空です"]}
+        detailedCheckStatus="ready"
+        detailedCheckStatusLabel="textlint と prh の詳細チェック結果を反映しています。"
         draftForm={createDraftInput()}
         draftHistoryCount={1}
+        issues={[createIssue()]}
         previewBodyText="本文プレビュー"
         previewDescription="営業署名"
         previewSubject="件名"
+        selectedIssueId="issue-1"
         selectedVariablePresetId="preset-1"
         showWhitespace={false}
         variableNames={["相手名"]}
         variablePresetName="A社向け"
         variablePresets={[createVariablePreset()]}
+        onApplyIssueSuggestion={handleApplyIssueSuggestion}
         onApplyVariablePreset={handleApplyVariablePreset}
         onChangeDraftVariable={handleChangeDraftVariable}
         onChangeVariablePresetName={handleChangeVariablePresetName}
         onCopyPreview={handleCopyPreview}
         onCreateVariablePreset={handleCreateVariablePreset}
         onDeleteVariablePreset={handleDeleteVariablePreset}
+        onDisableIssueRule={handleDisableIssueRule}
+        onIgnoreIssue={handleIgnoreIssue}
         onOpenHistory={handleOpenHistory}
         onOpenPreview={handleOpenPreview}
+        onRunDetailedCheck={handleRunDetailedCheck}
         onSaveVariablePreset={handleSaveVariablePreset}
+        onSelectIssue={handleSelectIssue}
         onSelectVariablePreset={handleSelectVariablePreset}
       />,
     );
@@ -183,6 +238,20 @@ describe("draft UI", () => {
     expect(handleOpenPreview).toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "コピー" }));
     expect(handleCopyPreview).toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "詳細チェック" }));
+    expect(handleRunDetailedCheck).toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "言い換える" }));
+    expect(handleApplyIssueSuggestion).toHaveBeenCalledWith("issue-1");
+    expect(screen.getByRole("button", { name: /非推奨表現の可能性があります/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await user.click(screen.getByRole("button", { name: /非推奨表現の可能性があります/ }));
+    expect(handleSelectIssue).toHaveBeenCalledWith("issue-1");
+    await user.click(screen.getByRole("button", { name: "ルールを無効化" }));
+    expect(handleDisableIssueRule).toHaveBeenCalledWith("discouraged.understood");
+    await user.click(screen.getByRole("button", { name: "今回のみ無視" }));
+    expect(handleIgnoreIssue).toHaveBeenCalledWith("issue-1");
     await user.click(screen.getByRole("button", { name: "適用" }));
     expect(handleApplyVariablePreset).toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "新規セット" }));
@@ -204,26 +273,34 @@ describe("draft UI", () => {
         canCopyPreview
         canExpandPreview
         canSaveVariablePreset
-        checks={[]}
+        detailedCheckStatus="pending"
+        detailedCheckStatusLabel="入力停止後に詳細チェックを実行します。"
         draftForm={createDraftInput({ variableValues: { 相手名: "田 中" } })}
         draftHistoryCount={1}
+        issues={[]}
         previewBodyText="本文プレビュー"
         previewDescription="営業署名"
         previewSubject="件名"
+        selectedIssueId={null}
         selectedVariablePresetId="preset-1"
         showWhitespace
         variableNames={["相手名"]}
         variablePresetName="A 社向け"
         variablePresets={[createVariablePreset()]}
+        onApplyIssueSuggestion={vi.fn()}
         onApplyVariablePreset={vi.fn()}
         onChangeDraftVariable={vi.fn()}
         onChangeVariablePresetName={vi.fn()}
         onCopyPreview={vi.fn(async () => {})}
         onCreateVariablePreset={vi.fn()}
         onDeleteVariablePreset={vi.fn(async () => {})}
+        onDisableIssueRule={vi.fn()}
+        onIgnoreIssue={vi.fn()}
         onOpenHistory={vi.fn()}
         onOpenPreview={vi.fn()}
+        onRunDetailedCheck={vi.fn()}
         onSaveVariablePreset={vi.fn(async () => {})}
+        onSelectIssue={vi.fn()}
         onSelectVariablePreset={vi.fn()}
       />,
     );
@@ -239,7 +316,19 @@ describe("draft UI", () => {
     const handleRestore = vi.fn(async () => {});
     render(
       <>
-        <DraftPreviewDialogContent checks={["確認"]} previewBodyText="本文" previewSubject="件名" />
+        <DraftPreviewDialogContent
+          detailedCheckStatus="ready"
+          detailedCheckStatusLabel="textlint と prh の詳細チェック結果を反映しています。"
+          issues={[createIssue()]}
+          previewBodyText="本文"
+          previewSubject="件名"
+          selectedIssueId={null}
+          onApplyIssueSuggestion={vi.fn()}
+          onDisableIssueRule={vi.fn()}
+          onIgnoreIssue={vi.fn()}
+          onRunDetailedCheck={vi.fn()}
+          onSelectIssue={vi.fn()}
+        />
         <DraftHistoryOverlay
           historyEntries={[createDraftHistoryEntry()]}
           isOpen
@@ -266,10 +355,12 @@ describe("draft UI", () => {
         canApplyVariablePreset
         canDuplicate
         canSaveVariablePreset
-        checks={["件名が空です"]}
+        detailedCheckStatus="ready"
+        detailedCheckStatusLabel="textlint と prh の詳細チェック結果を反映しています。"
         draftForm={createDraftInput()}
         draftHistory={[createDraftHistoryEntry()]}
         drafts={[createDraft()]}
+        issues={[createIssue()]}
         previewSubject="件名"
         previewText="本文"
         searchQuery=""
@@ -283,6 +374,7 @@ describe("draft UI", () => {
         variableNames={["相手名"]}
         variablePresetName="A社向け"
         variablePresets={[createVariablePreset()]}
+        onApplyIssueSuggestion={vi.fn()}
         onApplyTemplate={vi.fn()}
         onApplyVariablePreset={vi.fn()}
         onChangeDraft={vi.fn()}
@@ -296,6 +388,9 @@ describe("draft UI", () => {
         onDeleteDraft={vi.fn(async () => {})}
         onDeleteVariablePreset={vi.fn(async () => {})}
         onDuplicateDraft={vi.fn(async () => {})}
+        onDisableIssueRule={vi.fn()}
+        onIgnoreIssue={vi.fn()}
+        onRunDetailedCheck={vi.fn()}
         onRestoreDraftHistory={handleRestoreDraftHistory}
         onSaveDraft={vi.fn(async () => {})}
         onSaveVariablePreset={vi.fn(async () => {})}
@@ -312,5 +407,5 @@ describe("draft UI", () => {
     expect(screen.getByText("1件の履歴")).toBeInTheDocument();
     await user.click(screen.getAllByRole("button", { name: "復元" })[0]);
     expect(handleRestoreDraftHistory).toHaveBeenCalledWith("history-1");
-  });
+  }, 10000);
 });

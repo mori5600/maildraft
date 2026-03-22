@@ -3,9 +3,12 @@ import type { VariablePreset } from "../modules/drafts/variable-presets";
 import type { Memo, MemoInput } from "../modules/memo/model";
 import {
   createDefaultLoggingSettingsSnapshot,
+  createDefaultProofreadingSettingsSnapshot,
   type LogEntrySnapshot,
   type LoggingSettingsInput,
   type LoggingSettingsSnapshot,
+  type ProofreadingSettingsInput,
+  type ProofreadingSettingsSnapshot,
 } from "../modules/settings/model";
 import type { Signature, SignatureInput } from "../modules/signatures/model";
 import type { Template, TemplateInput } from "../modules/templates/model";
@@ -162,6 +165,24 @@ export function createLoggingSettingsInput(
   return {
     mode: "errors_only",
     retentionDays: 14,
+    ...overrides,
+  };
+}
+
+export function createProofreadingSettingsSnapshot(
+  overrides: Partial<ProofreadingSettingsSnapshot> = {},
+): ProofreadingSettingsSnapshot {
+  return {
+    ...createDefaultProofreadingSettingsSnapshot(),
+    ...overrides,
+  };
+}
+
+export function createProofreadingSettingsInput(
+  overrides: Partial<ProofreadingSettingsInput> = {},
+): ProofreadingSettingsInput {
+  return {
+    disabledRuleIds: [],
     ...overrides,
   };
 }

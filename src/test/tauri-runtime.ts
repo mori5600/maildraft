@@ -7,12 +7,15 @@ import type {
   LogEntrySnapshot,
   LoggingSettingsInput,
   LoggingSettingsSnapshot,
+  ProofreadingSettingsInput,
+  ProofreadingSettingsSnapshot,
 } from "../modules/settings/model";
 import type { StartupNoticeSnapshot, StoreSnapshot } from "../shared/types/store";
 import {
   createDraft,
   createLogEntry,
   createLoggingSettingsSnapshot,
+  createProofreadingSettingsSnapshot,
   createStoreSnapshot,
 } from "./ui-fixtures";
 
@@ -35,12 +38,14 @@ function toStoredDraft(input: DraftInput, previous: Draft | null): Draft {
 export interface MockTauriRuntime {
   commandCalls: Array<{ cmd: string; payload?: unknown }>;
   getLoggingSettings: () => LoggingSettingsSnapshot;
+  getProofreadingSettings: () => ProofreadingSettingsSnapshot;
   getRecentLogs: () => LogEntrySnapshot[];
   getSnapshot: () => StoreSnapshot;
 }
 
 interface MockTauriRuntimeOptions {
   loggingSettings?: LoggingSettingsSnapshot;
+  proofreadingSettings?: ProofreadingSettingsSnapshot;
   recentLogs?: LogEntrySnapshot[];
   snapshot?: StoreSnapshot;
   startupNotice?: StartupNoticeSnapshot | null;
@@ -49,6 +54,9 @@ interface MockTauriRuntimeOptions {
 export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): MockTauriRuntime {
   const snapshot = cloneData(options.snapshot ?? createStoreSnapshot());
   let loggingSettings = cloneData(options.loggingSettings ?? createLoggingSettingsSnapshot());
+  let proofreadingSettings = cloneData(
+    options.proofreadingSettings ?? createProofreadingSettingsSnapshot(),
+  );
   const recentLogs = cloneData(options.recentLogs ?? [createLogEntry()]);
   const startupNotice = cloneData(options.startupNotice ?? null);
   const commandCalls: Array<{ cmd: string; payload?: unknown }> = [];
@@ -67,6 +75,8 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
         return cloneData(startupNotice);
       case "load_logging_settings":
         return cloneData(loggingSettings);
+      case "load_proofreading_settings":
+        return cloneData(proofreadingSettings);
       case "load_recent_logs": {
         const limit =
           typeof (payload as { limit?: number } | undefined)?.limit === "number"
@@ -155,6 +165,15 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
           ...input,
         };
         return cloneData(loggingSettings);
+      }
+      case "save_proofreading_settings": {
+        const input = (payload as { input: ProofreadingSettingsInput }).input;
+        proofreadingSettings = {
+          disabledRuleIds: [...new Set(input.disabledRuleIds.map((ruleId) => ruleId.trim()))]
+            .filter((ruleId) => ruleId.length > 0)
+            .sort((left, right) => left.localeCompare(right, "ja")),
+        };
+        return cloneData(proofreadingSettings);
       }
       case "restore_draft_from_trash": {
         const id = (payload as { id: string }).id;
@@ -287,6 +306,7 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
   return {
     commandCalls,
     getLoggingSettings: () => cloneData(loggingSettings),
+    getProofreadingSettings: () => cloneData(proofreadingSettings),
     getRecentLogs: () => cloneData(recentLogs),
     getSnapshot: () => cloneData(snapshot),
   };

@@ -8,6 +8,8 @@ import type {
   LogEntrySnapshot,
   LoggingSettingsInput,
   LoggingSettingsSnapshot,
+  ProofreadingSettingsInput,
+  ProofreadingSettingsSnapshot,
 } from "../../modules/settings/model";
 import type { SignatureInput } from "../../modules/signatures/model";
 import type { TemplateInput } from "../../modules/templates/model";
@@ -119,6 +121,10 @@ export const maildraftApi = {
     return invoke<LoggingSettingsSnapshot>("load_logging_settings");
   },
 
+  loadProofreadingSettings() {
+    return invoke<ProofreadingSettingsSnapshot>("load_proofreading_settings");
+  },
+
   exportBackup(path: string) {
     return invoke<string>("export_backup", { path });
   },
@@ -133,6 +139,10 @@ export const maildraftApi = {
 
   saveLoggingSettings(input: LoggingSettingsInput) {
     return invoke<LoggingSettingsSnapshot>("save_logging_settings", { input });
+  },
+
+  saveProofreadingSettings(input: ProofreadingSettingsInput) {
+    return invoke<ProofreadingSettingsSnapshot>("save_proofreading_settings", { input });
   },
 
   clearLogs() {

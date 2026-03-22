@@ -30,9 +30,17 @@
     "@tauri-apps/plugin-clipboard-manager": "^2.3.2",
     "@tauri-apps/plugin-dialog": "^2.6.0",
     "@tauri-apps/plugin-opener": "^2",
+    "@textlint-rule/textlint-rule-no-invalid-control-character": "^3.0.0",
+    "@textlint/kernel": "^15.5.2",
+    "@textlint/textlint-plugin-text": "^15.5.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "tailwindcss": "^4.2.1"
+    "tailwindcss": "^4.2.1",
+    "textlint-rule-no-kangxi-radicals": "^0.2.2",
+    "textlint-rule-no-nfd": "^2.0.2",
+    "textlint-rule-no-zero-width-spaces": "^1.0.1",
+    "textlint-rule-prh": "^6.1.0",
+    "textlint-rule-sentence-length": "^5.2.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

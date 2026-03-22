@@ -1,6 +1,7 @@
 import {
   type ButtonHTMLAttributes,
   type ComponentPropsWithoutRef,
+  forwardRef,
   type InputHTMLAttributes,
   type PropsWithChildren,
   type SelectHTMLAttributes,
@@ -126,17 +127,20 @@ export function Textarea({
   );
 }
 
-export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select
-      className={cn(
-        "mail-focus-ring w-full rounded-[7px] border border-(--color-field-border) bg-(--color-field-bg) px-3 py-2 text-[13px] text-(--color-text-strong) transition-colors outline-none",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
+export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(
+  function Select({ className, ...props }, ref) {
+    return (
+      <select
+        ref={ref}
+        className={cn(
+          "mail-focus-ring w-full rounded-[7px] border border-(--color-field-border) bg-(--color-field-bg) px-3 py-2 text-[13px] text-(--color-text-strong) transition-colors outline-none",
+          className,
+        )}
+        {...props}
+      />
+    );
+  },
+);
 
 export function Pill({
   children,

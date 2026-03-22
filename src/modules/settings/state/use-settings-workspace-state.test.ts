@@ -5,6 +5,7 @@ import { maildraftApi } from "../../../shared/api/maildraft-api";
 import {
   createLogEntry,
   createLoggingSettingsSnapshot,
+  createProofreadingSettingsSnapshot,
   createStoreSnapshot,
 } from "../../../test/ui-fixtures";
 import { useSettingsWorkspaceState } from "./use-settings-workspace-state";
@@ -97,6 +98,68 @@ describe("settings workspace state", () => {
     expect(onError).not.toHaveBeenCalled();
     expect(onNotice).toHaveBeenCalledWith("ログ設定を保存しました。");
     expect(onBackupImported).not.toHaveBeenCalled();
+  });
+
+  it("saves proofreading settings and supports re-enabling disabled rules", async () => {
+    const onClearError = vi.fn();
+    const onError = vi.fn();
+    const onNotice = vi.fn();
+
+    vi.spyOn(maildraftApi, "saveProofreadingSettings")
+      .mockResolvedValueOnce(
+        createProofreadingSettingsSnapshot({
+          disabledRuleIds: ["prh", "whitespace.trailing"],
+        }),
+      )
+      .mockResolvedValueOnce(
+        createProofreadingSettingsSnapshot({
+          disabledRuleIds: ["whitespace.trailing"],
+        }),
+      );
+
+    const { result } = renderHook(() =>
+      useSettingsWorkspaceState({
+        onBackupImported: vi.fn(),
+        onClearError,
+        onError,
+        onNotice,
+      }),
+    );
+
+    act(() => {
+      result.current.hydrateProofreadingSettings(
+        createProofreadingSettingsSnapshot({
+          disabledRuleIds: ["prh"],
+        }),
+      );
+    });
+
+    await act(async () => {
+      await result.current.disableProofreadingRule(" whitespace.trailing ");
+    });
+
+    expect(maildraftApi.saveProofreadingSettings).toHaveBeenNthCalledWith(1, {
+      disabledRuleIds: ["prh", "whitespace.trailing"],
+    });
+    expect(result.current.settingsWorkspaceProps.proofreadingSettings.disabledRuleIds).toEqual([
+      "prh",
+      "whitespace.trailing",
+    ]);
+
+    await act(async () => {
+      await result.current.settingsWorkspaceProps.onEnableProofreadingRule("prh");
+    });
+
+    expect(maildraftApi.saveProofreadingSettings).toHaveBeenNthCalledWith(2, {
+      disabledRuleIds: ["whitespace.trailing"],
+    });
+    expect(result.current.settingsWorkspaceProps.proofreadingSettings.disabledRuleIds).toEqual([
+      "whitespace.trailing",
+    ]);
+    expect(onClearError).toHaveBeenCalledTimes(2);
+    expect(onError).not.toHaveBeenCalled();
+    expect(onNotice).toHaveBeenCalledWith("校正ルール「行末スペース」を無効化しました。");
+    expect(onNotice).toHaveBeenCalledWith("校正ルール「prh 言い換え」を有効化しました。");
   });
 
   it("clears logs and resets recent log state", async () => {
@@ -265,6 +328,7 @@ describe("settings workspace state", () => {
     const onNotice = vi.fn();
     const importDeferred = deferred<{
       loggingSettings: ReturnType<typeof createLoggingSettingsSnapshot>;
+      proofreadingSettings: ReturnType<typeof createProofreadingSettingsSnapshot>;
       snapshot: ReturnType<typeof createStoreSnapshot>;
     }>();
 
@@ -307,6 +371,9 @@ describe("settings workspace state", () => {
         mode: "standard",
         retentionDays: 30,
       }),
+      proofreadingSettings: createProofreadingSettingsSnapshot({
+        disabledRuleIds: ["prh"],
+      }),
       snapshot: createStoreSnapshot({
         drafts: [],
         draftHistory: [],
@@ -327,6 +394,9 @@ describe("settings workspace state", () => {
       mode: "standard",
       retentionDays: 30,
     });
+    expect(result.current.settingsWorkspaceProps.proofreadingSettings.disabledRuleIds).toEqual([
+      "prh",
+    ]);
     expect(onClearError).toHaveBeenCalledTimes(3);
     expect(onError).not.toHaveBeenCalled();
     expect(onNotice).toHaveBeenCalledWith("バックアップを読み込みました。");

@@ -15,6 +15,12 @@ export interface LoggingSettingsSnapshot extends LoggingSettingsInput {
   maxRotatedFiles: number;
 }
 
+export interface ProofreadingSettingsInput {
+  disabledRuleIds: string[];
+}
+
+export type ProofreadingSettingsSnapshot = ProofreadingSettingsInput;
+
 export interface LogEntrySnapshot {
   timestampMs: number;
   level: string;
@@ -32,6 +38,7 @@ export const RECENT_LOG_LIMIT = 80;
 export interface ImportedBackupSnapshot {
   snapshot: StoreSnapshot;
   loggingSettings: LoggingSettingsSnapshot;
+  proofreadingSettings: ProofreadingSettingsSnapshot;
 }
 
 export const LOGGING_MODE_OPTIONS: Array<{
@@ -70,10 +77,24 @@ export function createDefaultLoggingSettingsSnapshot(): LoggingSettingsSnapshot 
   };
 }
 
+export function createDefaultProofreadingSettingsSnapshot(): ProofreadingSettingsSnapshot {
+  return {
+    disabledRuleIds: [],
+  };
+}
+
 export function toLoggingSettingsInput(snapshot: LoggingSettingsSnapshot): LoggingSettingsInput {
   return {
     mode: snapshot.mode,
     retentionDays: snapshot.retentionDays,
+  };
+}
+
+export function toProofreadingSettingsInput(
+  snapshot: ProofreadingSettingsSnapshot,
+): ProofreadingSettingsInput {
+  return {
+    disabledRuleIds: normalizeProofreadingRuleIds(snapshot.disabledRuleIds),
   };
 }
 
@@ -82,4 +103,10 @@ export function loggingModeDescription(mode: LoggingMode): string {
     LOGGING_MODE_OPTIONS.find((option) => option.value === mode)?.description ??
     "ログ設定を選択してください。"
   );
+}
+
+export function normalizeProofreadingRuleIds(ruleIds: string[]): string[] {
+  return [
+    ...new Set(ruleIds.map((ruleId) => ruleId.trim()).filter((ruleId) => ruleId.length > 0)),
+  ].sort((left, right) => left.localeCompare(right, "ja"));
 }

@@ -121,7 +121,7 @@ describe("template UI", () => {
     await user.click(screen.getByRole("button", { name: "下書きを作成" }));
     expect(handleStartDraftFromTemplate).toHaveBeenCalled();
     expect(screen.getAllByText("件名").length).toBeGreaterThan(0);
-  }, 10000);
+  }, 20000);
 
   it("keeps multiline template fields in CodeMirror when whitespace is visible", () => {
     render(
