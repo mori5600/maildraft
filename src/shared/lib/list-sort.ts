@@ -33,31 +33,61 @@ export const SIGNATURE_SORT_OPTIONS: Array<{ value: SignatureSortOption; label: 
 ];
 
 const JA_TEXT_COLLATOR = new Intl.Collator("ja");
+type SortComparator<Item> = (left: Item, right: Item) => number;
+
+const DRAFT_SORT_COMPARATORS = {
+  recent: (left, right) => compareTimestamp(right.updatedAt, left.updatedAt),
+  oldest: (left, right) => compareTimestamp(left.updatedAt, right.updatedAt),
+  label: (left, right) =>
+    compareText(draftLabel(left), draftLabel(right)) ||
+    compareTimestamp(right.updatedAt, left.updatedAt),
+} satisfies Record<DraftSortOption, SortComparator<Draft>>;
+
+const TEMPLATE_SORT_COMPARATORS = {
+  recent: (left, right) => compareTimestamp(right.updatedAt, left.updatedAt),
+  oldest: (left, right) => compareTimestamp(left.updatedAt, right.updatedAt),
+  name: (left, right) =>
+    compareText(left.name, right.name) || compareTimestamp(right.updatedAt, left.updatedAt),
+} satisfies Record<TemplateSortOption, SortComparator<Template>>;
+
+const MEMO_SORT_COMPARATORS = {
+  recent: (left, right) => compareTimestamp(right.updatedAt, left.updatedAt),
+  oldest: (left, right) => compareTimestamp(left.updatedAt, right.updatedAt),
+  label: (left, right) =>
+    compareText(memoLabel(left), memoLabel(right)) ||
+    compareTimestamp(right.updatedAt, left.updatedAt),
+} satisfies Record<MemoSortOption, SortComparator<Memo>>;
+
+const SIGNATURE_SORT_COMPARATORS = {
+  recent: (left, right) => compareTimestamp(right.updatedAt, left.updatedAt),
+  oldest: (left, right) => compareTimestamp(left.updatedAt, right.updatedAt),
+  name: (left, right) =>
+    compareText(left.name, right.name) || compareTimestamp(right.updatedAt, left.updatedAt),
+} satisfies Record<SignatureSortOption, SortComparator<Signature>>;
 
 export function sortDrafts(drafts: Draft[], sort: DraftSortOption): Draft[] {
-  return [...drafts].sort(
-    (left, right) =>
-      comparePinned(left.isPinned, right.isPinned) || compareDraft(left, right, sort),
-  );
+  return sortPinnedItems(drafts, sort, DRAFT_SORT_COMPARATORS, (draft) => draft.isPinned);
 }
 
 export function sortTemplates(templates: Template[], sort: TemplateSortOption): Template[] {
-  return [...templates].sort(
-    (left, right) =>
-      comparePinned(left.isPinned, right.isPinned) || compareTemplate(left, right, sort),
+  return sortPinnedItems(
+    templates,
+    sort,
+    TEMPLATE_SORT_COMPARATORS,
+    (template) => template.isPinned,
   );
 }
 
 export function sortMemos(memos: Memo[], sort: MemoSortOption): Memo[] {
-  return [...memos].sort(
-    (left, right) => comparePinned(left.isPinned, right.isPinned) || compareMemo(left, right, sort),
-  );
+  return sortPinnedItems(memos, sort, MEMO_SORT_COMPARATORS, (memo) => memo.isPinned);
 }
 
 export function sortSignatures(signatures: Signature[], sort: SignatureSortOption): Signature[] {
-  return [...signatures].sort(
-    (left, right) =>
-      comparePinned(left.isPinned, right.isPinned) || compareSignature(left, right, sort),
+  return sortPinnedItems(
+    signatures,
+    sort,
+    SIGNATURE_SORT_COMPARATORS,
+    (signature) => signature.isPinned,
   );
 }
 
@@ -65,62 +95,16 @@ function comparePinned(left: boolean, right: boolean): number {
   return Number(right) - Number(left);
 }
 
-function compareDraft(left: Draft, right: Draft, sort: DraftSortOption): number {
-  switch (sort) {
-    case "oldest":
-      return compareTimestamp(left.updatedAt, right.updatedAt);
-    case "label":
-      return (
-        compareText(draftLabel(left), draftLabel(right)) ||
-        compareTimestamp(right.updatedAt, left.updatedAt)
-      );
-    case "recent":
-    default:
-      return compareTimestamp(right.updatedAt, left.updatedAt);
-  }
-}
-
-function compareTemplate(left: Template, right: Template, sort: TemplateSortOption): number {
-  switch (sort) {
-    case "oldest":
-      return compareTimestamp(left.updatedAt, right.updatedAt);
-    case "name":
-      return (
-        compareText(left.name, right.name) || compareTimestamp(right.updatedAt, left.updatedAt)
-      );
-    case "recent":
-    default:
-      return compareTimestamp(right.updatedAt, left.updatedAt);
-  }
-}
-
-function compareMemo(left: Memo, right: Memo, sort: MemoSortOption): number {
-  switch (sort) {
-    case "oldest":
-      return compareTimestamp(left.updatedAt, right.updatedAt);
-    case "label":
-      return (
-        compareText(memoLabel(left), memoLabel(right)) ||
-        compareTimestamp(right.updatedAt, left.updatedAt)
-      );
-    case "recent":
-    default:
-      return compareTimestamp(right.updatedAt, left.updatedAt);
-  }
-}
-
-function compareSignature(left: Signature, right: Signature, sort: SignatureSortOption): number {
-  switch (sort) {
-    case "oldest":
-      return compareTimestamp(left.updatedAt, right.updatedAt);
-    case "name":
-      return (
-        compareText(left.name, right.name) || compareTimestamp(right.updatedAt, left.updatedAt)
-      );
-    case "recent":
-    default:
-      return compareTimestamp(right.updatedAt, left.updatedAt);
-  }
+function sortPinnedItems<Item, SortOption extends string>(
+  items: Item[],
+  sort: SortOption,
+  comparators: Record<SortOption, SortComparator<Item>>,
+  isPinned: (item: Item) => boolean,
+): Item[] {
+  const comparator = comparators[sort];
+  return [...items].sort(
+    (left, right) => comparePinned(isPinned(left), isPinned(right)) || comparator(left, right),
+  );
 }
 
 function compareText(left: string, right: string): number {

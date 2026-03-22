@@ -83,6 +83,32 @@ const fieldOrder: Record<DraftProofreadingField, number> = {
   signature: 5,
 };
 
+const DRAFT_PROOFREADING_FIELD_LABELS = {
+  subject: "件名",
+  recipient: "宛名メモ",
+  opening: "書き出し",
+  body: "本文",
+  closing: "結び",
+  signature: "署名",
+} satisfies Record<DraftProofreadingField, string>;
+
+const DRAFT_PROOFREADING_SEVERITY_LABELS = {
+  error: "error",
+  warning: "warning",
+  info: "info",
+} satisfies Record<DraftProofreadingSeverity, string>;
+
+const DRAFT_PROOFREADING_DETAILED_STATUS_LABEL_RESOLVERS = {
+  idle: () => "詳細チェックは現在利用できません。",
+  pending: () => "入力停止後に詳細チェックを実行します。",
+  running: () => "詳細チェックを実行中です。",
+  ready: () => "textlint と prh の詳細チェック結果を反映しています。",
+  error: (errorMessage?: string | null) =>
+    errorMessage
+      ? `詳細チェックを実行できませんでした。(${errorMessage})`
+      : "詳細チェックを実行できませんでした。",
+} satisfies Record<DraftProofreadingDetailedStatus, (errorMessage?: string | null) => string>;
+
 export function createDraftProofreadingIssueId(
   ruleId: string,
   field: DraftProofreadingField,
@@ -99,31 +125,11 @@ export function createDraftProofreadingIssueId(
 }
 
 export function draftProofreadingFieldLabel(field: DraftProofreadingField): string {
-  switch (field) {
-    case "subject":
-      return "件名";
-    case "recipient":
-      return "宛名メモ";
-    case "opening":
-      return "書き出し";
-    case "body":
-      return "本文";
-    case "closing":
-      return "結び";
-    case "signature":
-      return "署名";
-  }
+  return DRAFT_PROOFREADING_FIELD_LABELS[field];
 }
 
 export function draftProofreadingSeverityLabel(severity: DraftProofreadingSeverity): string {
-  switch (severity) {
-    case "error":
-      return "error";
-    case "warning":
-      return "warning";
-    case "info":
-      return "info";
-  }
+  return DRAFT_PROOFREADING_SEVERITY_LABELS[severity];
 }
 
 export function draftProofreadingRuleLabel(ruleId: string): string {
@@ -134,20 +140,7 @@ export function draftProofreadingDetailedStatusLabel(
   status: DraftProofreadingDetailedStatus,
   errorMessage?: string | null,
 ): string {
-  switch (status) {
-    case "idle":
-      return "詳細チェックは現在利用できません。";
-    case "pending":
-      return "入力停止後に詳細チェックを実行します。";
-    case "running":
-      return "詳細チェックを実行中です。";
-    case "ready":
-      return "textlint と prh の詳細チェック結果を反映しています。";
-    case "error":
-      return errorMessage
-        ? `詳細チェックを実行できませんでした。(${errorMessage})`
-        : "詳細チェックを実行できませんでした。";
-  }
+  return DRAFT_PROOFREADING_DETAILED_STATUS_LABEL_RESOLVERS[status](errorMessage);
 }
 
 export function sortDraftProofreadingIssues(

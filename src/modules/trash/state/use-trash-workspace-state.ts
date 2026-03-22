@@ -40,6 +40,116 @@ interface TrashWorkspaceStateOptions {
   snapshot: StoreSnapshot;
 }
 
+type TrashItemStrategyMap<Result> = {
+  [Kind in TrashItem["kind"]]: (item: Extract<TrashItem, { kind: Kind }>) => Result;
+};
+
+type RestoreTrashItemContext = Required<Pick<TrashWorkspaceStateOptions, "onMemoRestored">> &
+  Pick<
+    TrashWorkspaceStateOptions,
+    | "onDraftRestored"
+    | "onNotice"
+    | "onSignatureRestored"
+    | "onSnapshotChange"
+    | "onTemplateRestored"
+    | "onViewChange"
+  > & {
+    snapshot: StoreSnapshot;
+  };
+
+type DeleteTrashItemContext = Pick<
+  TrashWorkspaceStateOptions,
+  "onNotice" | "onSignatureSnapshotChange" | "onSnapshotChange"
+> & {
+  snapshot: StoreSnapshot;
+};
+
+function runTrashItemStrategy<Result>(
+  strategies: TrashItemStrategyMap<Result>,
+  item: TrashItem,
+): Result {
+  return (strategies[item.kind]! as (selectedItem: TrashItem) => Result)(item);
+}
+
+function createRestoreTrashItemStrategies(
+  context: RestoreTrashItemContext,
+): TrashItemStrategyMap<Promise<void>> {
+  return {
+    draft: async (item) => {
+      const restoredDraft = await maildraftApi.restoreDraftFromTrash(item.draft.id);
+      const nextSnapshot = applyRestoredDraftResult(context.snapshot, restoredDraft);
+      context.onSnapshotChange(nextSnapshot);
+      context.onDraftRestored(item.draft.id, nextSnapshot);
+      context.onViewChange("drafts");
+      context.onNotice("下書きをゴミ箱から復元しました。");
+    },
+    template: async (item) => {
+      const restoredTemplate = await maildraftApi.restoreTemplateFromTrash(item.template.id);
+      const nextSnapshot = applyRestoredTemplateResult(context.snapshot, restoredTemplate);
+      context.onSnapshotChange(nextSnapshot);
+      context.onTemplateRestored(nextSnapshot, item.template.id);
+      context.onViewChange("templates");
+      context.onNotice("テンプレートをゴミ箱から復元しました。");
+    },
+    memo: async (item) => {
+      const restoredMemo = await maildraftApi.restoreMemoFromTrash(item.memo.id);
+      const nextSnapshot = applyRestoredMemoResult(context.snapshot, restoredMemo);
+      context.onSnapshotChange(nextSnapshot);
+      context.onMemoRestored(nextSnapshot, item.memo.id);
+      context.onViewChange("memo");
+      context.onNotice("メモをゴミ箱から復元しました。");
+    },
+    signature: async (item) => {
+      const restoredSignature = await maildraftApi.restoreSignatureFromTrash(item.signature.id);
+      const nextSnapshot = applyRestoredSignatureResult(
+        context.snapshot,
+        restoredSignature,
+        item.signature.id,
+      );
+      context.onSnapshotChange(nextSnapshot);
+      context.onSignatureRestored(nextSnapshot, item.signature.id);
+      context.onViewChange("signatures");
+      context.onNotice("署名をゴミ箱から復元しました。");
+    },
+  };
+}
+
+function createDeleteTrashItemStrategies(
+  context: DeleteTrashItemContext,
+): TrashItemStrategyMap<Promise<void>> {
+  return {
+    draft: async (item) => {
+      const deletedDraft = await maildraftApi.permanentlyDeleteDraftFromTrash(item.draft.id);
+      const nextSnapshot = applyTrashMutationResult(context.snapshot, deletedDraft);
+      context.onSnapshotChange(nextSnapshot);
+      context.onNotice("下書きを完全に削除しました。");
+    },
+    template: async (item) => {
+      const deletedTemplate = await maildraftApi.permanentlyDeleteTemplateFromTrash(
+        item.template.id,
+      );
+      const nextSnapshot = applyTrashMutationResult(context.snapshot, deletedTemplate);
+      context.onSnapshotChange(nextSnapshot);
+      context.onNotice("テンプレートを完全に削除しました。");
+    },
+    memo: async (item) => {
+      const deletedMemo = await maildraftApi.permanentlyDeleteMemoFromTrash(item.memo.id);
+      const nextSnapshot = applyTrashMutationResult(context.snapshot, deletedMemo);
+      context.onSnapshotChange(nextSnapshot);
+      context.onNotice("メモを完全に削除しました。");
+    },
+    signature: async (item) => {
+      const deletedSignature = await maildraftApi.permanentlyDeleteSignatureFromTrash(
+        item.signature.id,
+      );
+      const nextSnapshot = applyTrashMutationResult(context.snapshot, deletedSignature);
+      context.onSnapshotChange(nextSnapshot);
+      context.onSignatureSnapshotChange(nextSnapshot);
+      context.onNotice("署名を完全に削除しました。");
+    },
+  };
+}
+
 /**
  * Coordinates trash selection and destructive trash actions against the current snapshot.
  *
@@ -95,47 +205,19 @@ export function useTrashWorkspaceState({
   async function restoreTrashItem(item: TrashItem) {
     try {
       onClearError();
-
-      if (item.kind === "draft") {
-        const restoredDraft = await maildraftApi.restoreDraftFromTrash(item.draft.id);
-        const nextSnapshot = applyRestoredDraftResult(snapshotRef.current, restoredDraft);
-        onSnapshotChange(nextSnapshot);
-        onDraftRestored(item.draft.id, nextSnapshot);
-        onViewChange("drafts");
-        onNotice("下書きをゴミ箱から復元しました。");
-        return;
-      }
-
-      if (item.kind === "template") {
-        const restoredTemplate = await maildraftApi.restoreTemplateFromTrash(item.template.id);
-        const nextSnapshot = applyRestoredTemplateResult(snapshotRef.current, restoredTemplate);
-        onSnapshotChange(nextSnapshot);
-        onTemplateRestored(nextSnapshot, item.template.id);
-        onViewChange("templates");
-        onNotice("テンプレートをゴミ箱から復元しました。");
-        return;
-      }
-
-      if (item.kind === "memo") {
-        const restoredMemo = await maildraftApi.restoreMemoFromTrash(item.memo.id);
-        const nextSnapshot = applyRestoredMemoResult(snapshotRef.current, restoredMemo);
-        onSnapshotChange(nextSnapshot);
-        onMemoRestored(nextSnapshot, item.memo.id);
-        onViewChange("memo");
-        onNotice("メモをゴミ箱から復元しました。");
-        return;
-      }
-
-      const restoredSignature = await maildraftApi.restoreSignatureFromTrash(item.signature.id);
-      const nextSnapshot = applyRestoredSignatureResult(
-        snapshotRef.current,
-        restoredSignature,
-        item.signature.id,
+      await runTrashItemStrategy(
+        createRestoreTrashItemStrategies({
+          snapshot: snapshotRef.current,
+          onDraftRestored,
+          onMemoRestored,
+          onNotice,
+          onSignatureRestored,
+          onSnapshotChange,
+          onTemplateRestored,
+          onViewChange,
+        }),
+        item,
       );
-      onSnapshotChange(nextSnapshot);
-      onSignatureRestored(nextSnapshot, item.signature.id);
-      onViewChange("signatures");
-      onNotice("署名をゴミ箱から復元しました。");
     } catch (restoreError) {
       onError(toErrorMessage(restoreError));
     }
@@ -155,40 +237,15 @@ export function useTrashWorkspaceState({
 
     try {
       onClearError();
-
-      if (item.kind === "draft") {
-        const deletedDraft = await maildraftApi.permanentlyDeleteDraftFromTrash(item.draft.id);
-        const nextSnapshot = applyTrashMutationResult(snapshotRef.current, deletedDraft);
-        onSnapshotChange(nextSnapshot);
-        onNotice("下書きを完全に削除しました。");
-        return;
-      }
-
-      if (item.kind === "template") {
-        const deletedTemplate = await maildraftApi.permanentlyDeleteTemplateFromTrash(
-          item.template.id,
-        );
-        const nextSnapshot = applyTrashMutationResult(snapshotRef.current, deletedTemplate);
-        onSnapshotChange(nextSnapshot);
-        onNotice("テンプレートを完全に削除しました。");
-        return;
-      }
-
-      if (item.kind === "memo") {
-        const deletedMemo = await maildraftApi.permanentlyDeleteMemoFromTrash(item.memo.id);
-        const nextSnapshot = applyTrashMutationResult(snapshotRef.current, deletedMemo);
-        onSnapshotChange(nextSnapshot);
-        onNotice("メモを完全に削除しました。");
-        return;
-      }
-
-      const deletedSignature = await maildraftApi.permanentlyDeleteSignatureFromTrash(
-        item.signature.id,
+      await runTrashItemStrategy(
+        createDeleteTrashItemStrategies({
+          snapshot: snapshotRef.current,
+          onNotice,
+          onSignatureSnapshotChange,
+          onSnapshotChange,
+        }),
+        item,
       );
-      const nextSnapshot = applyTrashMutationResult(snapshotRef.current, deletedSignature);
-      onSnapshotChange(nextSnapshot);
-      onSignatureSnapshotChange(nextSnapshot);
-      onNotice("署名を完全に削除しました。");
     } catch (deleteError) {
       onError(toErrorMessage(deleteError));
     }

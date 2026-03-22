@@ -6,6 +6,7 @@ import {
   resolvePinShortcutAction,
   resolveSaveShortcutAction,
   resolveShortcutIntent,
+  type ShortcutIntent,
 } from "./maildraft-app-helpers";
 
 export interface ShortcutActionSet {
@@ -31,6 +32,15 @@ interface AppShortcutsOptions {
   isLoading: boolean;
   view: WorkspaceView;
 }
+
+type ActiveShortcutIntent = Exclude<ShortcutIntent, { kind: "none" }>;
+
+type ShortcutIntentHandlerMap = {
+  [Kind in ActiveShortcutIntent["kind"]]: (
+    actions: ShortcutActionSet,
+    shortcutIntent: Extract<ActiveShortcutIntent, { kind: Kind }>,
+  ) => void | Promise<void>;
+};
 
 function focusWorkspaceSearch(view: WorkspaceView) {
   const searchInput = document.querySelector<HTMLInputElement>(`[data-maildraft-search="${view}"]`);
@@ -59,6 +69,32 @@ function runPinShortcut(actions: ShortcutActionSet, view: WorkspaceView) {
   if (action) {
     actions[action]();
   }
+}
+
+const SHORTCUT_INTENT_HANDLERS = {
+  focusSearch: (_actions, shortcutIntent) => {
+    focusWorkspaceSearch(shortcutIntent.view);
+  },
+  changeView: (actions, shortcutIntent) => {
+    actions.changeView(shortcutIntent.view);
+  },
+  createForView: (actions, shortcutIntent) => {
+    runCreateShortcut(actions, shortcutIntent.view);
+  },
+  saveForView: (actions, shortcutIntent) => runSaveShortcut(actions, shortcutIntent.view),
+  pinForView: (actions, shortcutIntent) => {
+    runPinShortcut(actions, shortcutIntent.view);
+  },
+  copyDraftPreview: (actions) => actions.copyDraftPreview(),
+} satisfies ShortcutIntentHandlerMap;
+
+function runShortcutIntent(actions: ShortcutActionSet, shortcutIntent: ActiveShortcutIntent) {
+  return (
+    SHORTCUT_INTENT_HANDLERS[shortcutIntent.kind] as (
+      currentActions: ShortcutActionSet,
+      currentShortcutIntent: ActiveShortcutIntent,
+    ) => void | Promise<void>
+  )(actions, shortcutIntent);
 }
 
 /**
@@ -113,33 +149,7 @@ export function useAppShortcuts({ actions, isLoading, view }: AppShortcutsOption
       }
 
       event.preventDefault();
-
-      if (shortcutIntent.kind === "focusSearch") {
-        focusWorkspaceSearch(shortcutIntent.view);
-        return;
-      }
-
-      if (shortcutIntent.kind === "changeView") {
-        currentActions.changeView(shortcutIntent.view);
-        return;
-      }
-
-      if (shortcutIntent.kind === "createForView") {
-        runCreateShortcut(currentActions, shortcutIntent.view);
-        return;
-      }
-
-      if (shortcutIntent.kind === "saveForView") {
-        void runSaveShortcut(currentActions, shortcutIntent.view);
-        return;
-      }
-
-      if (shortcutIntent.kind === "pinForView") {
-        runPinShortcut(currentActions, shortcutIntent.view);
-        return;
-      }
-
-      void currentActions.copyDraftPreview();
+      void runShortcutIntent(currentActions, shortcutIntent);
     }
 
     window.addEventListener("keydown", handleKeyDown);

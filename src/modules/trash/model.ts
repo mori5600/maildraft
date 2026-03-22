@@ -62,6 +62,13 @@ export type TrashItem =
       memo: Memo;
     };
 
+const TRASH_ITEM_TYPE_LABELS = {
+  draft: "下書き",
+  template: "テンプレート",
+  signature: "署名",
+  memo: "メモ",
+} satisfies Record<TrashItem["kind"], string>;
+
 /**
  * Flattens trash and sorts newest deletions first.
  */
@@ -109,16 +116,7 @@ export function buildTrashItemKey(kind: TrashItem["kind"], itemId: string): stri
 }
 
 export function trashItemTypeLabel(kind: TrashItem["kind"]): string {
-  switch (kind) {
-    case "draft":
-      return "下書き";
-    case "template":
-      return "テンプレート";
-    case "signature":
-      return "署名";
-    case "memo":
-      return "メモ";
-  }
+  return TRASH_ITEM_TYPE_LABELS[kind];
 }
 
 /**

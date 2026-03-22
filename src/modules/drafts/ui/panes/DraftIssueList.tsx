@@ -15,6 +15,20 @@ interface DraftIssueListProps {
   onSelectIssue: (issueId: string) => void;
 }
 
+const ISSUE_CARD_VARIANT_CLASS_NAMES = {
+  error: "border-(--color-button-danger-border) bg-(--color-button-danger-bg)",
+  warning: "border-(--color-warning-border) bg-(--color-warning-bg)",
+  info: "border-(--color-pill-neutral-border) bg-(--color-pill-neutral-bg)",
+} satisfies Record<DraftProofreadingIssue["severity"], string>;
+
+const ISSUE_SEVERITY_BADGE_CLASS_NAMES = {
+  error:
+    "inline-flex rounded-[7px] border border-(--color-button-danger-border) bg-(--color-button-danger-bg) px-2 py-1 text-[10px] font-medium tracking-[0.12em] text-(--color-button-danger-text) uppercase",
+  warning:
+    "inline-flex rounded-[7px] border border-(--color-warning-border) bg-(--color-warning-bg) px-2 py-1 text-[10px] font-medium tracking-[0.12em] text-(--color-warning-text) uppercase",
+  info: "inline-flex rounded-[7px] border border-(--color-pill-accent-border) bg-(--color-pill-accent-bg) px-2 py-1 text-[10px] font-medium tracking-[0.12em] text-(--color-pill-accent-text) uppercase",
+} satisfies Record<DraftProofreadingIssue["severity"], string>;
+
 export function DraftIssueList({
   issues,
   selectedIssueId,
@@ -99,24 +113,10 @@ function issueCardClassName(
   const selectedClassName = isSelected
     ? "shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-focus-ring)]"
     : "";
-
-  switch (severity) {
-    case "error":
-      return `rounded-[7px] border border-(--color-button-danger-border) bg-(--color-button-danger-bg) px-3 py-2.5 ${selectedClassName}`;
-    case "warning":
-      return `rounded-[7px] border border-(--color-warning-border) bg-(--color-warning-bg) px-3 py-2.5 ${selectedClassName}`;
-    case "info":
-      return `rounded-[7px] border border-(--color-pill-neutral-border) bg-(--color-pill-neutral-bg) px-3 py-2.5 ${selectedClassName}`;
-  }
+  const selectedClassSuffix = selectedClassName ? ` ${selectedClassName}` : "";
+  return `rounded-[7px] border px-3 py-2.5 ${ISSUE_CARD_VARIANT_CLASS_NAMES[severity]}${selectedClassSuffix}`;
 }
 
 function issueSeverityBadgeClassName(severity: DraftProofreadingIssue["severity"]): string {
-  switch (severity) {
-    case "error":
-      return "inline-flex rounded-[7px] border border-(--color-button-danger-border) bg-(--color-button-danger-bg) px-2 py-1 text-[10px] font-medium tracking-[0.12em] text-(--color-button-danger-text) uppercase";
-    case "warning":
-      return "inline-flex rounded-[7px] border border-(--color-warning-border) bg-(--color-warning-bg) px-2 py-1 text-[10px] font-medium tracking-[0.12em] text-(--color-warning-text) uppercase";
-    case "info":
-      return "inline-flex rounded-[7px] border border-(--color-pill-accent-border) bg-(--color-pill-accent-bg) px-2 py-1 text-[10px] font-medium tracking-[0.12em] text-(--color-pill-accent-text) uppercase";
-  }
+  return ISSUE_SEVERITY_BADGE_CLASS_NAMES[severity];
 }

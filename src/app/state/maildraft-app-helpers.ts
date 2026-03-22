@@ -61,6 +61,8 @@ export type PinShortcutAction =
   | "toggleTemplatePinned"
   | "toggleSignaturePinned";
 
+type ShortcutIntentResolver = (input: { currentView: WorkspaceView }) => ShortcutIntent;
+
 const CREATE_SHORTCUT_ACTIONS = {
   drafts: "createDraft",
   templates: "createTemplate",
@@ -90,6 +92,46 @@ const PIN_SHORTCUT_ACTIONS = {
   settings: null,
   help: null,
 } satisfies Record<WorkspaceView, PinShortcutAction | null>;
+
+const CHANGE_VIEW_SHORTCUT_INTENT_RESOLVERS: Record<string, ShortcutIntentResolver> = {
+  "1": () => ({ kind: "changeView", view: "drafts" }),
+  "2": () => ({ kind: "changeView", view: "templates" }),
+  "3": () => ({ kind: "changeView", view: "signatures" }),
+  "4": () => ({ kind: "changeView", view: "memo" }),
+  "5": () => ({ kind: "changeView", view: "trash" }),
+  "6": () => ({ kind: "changeView", view: "settings" }),
+  "7": () => ({ kind: "changeView", view: "help" }),
+};
+
+const COPY_SHORTCUT_INTENTS = {
+  drafts: { kind: "copyDraftPreview" },
+  templates: { kind: "none" },
+  signatures: { kind: "none" },
+  memo: { kind: "none" },
+  trash: { kind: "none" },
+  settings: { kind: "none" },
+  help: { kind: "none" },
+} satisfies Record<WorkspaceView, ShortcutIntent>;
+
+const UNSHIFTED_SHORTCUT_INTENT_RESOLVERS: Record<string, ShortcutIntentResolver> = {
+  k: ({ currentView }) => ({ kind: "focusSearch", view: currentView }),
+  n: ({ currentView }) => ({ kind: "createForView", view: currentView }),
+  s: ({ currentView }) => ({ kind: "saveForView", view: currentView }),
+  ...CHANGE_VIEW_SHORTCUT_INTENT_RESOLVERS,
+};
+
+const SHIFTED_SHORTCUT_INTENT_RESOLVERS: Record<string, ShortcutIntentResolver> = {
+  p: ({ currentView }) => ({ kind: "pinForView", view: currentView }),
+  c: ({ currentView }) => COPY_SHORTCUT_INTENTS[currentView],
+};
+
+const SHORTCUT_INTENT_RESOLVER_SETS: Record<
+  "shifted" | "unshifted",
+  Record<string, ShortcutIntentResolver>
+> = {
+  shifted: SHIFTED_SHORTCUT_INTENT_RESOLVERS,
+  unshifted: UNSHIFTED_SHORTCUT_INTENT_RESOLVERS,
+};
 
 export function buildWorkspaceSummaries(counts: WorkspaceSummaryCounts): WorkspaceSummary[] {
   return [
@@ -137,56 +179,8 @@ export function resolveShortcutIntent({
   shiftKey: boolean;
 }): ShortcutIntent {
   const loweredKey = key.toLowerCase();
-
-  if (!shiftKey && loweredKey === "k") {
-    return { kind: "focusSearch", view: currentView };
-  }
-
-  if (!shiftKey && loweredKey === "1") {
-    return { kind: "changeView", view: "drafts" };
-  }
-
-  if (!shiftKey && loweredKey === "2") {
-    return { kind: "changeView", view: "templates" };
-  }
-
-  if (!shiftKey && loweredKey === "3") {
-    return { kind: "changeView", view: "signatures" };
-  }
-
-  if (!shiftKey && loweredKey === "4") {
-    return { kind: "changeView", view: "memo" };
-  }
-
-  if (!shiftKey && loweredKey === "5") {
-    return { kind: "changeView", view: "trash" };
-  }
-
-  if (!shiftKey && loweredKey === "6") {
-    return { kind: "changeView", view: "settings" };
-  }
-
-  if (!shiftKey && loweredKey === "7") {
-    return { kind: "changeView", view: "help" };
-  }
-
-  if (!shiftKey && loweredKey === "n") {
-    return { kind: "createForView", view: currentView };
-  }
-
-  if (!shiftKey && loweredKey === "s") {
-    return { kind: "saveForView", view: currentView };
-  }
-
-  if (shiftKey && loweredKey === "p") {
-    return { kind: "pinForView", view: currentView };
-  }
-
-  if (shiftKey && loweredKey === "c" && currentView === "drafts") {
-    return { kind: "copyDraftPreview" };
-  }
-
-  return { kind: "none" };
+  const resolverSet = SHORTCUT_INTENT_RESOLVER_SETS[shiftKey ? "shifted" : "unshifted"];
+  return resolverSet[loweredKey]?.({ currentView }) ?? { kind: "none" };
 }
 
 export function resolveCreateShortcutAction(view: WorkspaceView): CreateShortcutAction {
