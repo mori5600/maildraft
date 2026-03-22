@@ -87,3 +87,5 @@
 - Prefer `rg` for searching.
 - Do not overwrite unrelated user changes.
 - If you add user-facing behavior, mention how to verify it locally.
+- Keep `if` branching as small as reasonably possible. When behavior differs by type, rule, state, or field, first evaluate replacing conditionals with a strategy-based design.
+- Preserve the current functional style while reducing branch-heavy orchestration. Prefer data-driven strategy maps, handler tables, and extracted pure functions over long conditional chains.
