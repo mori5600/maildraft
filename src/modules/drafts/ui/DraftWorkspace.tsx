@@ -1,19 +1,16 @@
-import { useState } from "react";
-
 import type { DraftSortOption } from "../../../shared/lib/list-sort";
-import { visualizeWhitespace } from "../../../shared/lib/whitespace";
-import { PreviewOverlay } from "../../../shared/ui/PreviewOverlay";
-import { Button } from "../../../shared/ui/primitives";
 import type { Signature } from "../../signatures/model";
 import type { Template } from "../../templates/model";
 import type { Draft, DraftHistoryEntry, DraftInput } from "../model";
 import type { DraftProofreadingIssue } from "../proofreading/model";
 import type { VariablePreset } from "../variable-presets";
-import { DraftHistoryOverlay } from "./DraftHistoryOverlay";
+import { createDraftWorkspaceViewModel } from "./draft-workspace-view-model";
+import { DraftHistoryOverlayController } from "./DraftHistoryOverlayController";
+import { DraftPreviewOverlayContent } from "./DraftPreviewOverlayContent";
 import { DraftEditorPane } from "./panes/DraftEditorPane";
 import { DraftListPane } from "./panes/DraftListPane";
-import { DraftPreviewDialogContent } from "./panes/DraftPreviewDialogContent";
 import { DraftPreviewPane } from "./panes/DraftPreviewPane";
+import { useDraftWorkspaceUiState } from "./use-draft-workspace-ui-state";
 
 interface DraftWorkspaceProps {
   drafts: Draft[];
@@ -112,31 +109,15 @@ export function DraftWorkspace({
   onRestoreDraftHistory,
   onApplyTemplate,
 }: DraftWorkspaceProps) {
-  const [isWidePreviewOpen, setIsWidePreviewOpen] = useState(false);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
-  const [selectedIssueRequestKey, setSelectedIssueRequestKey] = useState(0);
-
-  const selectedSignature = signatures.find((signature) => signature.id === draftForm.signatureId);
-  const hasMissingSignature = Boolean(
-    draftForm.signatureId &&
-    !signatures.some((signature) => signature.id === draftForm.signatureId),
-  );
-  const previewDescription =
-    selectedSignature?.name ?? (hasMissingSignature ? "ゴミ箱の署名を参照中" : "署名なし");
-  const canCopyPreview = previewText.trim().length > 0;
-  const canExpandPreview =
-    previewText.trim().length > 0 || draftForm.subject.trim().length > 0 || issues.length > 0;
-  const previewBodyText =
-    (showWhitespace ? visualizeWhitespace(previewText) : previewText) ||
-    "本文プレビューがここに表示されます。";
-  const activeIssue = issues.find((issue) => issue.id === selectedIssueId) ?? null;
-
-  function selectIssue(issueId: string) {
-    setSelectedIssueId(issueId);
-    setSelectedIssueRequestKey((current) => current + 1);
-    setIsWidePreviewOpen(false);
-  }
+  const uiState = useDraftWorkspaceUiState();
+  const viewModel = createDraftWorkspaceViewModel({
+    draftForm,
+    issues,
+    previewText,
+    selectedIssueId: uiState.selectedIssueId,
+    showWhitespace,
+    signatures,
+  });
 
   return (
     <>
@@ -154,8 +135,8 @@ export function DraftWorkspace({
         />
 
         <DraftEditorPane
-          activeIssue={activeIssue}
-          activeIssueRequestKey={selectedIssueRequestKey}
+          activeIssue={viewModel.activeIssue}
+          activeIssueRequestKey={uiState.selectedIssueRequestKey}
           autoSaveLabel={autoSaveLabel}
           canDuplicate={canDuplicate}
           draftForm={draftForm}
@@ -173,18 +154,18 @@ export function DraftWorkspace({
 
         <DraftPreviewPane
           canApplyVariablePreset={canApplyVariablePreset}
-          canCopyPreview={canCopyPreview}
-          canExpandPreview={canExpandPreview}
+          canCopyPreview={viewModel.canCopyPreview}
+          canExpandPreview={viewModel.canExpandPreview}
           canSaveVariablePreset={canSaveVariablePreset}
           detailedCheckStatus={detailedCheckStatus}
           detailedCheckStatusLabel={detailedCheckStatusLabel}
           draftForm={draftForm}
           draftHistoryCount={draftHistory.length}
           issues={issues}
-          previewBodyText={previewBodyText}
-          previewDescription={previewDescription}
+          previewBodyText={viewModel.previewBodyText}
+          previewDescription={viewModel.previewDescription}
           previewSubject={previewSubject}
-          selectedIssueId={selectedIssueId}
+          selectedIssueId={uiState.selectedIssueId}
           selectedVariablePresetId={selectedVariablePresetId}
           showWhitespace={showWhitespace}
           variableNames={variableNames}
@@ -199,57 +180,41 @@ export function DraftWorkspace({
           onDeleteVariablePreset={onDeleteVariablePreset}
           onDisableIssueRule={onDisableIssueRule}
           onIgnoreIssue={onIgnoreIssue}
-          onOpenHistory={() => setIsHistoryOpen(true)}
-          onOpenPreview={() => setIsWidePreviewOpen(true)}
+          onOpenHistory={uiState.openHistory}
+          onOpenPreview={uiState.openWidePreview}
           onRunDetailedCheck={onRunDetailedCheck}
           onSaveVariablePreset={onSaveVariablePreset}
-          onSelectIssue={selectIssue}
+          onSelectIssue={uiState.selectIssue}
           onSelectVariablePreset={onSelectVariablePreset}
         />
       </div>
 
-      <PreviewOverlay
-        action={
-          <Button
-            disabled={!canCopyPreview}
-            size="sm"
-            title="Ctrl/Cmd+Shift+C"
-            variant="ghost"
-            onClick={() => void onCopyPreview()}
-          >
-            コピー
-          </Button>
-        }
-        description={previewDescription}
-        isOpen={isWidePreviewOpen}
-        title="下書きプレビュー"
-        onClose={() => setIsWidePreviewOpen(false)}
-      >
-        <DraftPreviewDialogContent
-          detailedCheckStatus={detailedCheckStatus}
-          detailedCheckStatusLabel={detailedCheckStatusLabel}
-          issues={issues}
-          onApplyIssueSuggestion={onApplyIssueSuggestion}
-          onDisableIssueRule={onDisableIssueRule}
-          onIgnoreIssue={onIgnoreIssue}
-          onRunDetailedCheck={onRunDetailedCheck}
-          previewBodyText={previewBodyText}
-          previewSubject={previewSubject}
-          selectedIssueId={selectedIssueId}
-          onSelectIssue={selectIssue}
-        />
-      </PreviewOverlay>
+      <DraftPreviewOverlayContent
+        canCopyPreview={viewModel.canCopyPreview}
+        detailedCheckStatus={detailedCheckStatus}
+        detailedCheckStatusLabel={detailedCheckStatusLabel}
+        isOpen={uiState.isWidePreviewOpen}
+        issues={issues}
+        previewBodyText={viewModel.previewBodyText}
+        previewDescription={viewModel.previewDescription}
+        previewSubject={previewSubject}
+        selectedIssueId={uiState.selectedIssueId}
+        onApplyIssueSuggestion={onApplyIssueSuggestion}
+        onClose={uiState.closeWidePreview}
+        onCopyPreview={onCopyPreview}
+        onDisableIssueRule={onDisableIssueRule}
+        onIgnoreIssue={onIgnoreIssue}
+        onRunDetailedCheck={onRunDetailedCheck}
+        onSelectIssue={uiState.selectIssue}
+      />
 
-      <DraftHistoryOverlay
+      <DraftHistoryOverlayController
         historyEntries={draftHistory}
-        isOpen={isHistoryOpen}
+        isOpen={uiState.isHistoryOpen}
         showWhitespace={showWhitespace}
         signatures={signatures}
-        onClose={() => setIsHistoryOpen(false)}
-        onRestore={async (historyId) => {
-          await onRestoreDraftHistory(historyId);
-          setIsHistoryOpen(false);
-        }}
+        onClose={uiState.closeHistory}
+        onRestoreDraftHistory={onRestoreDraftHistory}
       />
     </>
   );
