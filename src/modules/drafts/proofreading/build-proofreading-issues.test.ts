@@ -6,6 +6,7 @@ import {
   applyDraftProofreadingSuggestion,
   DRAFT_SUBJECT_WARNING_LENGTH,
   draftProofreadingFieldLabel,
+  draftProofreadingRuleLabel,
 } from "./model";
 
 describe("build-proofreading-issues", () => {
@@ -86,5 +87,10 @@ describe("build-proofreading-issues", () => {
     );
 
     expect(issues.some((issue) => issue.ruleId === "whitespace.multiple")).toBe(false);
+  });
+
+  it("resolves rule labels from the centralized rule registry", () => {
+    expect(draftProofreadingRuleLabel("required.subject")).toBe("件名未入力");
+    expect(draftProofreadingRuleLabel("honorific.view")).toBe("「拝見させていただきます」");
   });
 });

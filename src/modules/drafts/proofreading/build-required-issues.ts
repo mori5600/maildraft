@@ -5,6 +5,11 @@ import {
   createDraftProofreadingIssue,
   createReplacementSuggestion,
 } from "./proofreading-issue-factory";
+import {
+  createMissingVariablesRuleDefinition,
+  createSubjectLengthRuleDefinition,
+  getDraftProofreadingRuleDefinition,
+} from "./proofreading-rule-data";
 
 interface RequiredIssueInput {
   draft: DraftInput;
@@ -22,61 +27,49 @@ interface RequiredIssueStrategy {
 const requiredIssueStrategies: RequiredIssueStrategy[] = [
   {
     createIssue: () =>
-      createDraftProofreadingIssue({
-        description: "件名がないと、受信者が要件を判断しにくくなります。",
+      createIssueFromRuleDefinition("required.subject", {
         excerpt: "",
         field: "subject",
-        ruleId: "required.subject",
-        severity: "error",
-        title: "件名が未入力です。",
       }),
     matches: ({ trimmedSubject }) => trimmedSubject.length === 0,
   },
   {
-    createIssue: ({ trimmedSubject }) =>
-      createDraftProofreadingIssue({
-        description: `件名は ${DRAFT_SUBJECT_WARNING_LENGTH} 文字以内を目安にすると一覧で読みやすくなります。`,
+    createIssue: ({ trimmedSubject }) => {
+      const definition = createSubjectLengthRuleDefinition(DRAFT_SUBJECT_WARNING_LENGTH);
+
+      return createDraftProofreadingIssue({
+        description: definition.description,
         excerpt: trimmedSubject,
         field: "subject",
         ruleId: "subject.length",
-        severity: "info",
-        title: "件名がやや長めです。",
-      }),
+        severity: definition.severity,
+        title: definition.title,
+      });
+    },
     matches: ({ subjectLength, trimmedSubject }) =>
       trimmedSubject.length > 0 && subjectLength > DRAFT_SUBJECT_WARNING_LENGTH,
   },
   {
     createIssue: () =>
-      createDraftProofreadingIssue({
-        description: "宛名か書き出しのどちらかがあると、メール冒頭の体裁が整います。",
+      createIssueFromRuleDefinition("required.recipient-or-opening", {
         excerpt: "",
         field: "recipient",
-        ruleId: "required.recipient-or-opening",
-        severity: "error",
-        title: "宛名または書き出しが未入力です。",
       }),
     matches: ({ draft }) => !draft.recipient.trim() && !draft.opening.trim(),
   },
   {
     createIssue: () =>
-      createDraftProofreadingIssue({
-        description: "本文が空のままだと、要件が伝わりません。",
+      createIssueFromRuleDefinition("required.body", {
         excerpt: "",
         field: "body",
-        ruleId: "required.body",
-        severity: "error",
-        title: "本文が未入力です。",
       }),
     matches: ({ draft }) => !draft.body.trim(),
   },
   {
     createIssue: ({ draft }) =>
-      createDraftProofreadingIssue({
-        description: "結びの一文があると、メール全体の印象が締まります。",
+      createIssueFromRuleDefinition("required.closing", {
         excerpt: "",
         field: "closing",
-        ruleId: "required.closing",
-        severity: "warning",
         suggestion: createReplacementSuggestion(
           "closing",
           draft.closing,
@@ -85,32 +78,30 @@ const requiredIssueStrategies: RequiredIssueStrategy[] = [
           "引き続きよろしくお願いいたします。",
           "候補を適用",
         ),
-        title: "結びが未入力です。",
       }),
     matches: ({ draft }) => !draft.closing.trim(),
   },
   {
     createIssue: () =>
-      createDraftProofreadingIssue({
-        description: "署名があると、差出人情報を毎回書き直さずに済みます。",
+      createIssueFromRuleDefinition("required.signature", {
         excerpt: "",
         field: "signature",
-        ruleId: "required.signature",
-        severity: "error",
-        title: "署名が未設定です。",
       }),
     matches: ({ signature }) => !signature?.body.trim(),
   },
   {
-    createIssue: ({ missingVariables }) =>
-      createDraftProofreadingIssue({
-        description: "差し込み項目に値が入っていないため、プレビューやコピー時にそのまま残ります。",
+    createIssue: ({ missingVariables }) => {
+      const definition = createMissingVariablesRuleDefinition(missingVariables);
+
+      return createDraftProofreadingIssue({
+        description: definition.description,
         excerpt: missingVariables.join(", "),
         field: "body",
         ruleId: "variables.missing",
-        severity: "error",
-        title: `未置換の変数があります: ${missingVariables.join(", ")}`,
-      }),
+        severity: definition.severity,
+        title: definition.title,
+      });
+    },
     matches: ({ missingVariables }) => missingVariables.length > 0,
   },
 ];
@@ -132,4 +123,35 @@ export function buildRequiredIssues(
   return requiredIssueStrategies
     .filter((strategy) => strategy.matches(input))
     .map((strategy) => strategy.createIssue(input));
+}
+
+function createIssueFromRuleDefinition(
+  ruleId: string,
+  input: {
+    excerpt: string;
+    field: DraftProofreadingIssue["field"];
+    suggestion?: DraftProofreadingIssue["suggestion"];
+  },
+): DraftProofreadingIssue {
+  const definition = getRuleDefinition(ruleId);
+
+  return createDraftProofreadingIssue({
+    description: definition.description,
+    excerpt: input.excerpt,
+    field: input.field,
+    ruleId,
+    severity: definition.severity,
+    suggestion: input.suggestion,
+    title: definition.title,
+  });
+}
+
+function getRuleDefinition(ruleId: string) {
+  const definition = getDraftProofreadingRuleDefinition(ruleId);
+
+  if (!definition) {
+    throw new Error(`Unknown proofreading rule: ${ruleId}`);
+  }
+
+  return definition;
 }

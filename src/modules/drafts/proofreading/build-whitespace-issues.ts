@@ -6,7 +6,7 @@ import {
   excerptWithContext,
   lineExcerpt,
 } from "./proofreading-issue-factory";
-import { textCheckFields } from "./proofreading-rule-data";
+import { getDraftProofreadingRuleDefinition, textCheckFields } from "./proofreading-rule-data";
 
 interface WhitespaceMatch {
   matchedText: string;
@@ -30,14 +30,16 @@ interface WhitespaceIssueStrategy {
 
 const whitespaceIssueStrategies: WhitespaceIssueStrategy[] = [
   {
-    createIssue: ({ field, match, text }) =>
-      createDraftProofreadingIssue({
-        description: "末尾の空白は見た目では分かりづらく、コピー後にも残りやすいです。",
+    createIssue: ({ field, match, text }) => {
+      const definition = getRuleDefinition("whitespace.trailing");
+
+      return createDraftProofreadingIssue({
+        description: definition.description,
         excerpt: lineExcerpt(text, match.from, match.to),
         field,
         location: { from: match.from, to: match.to },
         ruleId: "whitespace.trailing",
-        severity: "warning",
+        severity: definition.severity,
         suggestion: createReplacementSuggestion(
           field,
           text,
@@ -46,19 +48,22 @@ const whitespaceIssueStrategies: WhitespaceIssueStrategy[] = [
           "",
           "候補を適用",
         ),
-        title: "行末に不要な空白があります。",
-      }),
+        title: definition.title,
+      });
+    },
     pattern: /[ \t\u3000]+$/gm,
   },
   {
-    createIssue: ({ field, match, text }) =>
-      createDraftProofreadingIssue({
-        description: "連続スペースは意図が伝わりにくいため、通常は 1 文字にそろえる方が安全です。",
+    createIssue: ({ field, match, text }) => {
+      const definition = getRuleDefinition("whitespace.multiple");
+
+      return createDraftProofreadingIssue({
+        description: definition.description,
         excerpt: excerptWithContext(text, match.from, match.to),
         field,
         location: { from: match.from, to: match.to },
         ruleId: "whitespace.multiple",
-        severity: "warning",
+        severity: definition.severity,
         suggestion: createReplacementSuggestion(
           field,
           text,
@@ -67,8 +72,9 @@ const whitespaceIssueStrategies: WhitespaceIssueStrategy[] = [
           normalizeWhitespaceReplacement(match.matchedText),
           "候補を適用",
         ),
-        title: "連続したスペースがあります。",
-      }),
+        title: definition.title,
+      });
+    },
     pattern: / {2,}|\u3000{2,}/g,
     shouldSkipMatch: ({ match, text }) =>
       match.from === 0 ||
@@ -103,4 +109,14 @@ function collectRegexMatches(text: string, pattern: RegExp): WhitespaceMatch[] {
 
 function normalizeWhitespaceReplacement(matchedText: string): string {
   return matchedText[0] === "　" ? "　" : " ";
+}
+
+function getRuleDefinition(ruleId: string) {
+  const definition = getDraftProofreadingRuleDefinition(ruleId);
+
+  if (!definition) {
+    throw new Error(`Unknown proofreading rule: ${ruleId}`);
+  }
+
+  return definition;
 }

@@ -7,8 +7,8 @@ import {
 } from "./proofreading-issue-factory";
 import {
   type DraftProofreadingPhraseRule,
-  type DraftProofreadingPhraseRuleStrategy,
-  phraseRuleStrategies,
+  getDraftProofreadingRuleDefinition,
+  phraseRules,
   repeatedLineFields,
   textCheckFields,
 } from "./proofreading-rule-data";
@@ -21,8 +21,8 @@ const expressionIssueStrategies: ExpressionIssueStrategy[] = [
   {
     buildIssues: buildRepeatedLineIssues,
   },
-  ...phraseRuleStrategies.map((strategy) => ({
-    buildIssues: (draft: DraftInput) => buildPhraseIssues(draft, strategy),
+  ...phraseRules.map((rule) => ({
+    buildIssues: (draft: DraftInput) => buildPhraseIssues(draft, rule),
   })),
 ];
 
@@ -55,12 +55,12 @@ function buildRepeatedLineIssuesForField(
 
       issues.push(
         createDraftProofreadingIssue({
-          description: "同じ行が連続しているため、誤って重複した可能性があります。",
+          description: getProofreadingRuleDefinition("expression.repeated-line").description,
           excerpt: line,
           field,
           location: { from: lineStart, to: lineEnd },
           ruleId: "expression.repeated-line",
-          severity: "warning",
+          severity: getProofreadingRuleDefinition("expression.repeated-line").severity,
           suggestion: createReplacementSuggestion(
             field,
             text,
@@ -69,7 +69,7 @@ function buildRepeatedLineIssuesForField(
             "",
             "重複行を削除",
           ),
-          title: "重複表現の可能性があります。",
+          title: getProofreadingRuleDefinition("expression.repeated-line").title,
         }),
       );
     }
@@ -84,26 +84,23 @@ function buildRepeatedLineIssuesForField(
 
 function buildPhraseIssues(
   draft: DraftInput,
-  strategy: DraftProofreadingPhraseRuleStrategy,
+  rule: DraftProofreadingPhraseRule,
 ): DraftProofreadingIssue[] {
-  return textCheckFields.flatMap((field) =>
-    buildPhraseIssuesForField(field, draft[field], strategy),
-  );
+  return textCheckFields.flatMap((field) => buildPhraseIssuesForField(field, draft[field], rule));
 }
 
 function buildPhraseIssuesForField(
   field: DraftProofreadingEditableField,
   text: string,
-  strategy: DraftProofreadingPhraseRuleStrategy,
+  rule: DraftProofreadingPhraseRule,
 ): DraftProofreadingIssue[] {
-  return strategy.rules.flatMap((rule) => createPhraseRuleIssues(field, text, rule, strategy));
+  return createPhraseRuleIssues(field, text, rule);
 }
 
 function createPhraseRuleIssues(
   field: DraftProofreadingEditableField,
   text: string,
   rule: DraftProofreadingPhraseRule,
-  strategy: DraftProofreadingPhraseRuleStrategy,
 ): DraftProofreadingIssue[] {
   return [...text.matchAll(new RegExp(escapeRegExp(rule.phrase), "g"))].map((match) => {
     const from = match.index ?? 0;
@@ -115,16 +112,26 @@ function createPhraseRuleIssues(
       field,
       location: { from, to },
       ruleId: rule.ruleId,
-      severity: strategy.severity,
+      severity: rule.severity,
       suggestion: createReplacementSuggestion(
         field,
         text,
         from,
         to,
         rule.replacement,
-        strategy.suggestionLabel,
+        rule.suggestionLabel,
       ),
-      title: strategy.title,
+      title: rule.title,
     });
   });
+}
+
+function getProofreadingRuleDefinition(ruleId: string) {
+  const definition = getDraftProofreadingRuleDefinition(ruleId);
+
+  if (!definition) {
+    throw new Error(`Unknown proofreading rule: ${ruleId}`);
+  }
+
+  return definition;
 }

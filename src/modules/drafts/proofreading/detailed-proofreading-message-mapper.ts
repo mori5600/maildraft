@@ -1,11 +1,6 @@
 import type { TextlintMessage } from "@textlint/kernel";
 
 import {
-  detailedProofreadingPhraseRuleIndex,
-  detailedProofreadingRuleDefinitions,
-  type DetailedRuleDefinition,
-} from "./detailed-proofreading-rule-set";
-import {
   type DetailedProofreadingStrategy,
   resolveDetailedProofreadingStrategy,
 } from "./detailed-proofreading-strategy";
@@ -18,6 +13,11 @@ import {
   type DraftProofreadingSuggestion,
 } from "./model";
 import type { DraftProofreadingPhraseRule } from "./proofreading-rule-data";
+import {
+  detailedProofreadingPhraseRuleIndex,
+  detailedProofreadingRuleDefinitions,
+  type DraftProofreadingRuleDefinition,
+} from "./proofreading-rule-data";
 
 interface DetailedSuggestionInput {
   field: DraftProofreadingEditableField;
@@ -39,9 +39,13 @@ interface DetailedRuleMetadataInput {
   message: TextlintMessage;
   excerpt: string;
   phraseRule: DraftProofreadingPhraseRule | undefined;
-  ruleDefinition: DetailedRuleDefinition | undefined;
+  ruleDefinition: DraftProofreadingRuleDefinition | undefined;
   suggestion: DraftProofreadingSuggestion | undefined;
 }
+
+type DetailedIssueMetadata = Pick<DraftProofreadingRuleDefinition, "description" | "title"> & {
+  severity: DraftProofreadingSeverity;
+};
 
 const suggestionStrategies: DetailedProofreadingStrategy<
   DetailedSuggestionInput,
@@ -102,28 +106,13 @@ const excerptStrategies: DetailedProofreadingStrategy<DetailedExcerptInput, stri
   },
 ];
 
-const prhTitleStrategies: DetailedProofreadingStrategy<DraftProofreadingPhraseRule, string>[] = [
-  {
-    matches: (phraseRule) => phraseRule.ruleId.startsWith("honorific"),
-    resolve: () => "二重敬語の候補があります。",
-  },
-];
-
 const ruleMetadataStrategies: DetailedProofreadingStrategy<
   DetailedRuleMetadataInput,
-  DetailedRuleDefinition & { severity: DraftProofreadingSeverity }
+  DetailedIssueMetadata
 >[] = [
   {
     matches: ({ message, phraseRule }) => message.ruleId === "prh" && Boolean(phraseRule),
-    resolve: ({ phraseRule }) => ({
-      description: phraseRule!.description,
-      severity: "warning",
-      title: resolveDetailedProofreadingStrategy(
-        prhTitleStrategies,
-        phraseRule!,
-        () => "非推奨表現の可能性があります。",
-      ),
-    }),
+    resolve: ({ phraseRule }) => phraseRule!,
   },
   {
     matches: ({ ruleDefinition }) => Boolean(ruleDefinition),
@@ -209,9 +198,7 @@ function createDetailedExcerpt(input: DetailedExcerptInput): string {
   );
 }
 
-function describeDetailedRule(
-  input: DetailedRuleMetadataInput,
-): DetailedRuleDefinition & { severity: DraftProofreadingSeverity } {
+function describeDetailedRule(input: DetailedRuleMetadataInput): DetailedIssueMetadata {
   return resolveDetailedProofreadingStrategy(ruleMetadataStrategies, input, ({ message }) => ({
     description: message.message,
     severity: toDraftProofreadingSeverity(message.severity),

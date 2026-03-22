@@ -1,4 +1,5 @@
 import type { DraftInput } from "../model";
+import { getDraftProofreadingRuleLabel } from "./proofreading-rule-data";
 
 export const DRAFT_SUBJECT_WARNING_LENGTH = 45;
 
@@ -82,41 +83,6 @@ const fieldOrder: Record<DraftProofreadingField, number> = {
   signature: 5,
 };
 
-const ruleLabelById: Record<string, string> = {
-  "required.subject": "件名未入力",
-  "subject.length": "件名長さ",
-  "required.recipient-or-opening": "宛名または書き出し",
-  "required.body": "本文未入力",
-  "required.closing": "結び未入力",
-  "required.signature": "署名未設定",
-  "variables.missing": "未置換の変数",
-  "whitespace.trailing": "行末スペース",
-  "whitespace.multiple": "連続スペース",
-  "expression.repeated-line": "重複行",
-  "discouraged.understood": "「了解しました」",
-  "discouraged.casual-understood": "「わかりました」",
-  "discouraged.apology": "「すみません」",
-  "discouraged.temporary": "「とりあえず」",
-  "honorific.confirm-maybe": "「ご確認いただけますでしょうか」",
-  "honorific.visit": "「お伺いさせていただきます」",
-  "honorific.view": "「拝見させていただきます」",
-  "honorific.see": "「ご覧になられましたら」",
-  "max-ten": "読点過多",
-  "no-doubled-conjunctive-particle-ga": "逆接表現の重複",
-  "no-doubled-conjunction": "接続詞の重複",
-  "no-double-negative-ja": "二重否定",
-  "no-doubled-joshi": "助詞の重複",
-  "sentence-length": "長文",
-  "no-dropping-the-ra": "ら抜き言葉",
-  "no-mix-dearu-desumasu": "文体混在",
-  "no-nfd": "文字正規化の揺れ",
-  "no-invalid-control-character": "制御文字",
-  "no-zero-width-spaces": "ゼロ幅スペース",
-  "no-kangxi-radicals": "互換性の低い漢字",
-  prh: "prh 言い換え",
-  textlint: "textlint",
-};
-
 export function createDraftProofreadingIssueId(
   ruleId: string,
   field: DraftProofreadingField,
@@ -161,7 +127,7 @@ export function draftProofreadingSeverityLabel(severity: DraftProofreadingSeveri
 }
 
 export function draftProofreadingRuleLabel(ruleId: string): string {
-  return ruleLabelById[ruleId] ?? ruleId;
+  return getDraftProofreadingRuleLabel(ruleId) ?? ruleId;
 }
 
 export function draftProofreadingDetailedStatusLabel(
