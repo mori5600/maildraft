@@ -8,6 +8,7 @@ export const textCheckFields: DraftProofreadingEditableField[] = [
   "closing",
 ];
 
+/** Shares the user-facing metadata resolved for a proofreading `ruleId`. */
 export interface DraftProofreadingRuleDefinition {
   description: string;
   label: string;
@@ -15,6 +16,13 @@ export interface DraftProofreadingRuleDefinition {
   title: string;
 }
 
+/**
+ * Adds exact-match replacement data to shared rule metadata.
+ *
+ * @remarks
+ * These rules are used both by lightweight phrase scanning and by the detailed `prh` rule set, so
+ * the same `ruleId` must keep identical wording metadata and replacement data.
+ */
 export interface DraftProofreadingPhraseRule extends DraftProofreadingRuleDefinition {
   phrase: string;
   replacement: string;
@@ -279,6 +287,8 @@ const phraseRuleDefinitions = createRuleDefinitions(
   })),
 );
 
+// Lightweight checks, detailed checks, phrase lookup, and settings UI all derive metadata from the
+// same source so that a `ruleId` and phrase always resolve to the same wording contract.
 const proofreadingRuleDefinitions = new Map([
   ...staticRuleDefinitions.entries(),
   ...phraseRuleDefinitions.entries(),
@@ -293,16 +303,19 @@ export const detailedProofreadingPhraseRuleIndex = new Map(
   phraseRules.map((rule) => [rule.phrase, rule]),
 );
 
+/** Returns the shared metadata for a known proofreading `ruleId`. */
 export function getDraftProofreadingRuleDefinition(
   ruleId: string,
 ): DraftProofreadingRuleDefinition | undefined {
   return proofreadingRuleDefinitions.get(ruleId);
 }
 
+/** Returns the settings and UI label for a known proofreading `ruleId`. */
 export function getDraftProofreadingRuleLabel(ruleId: string): string | undefined {
   return proofreadingRuleDefinitions.get(ruleId)?.label;
 }
 
+/** Builds the subject-length rule text that depends on the configured threshold. */
 export function createSubjectLengthRuleDefinition(
   subjectWarningLength: number,
 ): DraftProofreadingRuleDefinition {
@@ -314,6 +327,7 @@ export function createSubjectLengthRuleDefinition(
   };
 }
 
+/** Builds the missing-variable rule text that depends on the unresolved variable names. */
 export function createMissingVariablesRuleDefinition(
   missingVariables: string[],
 ): DraftProofreadingRuleDefinition {

@@ -134,6 +134,14 @@ const severityStrategies: DetailedProofreadingStrategy<
   },
 ];
 
+/**
+ * Converts a detailed lint message for one editable field into a draft proofreading issue.
+ *
+ * @remarks
+ * `prh` matches prefer the centralized phrase-rule metadata so lightweight and detailed checks
+ * produce the same title and description for the same wording rule. Other messages fall back to
+ * centralized rule definitions and finally to the raw textlint message when no definition exists.
+ */
 export function mapDetailedLintMessageToIssue(input: {
   field: DraftProofreadingEditableField;
   message: TextlintMessage;

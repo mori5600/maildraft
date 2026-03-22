@@ -22,6 +22,14 @@ interface UseDraftProofreadingStateOptions {
   setDraftForm: Dispatch<SetStateAction<DraftInput>>;
 }
 
+/**
+ * Owns visible proofreading issues and the detailed-check worker lifecycle for the draft editor.
+ *
+ * @remarks
+ * This hook merges lightweight render issues with worker results, hides ignored and disabled
+ * rules, debounces detailed checks while the user types, and degrades to `idle` or `error` when
+ * the worker is unavailable or fails to initialize.
+ */
 export function useDraftProofreadingState({
   disabledRuleIds,
   draftForm,

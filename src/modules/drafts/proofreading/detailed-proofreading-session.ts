@@ -24,17 +24,34 @@ interface DetailedFieldCacheEntry {
   text: string;
 }
 
+/**
+ * Provides a reusable detailed proofreading runner with per-field result caching.
+ *
+ * @remarks
+ * Cache reuse only happens within the same session. `clear()` drops every cached field result and
+ * forces the next `run()` to lint all target fields again.
+ */
 export interface DetailedDraftProofreadingSession {
   clear: () => void;
   run: (request: DetailedProofreadingRequest) => Promise<DraftProofreadingIssue[]>;
 }
 
+/**
+ * Runs a one-off detailed proofreading pass without reusing previous field results.
+ */
 export async function runDetailedDraftProofreading({
   draft,
 }: DetailedProofreadingRequest): Promise<DraftProofreadingIssue[]> {
   return createDetailedDraftProofreadingSession().run({ draft });
 }
 
+/**
+ * Creates a detailed proofreading session that caches results per editable field across runs.
+ *
+ * @remarks
+ * The cache key combines the field text and the execution strategy. Empty fields are cached as
+ * having no issues so repeated runs can skip them just like unchanged non-empty fields.
+ */
 export function createDetailedDraftProofreadingSession(): DetailedDraftProofreadingSession {
   const kernel = new TextlintKernel();
   let cachedIssuesByField = new Map<DraftProofreadingEditableField, DetailedFieldCacheEntry>();
