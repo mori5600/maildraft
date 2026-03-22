@@ -8,15 +8,15 @@ import prhRuleModule from "textlint-rule-prh";
 import sentenceLengthRuleModule from "textlint-rule-sentence-length";
 
 import {
-  discouragedPhraseRules,
-  doubleHonorificPhraseRules,
-  type DraftProofreadingPhraseRule,
-} from "./build-proofreading-issues";
-import {
   ensureDetailedProofreadingRuntime,
   unwrapModuleDefault,
 } from "./detailed-proofreading-runtime";
 import type { DraftProofreadingSeverity } from "./model";
+import {
+  discouragedPhraseRules,
+  doubleHonorificPhraseRules,
+  type DraftProofreadingPhraseRule,
+} from "./proofreading-rule-data";
 
 export interface DetailedRuleDefinition {
   description: string;

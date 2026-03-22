@@ -1,6 +1,5 @@
 import type { TextlintMessage } from "@textlint/kernel";
 
-import type { DraftProofreadingPhraseRule } from "./build-proofreading-issues";
 import {
   detailedProofreadingPhraseRuleIndex,
   detailedProofreadingRuleDefinitions,
@@ -18,6 +17,7 @@ import {
   type DraftProofreadingSeverity,
   type DraftProofreadingSuggestion,
 } from "./model";
+import type { DraftProofreadingPhraseRule } from "./proofreading-rule-data";
 
 interface DetailedSuggestionInput {
   field: DraftProofreadingEditableField;

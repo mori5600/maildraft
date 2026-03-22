@@ -63,6 +63,20 @@ describe("build-proofreading-issues", () => {
     expect(nextDraft.body).toContain("承知しました");
   });
 
+  it("reports unresolved template variables as required issues", () => {
+    const issues = buildDraftProofreadingIssues(
+      createDraftInput({
+        body: "本日はありがとうございました。{{会社名}}",
+        variableValues: {},
+      }),
+      createSignature(),
+    );
+
+    expect(issues.find((issue) => issue.ruleId === "variables.missing")?.title).toBe(
+      "未置換の変数があります: 会社名",
+    );
+  });
+
   it("does not flag leading indentation as repeated spaces", () => {
     const issues = buildDraftProofreadingIssues(
       createDraftInput({
