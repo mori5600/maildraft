@@ -21,6 +21,10 @@ use self::{
     settings_document::{decode_settings, encode_settings},
     store_document::{decode_store_snapshot, encode_store_snapshot},
 };
+use super::validation::{
+    ensure_content_size, read_text_file_with_limit, validate_app_settings, validate_store_snapshot,
+    MAX_SETTINGS_FILE_BYTES, MAX_STORE_FILE_BYTES,
+};
 
 type AppResult<T> = Result<T, String>;
 
@@ -65,12 +69,17 @@ pub fn load_store_snapshot(path: &Path) -> AppResult<StoreSnapshot> {
 pub fn load_app_settings_with_status(path: &Path) -> AppResult<LoadOutcome<AppSettings>> {
     load_with_fallback(
         path,
-        decode_settings,
+        |content| {
+            let settings = decode_settings(content)?;
+            validate_app_settings(&settings)?;
+            Ok(settings)
+        },
         AppSettings::default,
         StorageNoticeMessages {
             recovered_from_backup: "診断設定をバックアップから復旧しました。",
             reset_to_defaults: "診断設定を復旧できなかったため既定値で起動しました。",
         },
+        MAX_SETTINGS_FILE_BYTES,
     )
 }
 
@@ -78,12 +87,18 @@ pub fn load_app_settings_with_status(path: &Path) -> AppResult<LoadOutcome<AppSe
 pub fn load_store_snapshot_with_status(path: &Path) -> AppResult<LoadOutcome<StoreSnapshot>> {
     load_with_fallback(
         path,
-        decode_store_snapshot,
+        |content| {
+            let mut snapshot = decode_store_snapshot(content)?;
+            snapshot.ensure_consistency();
+            validate_store_snapshot(&snapshot)?;
+            Ok(snapshot)
+        },
         StoreSnapshot::seeded,
         StorageNoticeMessages {
             recovered_from_backup: "ローカルデータをバックアップから復旧しました。",
             reset_to_defaults: "ローカルデータを復旧できなかったため初期状態で起動しました。",
         },
+        MAX_STORE_FILE_BYTES,
     )
 }
 
@@ -94,6 +109,11 @@ pub fn load_store_snapshot_with_status(path: &Path) -> AppResult<LoadOutcome<Sto
 /// Returns an error if settings cannot be encoded or written atomically.
 pub fn write_app_settings(path: &Path, settings: &AppSettings) -> AppResult<()> {
     let content = encode_settings(settings)?;
+    ensure_content_size(
+        &content,
+        MAX_SETTINGS_FILE_BYTES,
+        "設定ファイルが大きすぎるため保存できませんでした。",
+    )?;
     write_json_safely(path, &content)
 }
 
@@ -104,6 +124,11 @@ pub fn write_app_settings(path: &Path, settings: &AppSettings) -> AppResult<()> 
 /// Returns an error if the snapshot cannot be encoded or written atomically.
 pub fn write_store_snapshot(path: &Path, snapshot: &StoreSnapshot) -> AppResult<()> {
     let content = encode_store_snapshot(snapshot)?;
+    ensure_content_size(
+        &content,
+        MAX_STORE_FILE_BYTES,
+        "保存ファイルが大きすぎるため保存できませんでした。",
+    )?;
     write_json_safely(path, &content)
 }
 
@@ -112,11 +137,12 @@ fn load_with_fallback<T>(
     decode: impl Fn(&str) -> AppResult<T>,
     default: impl Fn() -> T,
     notices: StorageNoticeMessages,
+    max_bytes: u64,
 ) -> AppResult<LoadOutcome<T>> {
     if !path.exists() {
         let backup_path = backup_path(path);
         if backup_path.exists() {
-            return match read_and_decode(&backup_path, &decode) {
+            return match read_and_decode(&backup_path, max_bytes, &decode) {
                 Ok(value) => {
                     eprintln!("MailDraft storage recovered from backup because the primary file was missing.");
                     Ok(LoadOutcome {
@@ -150,7 +176,7 @@ fn load_with_fallback<T>(
         });
     }
 
-    match read_and_decode(path, &decode) {
+    match read_and_decode(path, max_bytes, &decode) {
         Ok(value) => Ok(LoadOutcome {
             startup_notice: None,
             value,
@@ -158,7 +184,7 @@ fn load_with_fallback<T>(
         Err(main_error) => {
             let backup_path = backup_path(path);
             if backup_path.exists() {
-                match read_and_decode(&backup_path, &decode) {
+                match read_and_decode(&backup_path, max_bytes, &decode) {
                     Ok(value) => {
                         quarantine_file(path);
                         eprintln!(
@@ -200,8 +226,17 @@ fn load_with_fallback<T>(
     }
 }
 
-fn read_and_decode<T>(path: &Path, decode: impl Fn(&str) -> AppResult<T>) -> AppResult<T> {
-    let content = fs::read_to_string(path).map_err(|error| error.to_string())?;
+fn read_and_decode<T>(
+    path: &Path,
+    max_bytes: u64,
+    decode: impl Fn(&str) -> AppResult<T>,
+) -> AppResult<T> {
+    let too_large_message = if max_bytes == MAX_SETTINGS_FILE_BYTES {
+        "設定ファイルが大きすぎます。"
+    } else {
+        "保存ファイルが大きすぎます。"
+    };
+    let content = read_text_file_with_limit(path, max_bytes, too_large_message)?;
     decode(&content)
 }
 
@@ -345,6 +380,41 @@ mod tests {
                 .file_name()
                 .to_string_lossy()
                 .starts_with("maildraft-store.json.corrupt-")));
+    }
+
+    #[test]
+    fn duplicate_store_ids_fall_back_to_backup() {
+        let directory = tempdir().expect("tempdir");
+        let path = directory.path().join("maildraft-store.json");
+        let mut invalid = StoreSnapshot::seeded();
+        invalid
+            .trash
+            .drafts
+            .push(crate::modules::trash::TrashedDraft {
+                draft: invalid.drafts[0].clone(),
+                history: Vec::new(),
+                deleted_at: "1".to_string(),
+            });
+        fs::write(
+            &path,
+            serde_json::to_string(&invalid).expect("serialize invalid store"),
+        )
+        .expect("write invalid store");
+        fs::write(
+            backup_path(&path),
+            serde_json::to_string(&StoreSnapshot::seeded()).expect("serialize backup"),
+        )
+        .expect("write backup");
+
+        let loaded = load_store_snapshot_with_status(&path).expect("recover from backup");
+        assert_eq!(
+            loaded.startup_notice,
+            Some(StartupNoticeSnapshot {
+                message: "ローカルデータをバックアップから復旧しました。".to_string(),
+                tone: StartupNoticeTone::Notice,
+            })
+        );
+        assert_eq!(loaded.value.trash.item_count(), 0);
     }
 
     #[test]

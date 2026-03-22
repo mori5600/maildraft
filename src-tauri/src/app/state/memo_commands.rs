@@ -1,6 +1,7 @@
 use std::time::Instant;
 
 use crate::app::logging::{LogEntry, LogLevel};
+use crate::app::validation::validate_memo_input;
 use crate::modules::memo::{Memo, MemoInput};
 use crate::modules::store::DeleteMemoResult;
 
@@ -21,6 +22,7 @@ impl AppState {
         let timestamp = timestamp();
 
         let result = (|| {
+            validate_memo_input(&input)?;
             let mut store = self.store.lock().map_err(|error| error.to_string())?;
             let previous = store.clone();
             let memo = store.upsert_memo(input, &timestamp);

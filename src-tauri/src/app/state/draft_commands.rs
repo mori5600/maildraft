@@ -3,6 +3,7 @@ use std::time::Instant;
 use serde_json::Map;
 
 use crate::app::logging::{LogEntry, LogLevel};
+use crate::app::validation::validate_draft_input;
 use crate::modules::{
     drafts::DraftInput,
     store::{DeleteDraftResult, SaveDraftResult, StoreSnapshot},
@@ -52,6 +53,7 @@ impl AppState {
 
         let result = (|| {
             let mut store = self.store.lock().map_err(|error| error.to_string())?;
+            validate_draft_input(&input, &store)?;
             let previous = store.clone();
             store.upsert_draft(input, &timestamp);
             store.ensure_consistency();

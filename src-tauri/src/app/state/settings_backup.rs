@@ -1,4 +1,4 @@
-use std::{fs, time::Instant};
+use std::{fs, path::PathBuf, time::Instant};
 
 use crate::app::{
     backup::{decode_backup_document, BackupDocument, ImportedBackupSnapshot},
@@ -6,6 +6,11 @@ use crate::app::{
     settings::{
         LoggingSettingsInput, LoggingSettingsSnapshot, ProofreadingSettingsInput,
         ProofreadingSettingsSnapshot,
+    },
+    validation::{
+        ensure_content_size, read_text_file_with_limit, validate_export_backup_path,
+        validate_import_backup_path, validate_proofreading_settings_input, validate_store_snapshot,
+        MAX_BACKUP_FILE_BYTES,
     },
 };
 
@@ -45,20 +50,26 @@ impl AppState {
     /// the target path cannot be written.
     pub fn export_backup(&self, path: &str) -> AppResult<String> {
         let started_at = Instant::now();
-        let snapshot = {
-            let store = self.store.lock().map_err(|error| error.to_string())?;
-            let mut snapshot = store.clone();
-            snapshot.ensure_consistency();
-            snapshot
-        };
-        let settings = {
-            let settings = self.settings.lock().map_err(|error| error.to_string())?;
-            settings.clone().normalized()
-        };
+        let protected_paths = self.protected_backup_paths();
+        let protected_path_refs = protected_paths
+            .iter()
+            .map(PathBuf::as_path)
+            .collect::<Vec<_>>();
+        let export_path = validate_export_backup_path(path, &protected_path_refs)?;
+        let persisted_state = self.repository.load_state()?;
+        let mut snapshot = persisted_state.snapshot;
+        snapshot.ensure_consistency();
+        validate_store_snapshot(&snapshot)?;
+        let settings = persisted_state.settings.normalized();
         let document = BackupDocument::from_state(snapshot.clone(), settings);
         let content = serde_json::to_string_pretty(&document).map_err(|error| error.to_string())?;
+        ensure_content_size(
+            &content,
+            MAX_BACKUP_FILE_BYTES,
+            "バックアップファイルが大きすぎるため書き出せませんでした。",
+        )?;
 
-        match fs::write(path, content) {
+        match fs::write(&export_path, content) {
             Ok(()) => {
                 self.log_event(LogEntry {
                     level: LogLevel::Info,
@@ -69,7 +80,7 @@ impl AppState {
                     error_code: None,
                     safe_context: snapshot_counts_context(&snapshot),
                 });
-                Ok(path.to_string())
+                Ok(export_path.display().to_string())
             }
             Err(error) => {
                 self.log_event(LogEntry {
@@ -97,50 +108,35 @@ impl AppState {
     /// acquired, persistence fails, or log pruning fails.
     pub fn import_backup(&self, path: &str) -> AppResult<ImportedBackupSnapshot> {
         let started_at = Instant::now();
-        let content = fs::read_to_string(path).map_err(|error| error.to_string())?;
+        let import_path = validate_import_backup_path(path)?;
+        let content = read_text_file_with_limit(
+            &import_path,
+            MAX_BACKUP_FILE_BYTES,
+            "バックアップファイルが大きすぎます。",
+        )?;
         let document = decode_backup_document(&content)?;
         let (mut snapshot, settings) = document.into_state()?;
         snapshot.ensure_consistency();
-        let previous_store = {
-            let store = self.store.lock().map_err(|error| error.to_string())?;
-            store.clone()
-        };
-        let previous_settings = {
-            let settings = self.settings.lock().map_err(|error| error.to_string())?;
-            settings.clone()
-        };
+        validate_store_snapshot(&snapshot)?;
+        let mut store = self.store.lock().map_err(|error| error.to_string())?;
+        let mut app_settings = self.settings.lock().map_err(|error| error.to_string())?;
+        let previous_store = store.clone();
+        let previous_settings = app_settings.clone();
 
-        {
-            let mut store = self.store.lock().map_err(|error| error.to_string())?;
-            *store = snapshot.clone();
-            self.persist_locked_store_with_rollback(&mut store, previous_store.clone())?;
-        }
-
-        {
-            let mut app_settings = self.settings.lock().map_err(|error| error.to_string())?;
-            *app_settings = settings.clone();
-            if let Err(error) = self
-                .persist_locked_settings_with_rollback(&mut app_settings, previous_settings.clone())
-            {
-                return match self.restore_store_snapshot(&previous_store) {
-                    Ok(()) => Err(error),
-                    Err(rollback_error) => Err(combine_rollback_error(
-                        error,
-                        "store rollback failed",
-                        rollback_error,
-                    )),
-                };
-            }
-        }
+        self.persist_locked_state(&snapshot, &settings)?;
+        *store = snapshot.clone();
+        *app_settings = settings.clone();
 
         if let Err(error) = self
             .logger
             .prune_expired_logs(settings.logging.retention_days)
             .map_err(|error| error.to_string())
         {
-            let rollback_result = self
-                .restore_store_snapshot(&previous_store)
-                .and_then(|()| self.restore_app_settings(&previous_settings));
+            let rollback_result = self.persist_locked_state(&previous_store, &previous_settings);
+            *store = previous_store;
+            *app_settings = previous_settings;
+            drop(store);
+            drop(app_settings);
             return match rollback_result {
                 Ok(()) => Err(error),
                 Err(rollback_error) => Err(combine_rollback_error(
@@ -150,6 +146,8 @@ impl AppState {
                 )),
             };
         }
+        drop(store);
+        drop(app_settings);
 
         let logging_settings = self.logger_snapshot(&settings.logging)?;
         let proofreading_settings = ProofreadingSettingsSnapshot::from(&settings.proofreading);
@@ -257,6 +255,7 @@ impl AppState {
         input: ProofreadingSettingsInput,
     ) -> AppResult<ProofreadingSettingsSnapshot> {
         let started_at = Instant::now();
+        validate_proofreading_settings_input(&input)?;
         let next_settings = input.into_settings();
 
         {

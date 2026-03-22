@@ -3,6 +3,7 @@ use std::time::Instant;
 use serde_json::Map;
 
 use crate::app::logging::{LogEntry, LogLevel};
+use crate::app::validation::validate_template_input;
 use crate::modules::{
     store::{DeleteTemplateResult, SaveTemplateResult},
     templates::TemplateInput,
@@ -33,6 +34,7 @@ impl AppState {
 
         let result = (|| {
             let mut store = self.store.lock().map_err(|error| error.to_string())?;
+            validate_template_input(&input, &store)?;
             let previous = store.clone();
             store.upsert_template(input, &timestamp);
             store.ensure_consistency();

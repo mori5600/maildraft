@@ -11,7 +11,12 @@ mod variable_preset_commands;
 #[cfg(test)]
 mod tests;
 
-use std::{fs, path::PathBuf, sync::Mutex, time::Instant};
+use std::{
+    fs,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+    time::Instant,
+};
 
 #[cfg(test)]
 use std::path::Path;
@@ -20,21 +25,23 @@ use tauri::{AppHandle, Manager};
 
 use crate::app::{
     logging::{AppLogger, LogEntry, LogLevel},
-    settings::AppSettings,
-    storage::{
-        load_app_settings_with_status, load_store_snapshot_with_status, StartupNoticeSnapshot,
-        StartupNoticeTone,
+    persistence::{
+        bootstrap_runtime_repository, PersistenceRepository, PreparedRepositoryBootstrap,
     },
+    settings::AppSettings,
+    storage::{StartupNoticeSnapshot, StartupNoticeTone},
 };
 use crate::modules::store::StoreSnapshot;
+
+#[cfg(test)]
+use crate::app::persistence::{bootstrap_json_repository, JsonRepository};
 
 use self::context::{elapsed_millis, snapshot_counts_context};
 
 type AppResult<T> = Result<T, String>;
 
 pub struct AppState {
-    store_path: PathBuf,
-    settings_path: PathBuf,
+    repository: Arc<dyn PersistenceRepository>,
     store: Mutex<StoreSnapshot>,
     settings: Mutex<AppSettings>,
     startup_notice: Mutex<Option<StartupNoticeSnapshot>>,
@@ -49,54 +56,130 @@ impl AppState {
             .map_err(|error| error.to_string())?;
         fs::create_dir_all(&store_dir).map_err(|error| error.to_string())?;
 
-        Self::from_paths(
+        Self::from_runtime_paths(
             store_dir.join("maildraft-store.json"),
             store_dir.join("maildraft-settings.json"),
+            store_dir.join("maildraft.sqlite3"),
             store_dir.join("logs"),
         )
     }
 
-    fn from_paths(
+    fn from_runtime_paths(
+        store_path: PathBuf,
+        settings_path: PathBuf,
+        database_path: PathBuf,
+        logs_path: PathBuf,
+    ) -> AppResult<Self> {
+        let bootstrap = bootstrap_runtime_repository(store_path, settings_path, database_path)?;
+        Self::from_bootstrap(bootstrap, logs_path)
+    }
+
+    #[cfg(test)]
+    fn from_json_paths(
         store_path: PathBuf,
         settings_path: PathBuf,
         logs_path: PathBuf,
     ) -> AppResult<Self> {
-        if let Some(store_dir) = store_path.parent() {
-            fs::create_dir_all(store_dir).map_err(|error| error.to_string())?;
-        }
+        let bootstrap = bootstrap_json_repository(store_path, settings_path)?;
+        Self::from_bootstrap(bootstrap, logs_path)
+    }
 
-        if let Some(settings_dir) = settings_path.parent() {
-            fs::create_dir_all(settings_dir).map_err(|error| error.to_string())?;
+    fn from_bootstrap(
+        bootstrap: PreparedRepositoryBootstrap,
+        logs_path: PathBuf,
+    ) -> AppResult<Self> {
+        let PreparedRepositoryBootstrap {
+            repository,
+            settings_outcome,
+            store_outcome,
+            extra_startup_notices,
+        } = bootstrap;
+        let protected_paths = repository.protected_backup_paths();
+        for path in protected_paths {
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+            }
         }
 
         fs::create_dir_all(&logs_path).map_err(|error| error.to_string())?;
-
-        let settings_outcome = load_app_settings_with_status(&settings_path)?;
         let logger = AppLogger::new(logs_path);
-
-        let store_outcome = load_store_snapshot_with_status(&store_path)?;
         let mut store = store_outcome.value;
 
         store.ensure_consistency();
         let state = Self {
-            store_path,
-            settings_path,
+            repository,
             store: Mutex::new(store),
             settings: Mutex::new(settings_outcome.value),
             startup_notice: Mutex::new(combine_startup_notice(
                 [
-                    settings_outcome.startup_notice,
-                    store_outcome.startup_notice,
+                    Some(extra_startup_notices),
+                    Some(
+                        [
+                            settings_outcome.startup_notice,
+                            store_outcome.startup_notice,
+                        ]
+                        .into_iter()
+                        .flatten()
+                        .collect(),
+                    ),
                 ]
                 .into_iter()
+                .flatten()
                 .flatten(),
             )),
             logger,
         };
-        state.persist_current_store()?;
-        state.persist_current_settings()?;
+        state.persist_current_state()?;
 
         Ok(state)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn new_for_tests(root: &Path) -> AppResult<Self> {
+        fs::create_dir_all(root).map_err(|error| error.to_string())?;
+        Self::from_json_paths(
+            root.join("maildraft-store.json"),
+            root.join("maildraft-settings.json"),
+            root.join("logs"),
+        )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn new_for_runtime_tests(root: &Path) -> AppResult<Self> {
+        fs::create_dir_all(root).map_err(|error| error.to_string())?;
+        Self::from_runtime_paths(
+            root.join("maildraft-store.json"),
+            root.join("maildraft-settings.json"),
+            root.join("maildraft.sqlite3"),
+            root.join("logs"),
+        )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn store_document_path_for_tests(&self) -> PathBuf {
+        self.repository
+            .store_document_path()
+            .expect("JSON store path should be available in tests")
+    }
+
+    #[cfg(test)]
+    pub(crate) fn settings_document_path_for_tests(&self) -> PathBuf {
+        self.repository
+            .settings_document_path()
+            .expect("JSON settings path should be available in tests")
+    }
+
+    #[cfg(test)]
+    pub(crate) fn replace_json_repository_for_tests(
+        &mut self,
+        store_path: PathBuf,
+        settings_path: PathBuf,
+    ) {
+        self.repository = Arc::new(JsonRepository::new(store_path, settings_path));
+    }
+
+    pub(crate) fn protected_backup_paths(&self) -> Vec<PathBuf> {
+        self.repository.protected_backup_paths()
     }
 
     pub fn load_snapshot(&self) -> AppResult<StoreSnapshot> {
@@ -124,16 +207,6 @@ impl AppState {
             .lock()
             .map_err(|error| error.to_string())?;
         Ok(startup_notice.clone())
-    }
-
-    #[cfg(test)]
-    pub(crate) fn new_for_tests(root: &Path) -> AppResult<Self> {
-        fs::create_dir_all(root).map_err(|error| error.to_string())?;
-        Self::from_paths(
-            root.join("maildraft-store.json"),
-            root.join("maildraft-settings.json"),
-            root.join("logs"),
-        )
     }
 }
 

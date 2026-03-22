@@ -5,7 +5,6 @@ use crate::app::{
     settings::{
         AppSettings, LoggingSettings, LoggingSettingsSnapshot, ProofreadingSettingsSnapshot,
     },
-    storage::{write_app_settings, write_store_snapshot},
 };
 use crate::modules::store::StoreSnapshot;
 
@@ -15,22 +14,26 @@ use super::{
 };
 
 impl AppState {
-    pub(super) fn persist_current_store(&self) -> AppResult<()> {
+    pub(super) fn persist_current_state(&self) -> AppResult<()> {
         let store = self.store.lock().map_err(|error| error.to_string())?;
-        self.persist_locked_store(&store)
-    }
-
-    pub(super) fn persist_current_settings(&self) -> AppResult<()> {
         let settings = self.settings.lock().map_err(|error| error.to_string())?;
-        self.persist_locked_settings(&settings)
+        self.persist_locked_state(&store, &settings)
     }
 
     pub(super) fn persist_locked_store(&self, store: &StoreSnapshot) -> AppResult<()> {
-        write_store_snapshot(&self.store_path, store)
+        self.repository.save_store_snapshot(store)
     }
 
     pub(super) fn persist_locked_settings(&self, settings: &AppSettings) -> AppResult<()> {
-        write_app_settings(&self.settings_path, settings)
+        self.repository.save_app_settings(settings)
+    }
+
+    pub(super) fn persist_locked_state(
+        &self,
+        store: &StoreSnapshot,
+        settings: &AppSettings,
+    ) -> AppResult<()> {
+        self.repository.save_state(store, settings)
     }
 
     pub(super) fn persist_locked_store_with_rollback(
@@ -57,12 +60,6 @@ impl AppState {
         }
 
         Ok(())
-    }
-
-    pub(super) fn restore_store_snapshot(&self, snapshot: &StoreSnapshot) -> AppResult<()> {
-        let mut store = self.store.lock().map_err(|error| error.to_string())?;
-        *store = snapshot.clone();
-        self.persist_locked_store(&store)
     }
 
     pub(super) fn restore_app_settings(&self, snapshot: &AppSettings) -> AppResult<()> {

@@ -3,6 +3,7 @@ use std::time::Instant;
 use serde_json::Map;
 
 use crate::app::logging::{LogEntry, LogLevel};
+use crate::app::validation::validate_signature_input;
 use crate::modules::{
     signatures::SignatureInput,
     store::{DeleteSignatureResult, SaveSignatureResult},
@@ -30,6 +31,7 @@ impl AppState {
         let timestamp = timestamp();
 
         let result = (|| {
+            validate_signature_input(&input)?;
             let mut store = self.store.lock().map_err(|error| error.to_string())?;
             let previous = store.clone();
             store.upsert_signature(input, &timestamp);

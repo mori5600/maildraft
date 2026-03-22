@@ -3,6 +3,7 @@ use std::time::Instant;
 use serde_json::Map;
 
 use crate::app::logging::{LogEntry, LogLevel};
+use crate::app::validation::validate_variable_preset_input;
 use crate::modules::{
     store::{StoreSnapshot, VariablePresetResult},
     variable_presets::VariablePresetInput,
@@ -37,6 +38,7 @@ impl AppState {
         let started_at = Instant::now();
         let safe_context = variable_preset_context(&input);
         let result = (|| {
+            validate_variable_preset_input(&input)?;
             let mut store = self.store.lock().map_err(|error| error.to_string())?;
             let previous = store.clone();
             store.upsert_variable_preset(input, &timestamp());

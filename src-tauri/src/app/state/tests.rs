@@ -1,4 +1,8 @@
-use std::{collections::BTreeMap, fs, path::Path};
+use std::{
+    collections::BTreeMap,
+    fs,
+    path::{Path, PathBuf},
+};
 
 use pretty_assertions::assert_eq;
 use serde_json::{json, Value};
@@ -16,11 +20,16 @@ use crate::{
     app::{
         backup::{decode_backup_document, BackupDocument},
         logging::{LogEntry, LogLevel},
+        persistence::{sqlite::SqliteRepository, PersistenceRepository},
         settings::{
             AppSettings, LoggingMode, LoggingSettings, LoggingSettingsInput, ProofreadingSettings,
             ProofreadingSettingsInput,
         },
-        storage::{load_app_settings, load_store_snapshot, StartupNoticeTone},
+        storage::{
+            load_app_settings, load_store_snapshot, write_app_settings, write_store_snapshot,
+            StartupNoticeTone,
+        },
+        validation::MAX_BACKUP_FILE_BYTES,
     },
     modules::{
         drafts::DraftInput,
@@ -38,12 +47,44 @@ fn make_state() -> (AppState, tempfile::TempDir) {
     (state, directory)
 }
 
+fn make_runtime_state() -> (AppState, tempfile::TempDir) {
+    let directory = tempdir().expect("tempdir");
+    let state = AppState::new_for_runtime_tests(directory.path()).expect("runtime state");
+    (state, directory)
+}
+
 fn read_store(path: &Path) -> StoreSnapshot {
     load_store_snapshot(path).expect("store snapshot")
 }
 
 fn read_settings_file(path: &Path) -> AppSettings {
     load_app_settings(path).expect("settings file")
+}
+
+fn read_sqlite_store(path: &Path) -> StoreSnapshot {
+    SqliteRepository::new(path.to_path_buf())
+        .load_store_snapshot()
+        .expect("sqlite store snapshot")
+        .value
+}
+
+fn read_sqlite_settings(path: &Path) -> AppSettings {
+    SqliteRepository::new(path.to_path_buf())
+        .load_app_settings()
+        .expect("sqlite settings")
+        .value
+}
+
+fn runtime_database_path(root: &Path) -> PathBuf {
+    root.join("maildraft.sqlite3")
+}
+
+fn store_file_path(state: &AppState) -> std::path::PathBuf {
+    state.store_document_path_for_tests()
+}
+
+fn settings_file_path(state: &AppState) -> std::path::PathBuf {
+    state.settings_document_path_for_tests()
 }
 
 fn backup_path(path: &Path) -> std::path::PathBuf {
@@ -66,13 +107,15 @@ fn settings_value(state: &AppState) -> Value {
 fn block_store_persistence(state: &mut AppState, directory: &Path, name: &str) {
     let blocked_path = directory.join(name);
     fs::create_dir_all(&blocked_path).expect("create blocked store path");
-    state.store_path = blocked_path;
+    let settings_path = settings_file_path(state);
+    state.replace_json_repository_for_tests(blocked_path, settings_path);
 }
 
 fn block_settings_persistence(state: &mut AppState, directory: &Path, name: &str) {
     let blocked_path = directory.join(name);
     fs::create_dir_all(&blocked_path).expect("create blocked settings path");
-    state.settings_path = blocked_path;
+    let store_path = store_file_path(state);
+    state.replace_json_repository_for_tests(store_path, blocked_path);
 }
 
 fn replace_logs_directory_with_file(root: &Path) {
@@ -89,7 +132,7 @@ fn assert_store_operation_rolls_back_on_persist_failure<T>(
     blocked_name: &str,
     operation: impl FnOnce(&AppState) -> Result<T, String>,
 ) {
-    let original_store_path = state.store_path.clone();
+    let original_store_path = store_file_path(state);
     let before_memory = snapshot_value(state);
     let before_disk =
         serde_json::to_value(read_store(&original_store_path)).expect("serialize persisted store");
@@ -177,6 +220,156 @@ fn load_startup_notice_is_empty_for_clean_boot() {
         state.load_startup_notice().expect("load startup notice"),
         None
     );
+}
+
+#[test]
+fn runtime_startup_migrates_legacy_json_documents_into_sqlite() {
+    let directory = tempdir().expect("tempdir");
+    let root = directory.path();
+    let store_path = root.join("maildraft-store.json");
+    let settings_path = root.join("maildraft-settings.json");
+    let sqlite_path = root.join("maildraft.sqlite3");
+
+    let mut legacy_snapshot = StoreSnapshot::seeded();
+    legacy_snapshot.drafts[0].title = "json migrated draft".to_string();
+    legacy_snapshot.templates[0].name = "json migrated template".to_string();
+    legacy_snapshot.ensure_consistency();
+    let legacy_settings = AppSettings {
+        logging: LoggingSettings {
+            mode: LoggingMode::Standard,
+            retention_days: 30,
+        },
+        proofreading: ProofreadingSettings {
+            disabled_rule_ids: vec!["prh".to_string()],
+        },
+    };
+
+    write_store_snapshot(&store_path, &legacy_snapshot).expect("write legacy store");
+    write_app_settings(&settings_path, &legacy_settings).expect("write legacy settings");
+    let normalized_legacy_settings = legacy_settings.clone().normalized();
+
+    let state = AppState::new_for_runtime_tests(root).expect("runtime state");
+    let startup_notice = state
+        .load_startup_notice()
+        .expect("load startup notice")
+        .expect("migration notice");
+
+    assert_eq!(
+        serde_json::to_value(state.load_snapshot().expect("runtime snapshot"))
+            .expect("serialize runtime snapshot"),
+        serde_json::to_value(&legacy_snapshot).expect("serialize legacy snapshot"),
+    );
+    assert_eq!(
+        settings_value(&state),
+        serde_json::to_value(&normalized_legacy_settings).expect("serialize legacy settings"),
+    );
+    assert_eq!(
+        serde_json::to_value(read_sqlite_store(&sqlite_path)).expect("serialize sqlite store"),
+        serde_json::to_value(&legacy_snapshot).expect("serialize legacy snapshot"),
+    );
+    assert_eq!(
+        serde_json::to_value(read_sqlite_settings(&sqlite_path))
+            .expect("serialize sqlite settings"),
+        serde_json::to_value(&normalized_legacy_settings).expect("serialize legacy settings"),
+    );
+    assert_eq!(startup_notice.tone, StartupNoticeTone::Notice);
+    assert!(startup_notice.message.contains("SQLite へ移行しました。"));
+}
+
+#[test]
+fn runtime_startup_prefers_existing_sqlite_over_legacy_json() {
+    let directory = tempdir().expect("tempdir");
+    let root = directory.path();
+    let store_path = root.join("maildraft-store.json");
+    let settings_path = root.join("maildraft-settings.json");
+    let sqlite_path = root.join("maildraft.sqlite3");
+
+    let mut legacy_snapshot = StoreSnapshot::seeded();
+    legacy_snapshot.drafts[0].title = "legacy json".to_string();
+    let legacy_settings = AppSettings {
+        logging: LoggingSettings {
+            mode: LoggingMode::Off,
+            retention_days: 14,
+        },
+        proofreading: ProofreadingSettings {
+            disabled_rule_ids: vec!["prh".to_string()],
+        },
+    };
+    write_store_snapshot(&store_path, &legacy_snapshot).expect("write legacy store");
+    write_app_settings(&settings_path, &legacy_settings).expect("write legacy settings");
+
+    let mut sqlite_snapshot = StoreSnapshot::seeded();
+    sqlite_snapshot.drafts[0].title = "sqlite runtime".to_string();
+    sqlite_snapshot.ensure_consistency();
+    let sqlite_settings = AppSettings {
+        logging: LoggingSettings {
+            mode: LoggingMode::Standard,
+            retention_days: 30,
+        },
+        proofreading: ProofreadingSettings {
+            disabled_rule_ids: vec!["whitespace.trailing".to_string()],
+        },
+    };
+    SqliteRepository::new(sqlite_path.clone())
+        .save_full_state(&sqlite_snapshot, &sqlite_settings)
+        .expect("save sqlite state");
+
+    let state = AppState::new_for_runtime_tests(root).expect("runtime state");
+
+    assert_eq!(
+        serde_json::to_value(state.load_snapshot().expect("runtime snapshot"))
+            .expect("serialize runtime snapshot"),
+        serde_json::to_value(&sqlite_snapshot).expect("serialize sqlite snapshot"),
+    );
+    assert_eq!(
+        settings_value(&state),
+        serde_json::to_value(sqlite_settings.normalized()).expect("serialize sqlite settings"),
+    );
+    assert_eq!(state.load_startup_notice().expect("startup notice"), None);
+}
+
+#[test]
+fn runtime_startup_falls_back_to_json_when_sqlite_is_unavailable() {
+    let directory = tempdir().expect("tempdir");
+    let root = directory.path();
+    let store_path = root.join("maildraft-store.json");
+    let settings_path = root.join("maildraft-settings.json");
+    let sqlite_path = root.join("maildraft.sqlite3");
+
+    let mut legacy_snapshot = StoreSnapshot::seeded();
+    legacy_snapshot.drafts[0].title = "json fallback".to_string();
+    let legacy_settings = AppSettings {
+        logging: LoggingSettings {
+            mode: LoggingMode::Standard,
+            retention_days: 30,
+        },
+        proofreading: ProofreadingSettings {
+            disabled_rule_ids: vec!["prh".to_string()],
+        },
+    };
+    write_store_snapshot(&store_path, &legacy_snapshot).expect("write legacy store");
+    write_app_settings(&settings_path, &legacy_settings).expect("write legacy settings");
+    fs::create_dir_all(&sqlite_path).expect("block sqlite path with directory");
+
+    let state = AppState::new_for_runtime_tests(root).expect("runtime fallback state");
+    let startup_notice = state
+        .load_startup_notice()
+        .expect("load startup notice")
+        .expect("sqlite fallback notice");
+
+    assert_eq!(
+        serde_json::to_value(state.load_snapshot().expect("runtime snapshot"))
+            .expect("serialize runtime snapshot"),
+        serde_json::to_value(&legacy_snapshot).expect("serialize legacy snapshot"),
+    );
+    assert_eq!(
+        settings_value(&state),
+        serde_json::to_value(legacy_settings.normalized()).expect("serialize legacy settings"),
+    );
+    assert_eq!(startup_notice.tone, StartupNoticeTone::Warning);
+    assert!(startup_notice
+        .message
+        .contains("SQLite を利用できなかったため従来形式で起動しました。"));
 }
 
 #[test]
@@ -344,7 +537,7 @@ fn save_template_and_variable_preset_persist_store_updates() {
         "指定した変数値セットが見つかりませんでした。"
     );
 
-    let persisted = read_store(&state.store_path);
+    let persisted = read_store(&store_file_path(&state));
     assert!(persisted
         .templates
         .iter()
@@ -370,7 +563,7 @@ fn save_memo_persists_store_updates() {
     assert_eq!(saved_memo.is_pinned, true);
     assert_eq!(saved_memo.body, "宿題を確認");
 
-    let persisted = read_store(&state.store_path);
+    let persisted = read_store(&store_file_path(&state));
     assert_eq!(persisted.memos[0].title, "打ち合わせメモ");
     assert_eq!(persisted.memos[0].is_pinned, true);
     assert_eq!(persisted.memos[0].body, "宿題を確認");
@@ -466,7 +659,7 @@ fn trash_operations_round_trip_and_persist_snapshot_changes() {
     assert!(emptied.trash.signatures.is_empty());
     assert!(emptied.trash.memos.is_empty());
 
-    let persisted = read_store(&state.store_path);
+    let persisted = read_store(&store_file_path(&state));
     assert!(persisted.trash.drafts.is_empty());
     assert!(persisted.trash.templates.is_empty());
     assert!(persisted.trash.signatures.is_empty());
@@ -505,7 +698,7 @@ fn restoring_trashed_draft_returns_cleaned_references_after_related_items_were_p
         true
     );
 
-    let persisted = read_store(&state.store_path);
+    let persisted = read_store(&store_file_path(&state));
     assert_eq!(persisted.drafts[0].template_id, None);
     assert_eq!(persisted.drafts[0].signature_id, None);
     assert_eq!(
@@ -537,7 +730,7 @@ fn restoring_trashed_template_returns_a_cleaned_signature_reference() {
 
     assert_eq!(restored.template.signature_id, None);
 
-    let persisted = read_store(&state.store_path);
+    let persisted = read_store(&store_file_path(&state));
     assert_eq!(persisted.templates[0].signature_id, None);
 }
 
@@ -577,7 +770,7 @@ fn logging_settings_and_backup_methods_round_trip_state() {
         vec!["prh".to_string(), "whitespace.trailing".to_string()]
     );
 
-    let persisted_settings = read_settings_file(&state.settings_path);
+    let persisted_settings = read_settings_file(&settings_file_path(&state));
     assert_eq!(persisted_settings.logging.mode, LoggingMode::Standard);
     assert_eq!(persisted_settings.logging.retention_days, 30);
     assert_eq!(
@@ -623,6 +816,144 @@ fn logging_settings_and_backup_methods_round_trip_state() {
     assert_eq!(
         imported.proofreading_settings.disabled_rule_ids,
         vec!["prh".to_string(), "whitespace.trailing".to_string()]
+    );
+}
+
+#[test]
+fn runtime_backup_methods_round_trip_with_sqlite_repository() {
+    let (state, directory) = make_runtime_state();
+
+    state
+        .save_template(TemplateInput {
+            id: "template-runtime-exported".to_string(),
+            name: "SQLite 書き出し".to_string(),
+            is_pinned: true,
+            subject: "件名".to_string(),
+            recipient: "宛先".to_string(),
+            opening: "冒頭".to_string(),
+            body: "本文".to_string(),
+            closing: "末尾".to_string(),
+            signature_id: Some("signature-default".to_string()),
+        })
+        .expect("save template");
+    state
+        .save_memo(MemoInput {
+            id: "memo-runtime-exported".to_string(),
+            title: "SQLite メモ".to_string(),
+            is_pinned: false,
+            body: "本文".to_string(),
+        })
+        .expect("save memo");
+    state
+        .save_logging_settings(LoggingSettingsInput {
+            mode: LoggingMode::Standard,
+            retention_days: 30,
+        })
+        .expect("save logging settings");
+    state
+        .save_proofreading_settings(ProofreadingSettingsInput {
+            disabled_rule_ids: vec![" prh ".to_string(), "whitespace.trailing".to_string()],
+        })
+        .expect("save proofreading settings");
+
+    let backup_path = directory.path().join("runtime-backup.json");
+    state
+        .export_backup(backup_path.to_str().expect("backup path"))
+        .expect("export backup");
+
+    let document = decode_backup_document(&fs::read_to_string(&backup_path).expect("read backup"))
+        .expect("decode backup");
+    assert!(document
+        .snapshot
+        .templates
+        .iter()
+        .any(|template| template.id == "template-runtime-exported"));
+    assert!(document
+        .snapshot
+        .memos
+        .iter()
+        .any(|memo| memo.id == "memo-runtime-exported"));
+    assert_eq!(document.settings.logging.mode, LoggingMode::Standard);
+    assert_eq!(document.settings.logging.retention_days, 30);
+    assert_eq!(
+        document.settings.proofreading.disabled_rule_ids,
+        vec!["prh".to_string(), "whitespace.trailing".to_string()]
+    );
+
+    let (import_state, import_directory) = make_runtime_state();
+    let imported = import_state
+        .import_backup(backup_path.to_str().expect("backup path"))
+        .expect("import backup");
+    let import_db_path = runtime_database_path(import_directory.path());
+
+    assert!(imported
+        .snapshot
+        .templates
+        .iter()
+        .any(|template| template.id == "template-runtime-exported"));
+    assert!(imported
+        .snapshot
+        .memos
+        .iter()
+        .any(|memo| memo.id == "memo-runtime-exported"));
+    assert_eq!(imported.logging_settings.mode, LoggingMode::Standard);
+    assert_eq!(imported.logging_settings.retention_days, 30);
+    assert_eq!(
+        imported.proofreading_settings.disabled_rule_ids,
+        vec!["prh".to_string(), "whitespace.trailing".to_string()]
+    );
+
+    let persisted_store = read_sqlite_store(&import_db_path);
+    let persisted_settings = read_sqlite_settings(&import_db_path);
+    assert!(persisted_store
+        .templates
+        .iter()
+        .any(|template| template.id == "template-runtime-exported"));
+    assert!(persisted_store
+        .memos
+        .iter()
+        .any(|memo| memo.id == "memo-runtime-exported"));
+    assert_eq!(persisted_settings.logging.mode, LoggingMode::Standard);
+    assert_eq!(persisted_settings.logging.retention_days, 30);
+    assert_eq!(
+        persisted_settings.proofreading.disabled_rule_ids,
+        vec!["prh".to_string(), "whitespace.trailing".to_string()]
+    );
+}
+
+#[test]
+fn runtime_export_backup_reads_persisted_sqlite_state_instead_of_unsaved_memory() {
+    let (state, directory) = make_runtime_state();
+    let db_path = runtime_database_path(directory.path());
+    let export_path = directory.path().join("runtime-persisted-export.json");
+    let persisted_store = read_sqlite_store(&db_path);
+    let persisted_settings = read_sqlite_settings(&db_path);
+
+    {
+        let mut store = state.store.lock().expect("store lock");
+        store.drafts[0].title = "unsaved runtime title".to_string();
+        store.signatures[0].is_default = false;
+    }
+    {
+        let mut settings = state.settings.lock().expect("settings lock");
+        settings.logging.retention_days = 30;
+        settings.proofreading.disabled_rule_ids = vec!["prh".to_string()];
+    }
+
+    state
+        .export_backup(export_path.to_str().expect("export path"))
+        .expect("export backup");
+
+    let document = decode_backup_document(&fs::read_to_string(&export_path).expect("read backup"))
+        .expect("decode backup");
+
+    assert_eq!(
+        serde_json::to_value(document.snapshot).expect("serialize document snapshot"),
+        serde_json::to_value(persisted_store).expect("serialize persisted snapshot"),
+    );
+    assert_eq!(
+        serde_json::to_value(document.settings).expect("serialize document settings"),
+        serde_json::to_value(persisted_settings).expect("serialize persisted settings"),
     );
 }
 
@@ -722,8 +1053,8 @@ fn import_backup_normalizes_snapshot_and_logging_settings_before_persisting() {
         2
     );
 
-    let persisted_store = read_store(&state.store_path);
-    let persisted_settings = read_settings_file(&state.settings_path);
+    let persisted_store = read_store(&store_file_path(&state));
+    let persisted_settings = read_settings_file(&settings_file_path(&state));
     assert_eq!(persisted_store.drafts[0].template_id, None);
     assert_eq!(persisted_store.drafts[0].signature_id, None);
     assert_eq!(persisted_store.templates[0].signature_id, None);
@@ -735,20 +1066,20 @@ fn import_backup_normalizes_snapshot_and_logging_settings_before_persisting() {
 }
 
 #[test]
-fn export_backup_writes_a_normalized_document_from_inconsistent_runtime_state() {
+fn export_backup_reads_persisted_state_instead_of_unsaved_memory() {
     let (state, directory) = make_state();
     let export_path = directory.path().join("normalized-export.json");
+    let persisted_store = read_store(&store_file_path(&state));
+    let persisted_settings = read_settings_file(&settings_file_path(&state));
 
     {
         let mut store = state.store.lock().expect("store lock");
-        store.drafts[0].template_id = Some("missing-template".to_string());
-        store.drafts[0].signature_id = Some("missing-signature".to_string());
-        store.templates[0].signature_id = Some("missing-signature".to_string());
+        store.drafts[0].title = "unsaved json title".to_string();
         store.signatures[0].is_default = false;
     }
     {
         let mut settings = state.settings.lock().expect("settings lock");
-        settings.logging.retention_days = 99;
+        settings.logging.retention_days = 30;
         settings.proofreading.disabled_rule_ids = vec![" prh ".to_string()];
     }
 
@@ -759,22 +1090,13 @@ fn export_backup_writes_a_normalized_document_from_inconsistent_runtime_state() 
     let document = decode_backup_document(&fs::read_to_string(&export_path).expect("read backup"))
         .expect("decode backup");
 
-    assert_eq!(document.snapshot.drafts[0].template_id, None);
-    assert_eq!(document.snapshot.drafts[0].signature_id, None);
-    assert_eq!(document.snapshot.templates[0].signature_id, None);
     assert_eq!(
-        document
-            .snapshot
-            .signatures
-            .iter()
-            .filter(|signature| signature.is_default)
-            .count(),
-        1
+        serde_json::to_value(document.snapshot).expect("serialize document snapshot"),
+        serde_json::to_value(persisted_store).expect("serialize persisted snapshot"),
     );
-    assert_eq!(document.settings.logging.retention_days, 14);
     assert_eq!(
-        document.settings.proofreading.disabled_rule_ids,
-        vec!["prh".to_string()]
+        serde_json::to_value(document.settings).expect("serialize document settings"),
+        serde_json::to_value(persisted_settings).expect("serialize persisted settings"),
     );
 }
 
@@ -798,9 +1120,9 @@ fn failed_import_does_not_mutate_existing_store_or_settings() {
         .expect("save logging settings");
 
     let before_store =
-        serde_json::to_value(read_store(&state.store_path)).expect("serialize store");
-    let before_settings =
-        serde_json::to_value(read_settings_file(&state.settings_path)).expect("serialize settings");
+        serde_json::to_value(read_store(&store_file_path(&state))).expect("serialize store");
+    let before_settings = serde_json::to_value(read_settings_file(&settings_file_path(&state)))
+        .expect("serialize settings");
     let invalid_backup = directory.path().join("invalid-import.json");
     fs::write(&invalid_backup, "{\"version\":999}").expect("write invalid backup");
 
@@ -811,9 +1133,10 @@ fn failed_import_does_not_mutate_existing_store_or_settings() {
         "このバックアップ形式には対応していません。"
     );
 
-    let after_store = serde_json::to_value(read_store(&state.store_path)).expect("serialize store");
-    let after_settings =
-        serde_json::to_value(read_settings_file(&state.settings_path)).expect("serialize settings");
+    let after_store =
+        serde_json::to_value(read_store(&store_file_path(&state))).expect("serialize store");
+    let after_settings = serde_json::to_value(read_settings_file(&settings_file_path(&state)))
+        .expect("serialize settings");
     assert_eq!(after_store, before_store);
     assert_eq!(after_settings, before_settings);
 }
@@ -1035,7 +1358,7 @@ fn permanently_delete_signature_from_trash_rolls_back_when_store_persistence_fai
 #[test]
 fn empty_trash_rolls_back_when_store_persistence_fails() {
     let (mut state, directory) = make_state();
-    let original_store_path = state.store_path.clone();
+    let original_store_path = store_file_path(&state);
 
     state.delete_draft("draft-welcome").expect("trash draft");
     state
@@ -1052,7 +1375,8 @@ fn empty_trash_rolls_back_when_store_persistence_fails() {
         serde_json::to_value(read_store(&original_store_path)).expect("serialize persisted store");
     let blocked_store_path = directory.path().join("blocked-empty-trash-path");
     fs::create_dir_all(&blocked_store_path).expect("create blocked store path");
-    state.store_path = blocked_store_path;
+    let settings_path = settings_file_path(&state);
+    state.replace_json_repository_for_tests(blocked_store_path, settings_path);
 
     let error = state.empty_trash().unwrap_err();
     assert!(!error.is_empty());
@@ -1069,7 +1393,7 @@ fn empty_trash_rolls_back_when_store_persistence_fails() {
 #[test]
 fn save_logging_settings_rolls_back_when_settings_persistence_fails() {
     let (mut state, directory) = make_state();
-    let original_settings_path = state.settings_path.clone();
+    let original_settings_path = settings_file_path(&state);
     let before_settings = serde_json::to_value(read_settings_file(&original_settings_path))
         .expect("serialize settings before");
     block_settings_persistence(&mut state, directory.path(), "blocked-settings-path");
@@ -1096,7 +1420,7 @@ fn save_logging_settings_rolls_back_when_settings_persistence_fails() {
 fn save_logging_settings_rolls_back_when_log_pruning_fails() {
     let (state, directory) = make_state();
     let state = state;
-    let original_settings_path = state.settings_path.clone();
+    let original_settings_path = settings_file_path(&state);
     let before_memory = settings_value(&state);
     let before_settings = serde_json::to_value(read_settings_file(&original_settings_path))
         .expect("serialize settings before");
@@ -1120,8 +1444,8 @@ fn save_logging_settings_rolls_back_when_log_pruning_fails() {
 #[test]
 fn import_backup_rolls_back_store_and_settings_when_settings_persistence_fails() {
     let (mut state, directory) = make_state();
-    let original_store_path = state.store_path.clone();
-    let original_settings_path = state.settings_path.clone();
+    let original_store_path = store_file_path(&state);
+    let original_settings_path = settings_file_path(&state);
     let before_memory = serde_json::to_value(
         state
             .load_snapshot()
@@ -1163,7 +1487,8 @@ fn import_backup_rolls_back_store_and_settings_when_settings_persistence_fails()
 
     let blocked_settings_path = directory.path().join("blocked-import-settings-path");
     fs::create_dir_all(&blocked_settings_path).expect("create blocked settings path");
-    state.settings_path = blocked_settings_path;
+    let store_path = store_file_path(&state);
+    state.replace_json_repository_for_tests(store_path, blocked_settings_path);
 
     let error = state
         .import_backup(backup_path.to_str().expect("backup path"))
@@ -1195,8 +1520,8 @@ fn import_backup_rolls_back_store_and_settings_when_settings_persistence_fails()
 fn import_backup_rolls_back_store_and_settings_when_log_pruning_fails() {
     let (state, directory) = make_state();
     let state = state;
-    let original_store_path = state.store_path.clone();
-    let original_settings_path = state.settings_path.clone();
+    let original_store_path = store_file_path(&state);
+    let original_settings_path = settings_file_path(&state);
     let before_memory = snapshot_value(&state);
     let before_store =
         serde_json::to_value(read_store(&original_store_path)).expect("serialize store before");
@@ -1248,6 +1573,64 @@ fn import_backup_rolls_back_store_and_settings_when_log_pruning_fails() {
     assert_eq!(after_store, before_store);
     assert_eq!(after_settings, before_settings);
     assert_eq!(after_memory_settings, before_settings);
+}
+
+#[test]
+fn runtime_import_backup_rolls_back_sqlite_state_when_log_pruning_fails() {
+    let (state, directory) = make_runtime_state();
+    let db_path = runtime_database_path(directory.path());
+    let before_memory = snapshot_value(&state);
+    let before_memory_settings = settings_value(&state);
+    let before_store =
+        serde_json::to_value(read_sqlite_store(&db_path)).expect("serialize store before");
+    let before_settings =
+        serde_json::to_value(read_sqlite_settings(&db_path)).expect("serialize settings before");
+
+    let mut imported_snapshot = StoreSnapshot::seeded();
+    imported_snapshot.memos.push(Memo {
+        id: "memo-runtime-imported-log".to_string(),
+        title: "復元メモ".to_string(),
+        is_pinned: true,
+        body: "この内容は log prune failure で残ってはいけません。".to_string(),
+        created_at: "1".to_string(),
+        updated_at: "2".to_string(),
+    });
+    let backup_path = directory.path().join("runtime-rollback-import-log.json");
+    fs::write(
+        &backup_path,
+        serde_json::to_string(&BackupDocument::from_state(
+            imported_snapshot,
+            AppSettings {
+                logging: LoggingSettings {
+                    mode: LoggingMode::Standard,
+                    retention_days: 30,
+                },
+                proofreading: ProofreadingSettings {
+                    disabled_rule_ids: vec!["prh".to_string()],
+                },
+            },
+        ))
+        .expect("serialize backup"),
+    )
+    .expect("write backup");
+    replace_logs_directory_with_file(directory.path());
+
+    let error = state
+        .import_backup(backup_path.to_str().expect("backup path"))
+        .unwrap_err();
+    assert!(!error.is_empty());
+
+    let after_memory = snapshot_value(&state);
+    let after_memory_settings = settings_value(&state);
+    let after_store =
+        serde_json::to_value(read_sqlite_store(&db_path)).expect("serialize store after");
+    let after_settings =
+        serde_json::to_value(read_sqlite_settings(&db_path)).expect("serialize settings after");
+
+    assert_eq!(after_memory, before_memory);
+    assert_eq!(after_memory_settings, before_memory_settings);
+    assert_eq!(after_store, before_store);
+    assert_eq!(after_settings, before_settings);
 }
 
 #[test]
@@ -1379,4 +1762,87 @@ fn backup_methods_propagate_export_and_import_failures() {
             .unwrap_err(),
         "このバックアップ形式には対応していません。"
     );
+}
+
+#[test]
+fn backup_methods_validate_path_shape_and_size_limits() {
+    let (state, directory) = make_state();
+
+    assert_eq!(
+        state.export_backup("relative-backup.json").unwrap_err(),
+        "バックアップの書き出し先は絶対パスの .json ファイルを指定してください。"
+    );
+
+    let invalid_extension = directory.path().join("backup.txt");
+    assert_eq!(
+        state
+            .export_backup(invalid_extension.to_str().expect("invalid extension path"))
+            .unwrap_err(),
+        "バックアップの書き出し先は絶対パスの .json ファイルを指定してください。"
+    );
+
+    let oversized_backup = directory.path().join("oversized-backup.json");
+    let oversized_file = std::fs::File::create(&oversized_backup).expect("create oversized file");
+    oversized_file
+        .set_len(MAX_BACKUP_FILE_BYTES + 1)
+        .expect("set oversized len");
+    assert_eq!(
+        state
+            .import_backup(oversized_backup.to_str().expect("oversized backup path"))
+            .unwrap_err(),
+        "バックアップファイルが大きすぎます。"
+    );
+}
+
+#[test]
+fn save_operations_reject_invalid_input_and_preserve_state() {
+    let (state, _directory) = make_state();
+    let before = snapshot_value(&state);
+
+    assert_eq!(
+        state
+            .save_draft(DraftInput {
+                id: " ".to_string(),
+                title: "invalid".to_string(),
+                is_pinned: false,
+                subject: String::new(),
+                recipient: String::new(),
+                opening: String::new(),
+                body: String::new(),
+                closing: String::new(),
+                template_id: None,
+                signature_id: None,
+                variable_values: BTreeMap::new(),
+            })
+            .unwrap_err(),
+        "下書きIDは空にできません。"
+    );
+
+    assert_eq!(
+        state
+            .save_template(TemplateInput {
+                id: "template-invalid".to_string(),
+                name: "invalid".to_string(),
+                is_pinned: false,
+                subject: String::new(),
+                recipient: String::new(),
+                opening: String::new(),
+                body: String::new(),
+                closing: String::new(),
+                signature_id: Some("missing-signature".to_string()),
+            })
+            .unwrap_err(),
+        "選択した署名が見つかりませんでした。"
+    );
+
+    assert_eq!(
+        state
+            .save_proofreading_settings(ProofreadingSettingsInput {
+                disabled_rule_ids: vec!["rule".to_string(); 101],
+            })
+            .unwrap_err(),
+        "無効化する校正ルール数が上限を超えています。"
+    );
+
+    assert_eq!(snapshot_value(&state), before);
 }
