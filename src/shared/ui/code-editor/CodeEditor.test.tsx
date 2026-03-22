@@ -164,6 +164,76 @@ describe("CodeEditor", () => {
     expect(getEditorView("本文").state.doc.toString()).toContain("\n");
   });
 
+  it("inserts soft tabs in multiline editors", async () => {
+    const user = userEvent.setup();
+
+    function ControlledEditor() {
+      const [value, setValue] = useState("alpha");
+
+      return <CodeEditor ariaLabel="本文" value={value} onChange={setValue} />;
+    }
+
+    render(
+      <div>
+        <ControlledEditor />
+        <button type="button">次へ</button>
+      </div>,
+    );
+
+    const textbox = screen.getByRole("textbox", { name: "本文" });
+    await user.click(textbox);
+    await user.keyboard("{End}{Tab}");
+
+    await waitFor(() => {
+      expect(getEditorView("本文").state.doc.toString()).toBe("alpha  ");
+    });
+    expect(textbox).toHaveFocus();
+    expect(screen.getByRole("button", { name: "次へ" })).not.toHaveFocus();
+    expect(getEditorView("本文").state.doc.toString()).not.toContain("\t");
+  });
+
+  it("indents and outdents selected lines in multiline editors", async () => {
+    render(<CodeEditor ariaLabel="本文" value={"alpha\nbeta"} onChange={vi.fn()} />);
+
+    const view = getEditorView("本文");
+    view.focus();
+    view.dispatch({
+      selection: EditorSelection.single(0, view.state.doc.length),
+    });
+
+    fireEvent.keyDown(view.contentDOM, { key: "Tab" });
+
+    expect(view.state.doc.toString()).toBe("  alpha\n  beta");
+
+    fireEvent.keyDown(view.contentDOM, { key: "Tab", shiftKey: true });
+
+    expect(view.state.doc.toString()).toBe("alpha\nbeta");
+  });
+
+  it("keeps single-line editors on focus navigation when Tab is pressed", async () => {
+    const user = userEvent.setup();
+
+    function ControlledEditor() {
+      const [value, setValue] = useState("件名");
+
+      return <CodeEditor ariaLabel="件名" singleLine value={value} onChange={setValue} />;
+    }
+
+    render(
+      <div>
+        <ControlledEditor />
+        <button type="button">次へ</button>
+      </div>,
+    );
+
+    const textbox = screen.getByRole("textbox", { name: "件名" });
+    await user.click(textbox);
+    await user.tab();
+
+    expect(screen.getByRole("button", { name: "次へ" })).toHaveFocus();
+    expect(getEditorView("件名").state.doc.toString()).toBe("件名");
+  });
+
   it("focuses and selects the requested range", async () => {
     render(
       <CodeEditor

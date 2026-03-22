@@ -97,6 +97,10 @@ export const HELP_USAGE_GROUPS: HelpGuideGroup[] = [
         title: "エディタ内検索を使う",
         body: "入力欄にフォーカスしたまま `Ctrl/Cmd+F` を押すと、そのエディタの中だけを検索できます。メモ一覧の検索とは別です。",
       },
+      {
+        title: "複数行の入力欄では Tab で空白インデントする",
+        body: "本文やメモ本文のような複数行の入力欄では、`Tab` で空白を挿入し、`Shift+Tab` で行頭インデントを戻せます。フォーカス移動を優先したい場合は `Ctrl/Cmd+M` で Tab のフォーカス移動モードを切り替えます。",
+      },
     ],
   },
   {
@@ -217,6 +221,16 @@ export const KEYBOARD_SHORTCUT_GROUPS: ShortcutGroup[] = [
         keys: "Ctrl/Cmd+F",
         description: "現在フォーカス中のエディタ内を検索",
         note: "一覧検索ではなく、編集中の入力欄だけを対象にします",
+      },
+      {
+        keys: "Tab / Shift+Tab",
+        description: "複数行エディタで空白インデント / アウトデント",
+        note: "件名や名前のような単一行入力欄では従来どおり次の項目へ移動します",
+      },
+      {
+        keys: "Ctrl/Cmd+M",
+        description: "Tab のフォーカス移動モードを切り替え",
+        note: "複数行エディタでも Tab で次の項目へ移動したいときに使います",
       },
       {
         keys: "Ctrl/Cmd+G / F3",

@@ -10,6 +10,7 @@ import {
   createCodeEditorGutterExtension,
   createCodeEditorLayoutExtension,
   createCodeEditorPlaceholderExtension,
+  createCodeEditorTabExtension,
   createCodeEditorWhitespaceExtension,
 } from "./extensions";
 
@@ -106,6 +107,9 @@ export function CodeEditor({
       compartmentsRef.current.gutter.of(
         createCodeEditorGutterExtension(initialConfig.showLineNumbers),
       ),
+      compartmentsRef.current.interaction.of(
+        createCodeEditorTabExtension({ singleLine: initialConfig.singleLine }),
+      ),
       compartmentsRef.current.contentAttributes.of(
         createCodeEditorContentAttributesExtension({
           ariaLabel: initialConfig.ariaLabel,
@@ -164,6 +168,19 @@ export function CodeEditor({
       ),
     });
   }, [showLineNumbers]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) {
+      return;
+    }
+
+    view.dispatch({
+      effects: compartmentsRef.current.interaction.reconfigure(
+        createCodeEditorTabExtension({ singleLine }),
+      ),
+    });
+  }, [singleLine]);
 
   useEffect(() => {
     const view = viewRef.current;

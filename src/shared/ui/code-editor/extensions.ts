@@ -1,6 +1,16 @@
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { highlightSelectionMatches, search, searchKeymap } from "@codemirror/search";
-import { Compartment, EditorState, type Extension, RangeSetBuilder } from "@codemirror/state";
+import {
+  Compartment,
+  countColumn,
+  EditorSelection,
+  EditorState,
+  type Extension,
+  type Line,
+  RangeSetBuilder,
+  type SelectionRange,
+  type StateCommand,
+} from "@codemirror/state";
 import {
   Decoration,
   type DecorationSet,
@@ -19,6 +29,7 @@ export interface CodeEditorCompartments {
   contentAttributes: Compartment;
   editorAttributes: Compartment;
   gutter: Compartment;
+  interaction: Compartment;
   layout: Compartment;
   placeholder: Compartment;
   whitespace: Compartment;
@@ -38,6 +49,7 @@ export function createCodeEditorCompartments(): CodeEditorCompartments {
     contentAttributes: new Compartment(),
     editorAttributes: new Compartment(),
     gutter: new Compartment(),
+    interaction: new Compartment(),
     layout: new Compartment(),
     placeholder: new Compartment(),
     whitespace: new Compartment(),
@@ -143,6 +155,183 @@ export function createCodeEditorLayoutExtension(options: { singleLine?: boolean 
       },
     ]),
   ];
+}
+
+export interface CodeEditorTabOptions {
+  singleLine?: boolean;
+}
+
+const DEFAULT_SOFT_TAB_TEXT = "  ";
+
+type CodeEditorTabBehavior = "focus" | "soft-indent";
+
+interface CodeEditorTabStrategyInput {
+  softTabText: string;
+}
+
+const tabBehaviorStrategies: Record<
+  CodeEditorTabBehavior,
+  (input: CodeEditorTabStrategyInput) => Extension
+> = {
+  focus: () => [],
+  "soft-indent": ({ softTabText }) =>
+    keymap.of([
+      {
+        key: "Tab",
+        preventDefault: true,
+        run: createSoftIndentCommand(softTabText),
+      },
+      {
+        key: "Shift-Tab",
+        preventDefault: true,
+        run: createSoftOutdentCommand(softTabText),
+      },
+    ]),
+};
+
+export function createCodeEditorTabExtension(options: CodeEditorTabOptions): Extension {
+  const tabBehavior: CodeEditorTabBehavior = options.singleLine ? "focus" : "soft-indent";
+
+  return tabBehaviorStrategies[tabBehavior]({
+    softTabText: DEFAULT_SOFT_TAB_TEXT,
+  });
+}
+
+function createSoftIndentCommand(softTabText: string): StateCommand {
+  return ({ state, dispatch }) => {
+    if (hasIndentedSelection(state)) {
+      dispatch(
+        state.update({
+          changes: buildLineIndentChanges(state, softTabText),
+        }),
+      );
+      return true;
+    }
+
+    const transactionSpec = state.changeByRange((range) => ({
+      changes: {
+        from: range.from,
+        to: range.to,
+        insert: softTabText,
+      },
+      range: EditorSelection.cursor(range.from + softTabText.length),
+    }));
+
+    dispatch(state.update(transactionSpec));
+    return true;
+  };
+}
+
+function createSoftOutdentCommand(softTabText: string): StateCommand {
+  return ({ state, dispatch }) => {
+    const changes = buildLineOutdentChanges(state, softTabText);
+
+    if (changes.length > 0) {
+      dispatch(
+        state.update({
+          changes,
+        }),
+      );
+    }
+
+    return true;
+  };
+}
+
+function hasIndentedSelection(state: EditorState): boolean {
+  return state.selection.ranges.some((range) => !range.empty);
+}
+
+function buildLineIndentChanges(
+  state: EditorState,
+  softTabText: string,
+): Array<{ from: number; insert: string }> {
+  return collectSelectedLines(state).map((line) => ({
+    from: line.from,
+    insert: softTabText,
+  }));
+}
+
+function buildLineOutdentChanges(
+  state: EditorState,
+  softTabText: string,
+): Array<{ from: number; to: number; insert: string }> {
+  return collectSelectedLines(state)
+    .map((line) => {
+      const removableIndentLength = getRemovableIndentLength(line.text, softTabText);
+
+      return removableIndentLength > 0
+        ? {
+            from: line.from,
+            to: line.from + removableIndentLength,
+            insert: "",
+          }
+        : null;
+    })
+    .filter((change): change is { from: number; to: number; insert: string } => change !== null);
+}
+
+function collectSelectedLines(state: EditorState): Line[] {
+  const lineStarts = new Set<number>();
+  const lines: Line[] = [];
+
+  for (const range of state.selection.ranges) {
+    const startLine = state.doc.lineAt(range.from);
+    const endLine = state.doc.lineAt(getSelectedRangeEnd(range));
+
+    for (let lineNumber = startLine.number; lineNumber <= endLine.number; lineNumber += 1) {
+      const line = state.doc.line(lineNumber);
+
+      if (lineStarts.has(line.from)) {
+        continue;
+      }
+
+      lineStarts.add(line.from);
+      lines.push(line);
+    }
+  }
+
+  return lines;
+}
+
+function getSelectedRangeEnd(range: SelectionRange): number {
+  if (range.empty) {
+    return range.to;
+  }
+
+  return Math.max(range.from, range.to - 1);
+}
+
+function getRemovableIndentLength(text: string, softTabText: string): number {
+  if (text.startsWith(softTabText)) {
+    return softTabText.length;
+  }
+
+  const maxRemovableLength = getSoftTabWidth(softTabText);
+
+  if (text.startsWith("\t")) {
+    return 1;
+  }
+
+  return Math.min(countLeadingSpaces(text), maxRemovableLength);
+}
+
+function countLeadingSpaces(text: string): number {
+  let count = 0;
+
+  for (const character of text) {
+    if (character !== " ") {
+      break;
+    }
+
+    count += 1;
+  }
+
+  return count;
+}
+
+function getSoftTabWidth(softTabText: string): number {
+  return countColumn(softTabText, softTabText.length);
 }
 
 const visibleWhitespaceMarks = {
