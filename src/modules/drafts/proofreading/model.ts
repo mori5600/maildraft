@@ -51,7 +51,6 @@ export interface DraftProofreadingIssue {
 export interface DraftProofreadingWorkerRequest {
   requestId: number;
   draft: DraftInput;
-  signatureBody: string;
 }
 
 export interface DraftProofreadingWorkerResponse {

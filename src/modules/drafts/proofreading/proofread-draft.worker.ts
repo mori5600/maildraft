@@ -1,19 +1,23 @@
 /// <reference lib="webworker" />
 
 import type { DraftProofreadingWorkerRequest, DraftProofreadingWorkerResponse } from "./model";
-import { runDetailedDraftProofreading } from "./run-detailed-proofreading";
+import { createDetailedDraftProofreadingSession } from "./run-detailed-proofreading";
 
 declare const self: DedicatedWorkerGlobalScope;
 
+const detailedProofreadingSession = createDetailedDraftProofreadingSession();
+let processingChain = Promise.resolve();
+
 self.onmessage = (event: MessageEvent<DraftProofreadingWorkerRequest>) => {
-  void handleProofreadingRequest(event.data);
+  processingChain = processingChain
+    .catch(() => undefined)
+    .then(() => handleProofreadingRequest(event.data));
 };
 
 async function handleProofreadingRequest(request: DraftProofreadingWorkerRequest) {
   try {
-    const issues = await runDetailedDraftProofreading({
+    const issues = await detailedProofreadingSession.run({
       draft: request.draft,
-      signatureBody: request.signatureBody,
     });
     const response: DraftProofreadingWorkerResponse = {
       issues,

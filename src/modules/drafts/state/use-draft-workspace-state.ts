@@ -149,7 +149,6 @@ export function useDraftWorkspaceState({
     () => findTrashSignature(snapshot.signatures, snapshot.trash.signatures, draftForm.signatureId),
     [draftForm.signatureId, snapshot.signatures, snapshot.trash.signatures],
   );
-  const signatureBody = selectedDraftSignature?.body ?? "";
   const draftVariableNames = useMemo(
     () => collectDraftVariableNames(draftForm, selectedDraftSignature),
     [draftForm, selectedDraftSignature],
@@ -241,7 +240,6 @@ export function useDraftWorkspaceState({
       try {
         const nextIssues = await runner.run({
           draft: draftForm,
-          signatureBody,
         });
 
         if (requestVersion !== detailedRequestVersionRef.current) {
@@ -261,7 +259,7 @@ export function useDraftWorkspaceState({
         setDetailedCheckStatus("error");
       }
     };
-  }, [draftForm, signatureBody]);
+  }, [draftForm]);
 
   useEffect(() => {
     clearDetailedCheckTimer();
@@ -278,14 +276,7 @@ export function useDraftWorkspaceState({
     return () => {
       clearDetailedCheckTimer();
     };
-  }, [
-    draftForm.body,
-    draftForm.closing,
-    draftForm.id,
-    draftForm.opening,
-    draftForm.subject,
-    signatureBody,
-  ]);
+  }, [draftForm.body, draftForm.closing, draftForm.id, draftForm.opening, draftForm.subject]);
 
   useEffect(() => {
     setDraftForm((current) => {

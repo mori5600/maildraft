@@ -30,13 +30,29 @@ import {
 
 interface DetailedProofreadingRequest {
   draft: DraftInput;
-  signatureBody: string;
 }
 
 interface DetailedRuleDefinition {
   description: string;
   severity?: DraftProofreadingSeverity;
   title: string;
+}
+
+interface DetailedTargetField {
+  field: DraftProofreadingEditableField;
+  includeTextlintRules: boolean;
+  text: string;
+}
+
+interface DetailedFieldCacheEntry {
+  includeTextlintRules: boolean;
+  issues: DraftProofreadingIssue[];
+  text: string;
+}
+
+export interface DetailedDraftProofreadingSession {
+  clear: () => void;
+  run: (request: DetailedProofreadingRequest) => Promise<DraftProofreadingIssue[]>;
 }
 
 ensureProcessShim();
@@ -48,6 +64,19 @@ const noNfdRule = unwrapModuleDefault(noNfdRuleModule);
 const noZeroWidthSpacesRule = unwrapModuleDefault(noZeroWidthSpacesRuleModule);
 const prhRule = unwrapModuleDefault(prhRuleModule);
 const sentenceLengthRule = unwrapModuleDefault(sentenceLengthRuleModule);
+const textPlugins = [
+  {
+    plugin: textPlugin,
+    pluginId: "text",
+  },
+];
+const prhRuleEntry: TextlintKernelRule = {
+  options: {
+    ruleContents: [buildPrhRuleContent([...discouragedPhraseRules, ...doubleHonorificPhraseRules])],
+  } as TextlintRuleOptions,
+  rule: prhRule,
+  ruleId: "prh",
+};
 const workerSafeTextlintRuleEntries: TextlintKernelRule[] = [
   {
     options: {
@@ -77,13 +106,13 @@ const workerSafeTextlintRuleEntries: TextlintKernelRule[] = [
     ruleId: "no-kangxi-radicals",
   },
 ];
+const detailedRuleSets = {
+  prhOnly: [prhRuleEntry],
+  withTextlint: [...workerSafeTextlintRuleEntries, prhRuleEntry],
+};
 const phraseRuleIndex = new Map(
   [...discouragedPhraseRules, ...doubleHonorificPhraseRules].map((rule) => [rule.phrase, rule]),
 );
-const prhRuleContent = buildPrhRuleContent([
-  ...discouragedPhraseRules,
-  ...doubleHonorificPhraseRules,
-]);
 const detailedRuleDefinitions = new Map<string, DetailedRuleDefinition>([
   [
     "max-ten",
@@ -183,109 +212,123 @@ const detailedRuleDefinitions = new Map<string, DetailedRuleDefinition>([
 
 export async function runDetailedDraftProofreading({
   draft,
-  signatureBody,
 }: DetailedProofreadingRequest): Promise<DraftProofreadingIssue[]> {
-  void signatureBody;
+  return createDetailedDraftProofreadingSession().run({ draft });
+}
+
+export function createDetailedDraftProofreadingSession(): DetailedDraftProofreadingSession {
   const kernel = new TextlintKernel();
-  const fields = buildDetailedTargetFields(draft);
-  const issues = (
-    await Promise.all(
-      fields.map(async ({ field, includePreset, text }) => {
-        if (!text.trim()) {
-          return [];
+  let cachedIssuesByField = new Map<DraftProofreadingEditableField, DetailedFieldCacheEntry>();
+
+  return {
+    clear() {
+      cachedIssuesByField.clear();
+    },
+    async run({ draft }) {
+      const nextCache = new Map<DraftProofreadingEditableField, DetailedFieldCacheEntry>();
+      const issues: DraftProofreadingIssue[] = [];
+
+      for (const targetField of buildDetailedTargetFields(draft)) {
+        const cachedEntry = cachedIssuesByField.get(targetField.field);
+
+        if (
+          cachedEntry &&
+          cachedEntry.includeTextlintRules === targetField.includeTextlintRules &&
+          cachedEntry.text === targetField.text
+        ) {
+          nextCache.set(targetField.field, cachedEntry);
+          issues.push(...cachedEntry.issues);
+          continue;
         }
 
-        const result = await lintDetailedField(kernel, {
-          field,
-          includeTextlintRules: includePreset,
-          text,
+        if (!targetField.text.trim()) {
+          nextCache.set(targetField.field, {
+            includeTextlintRules: targetField.includeTextlintRules,
+            issues: [],
+            text: targetField.text,
+          });
+          continue;
+        }
+
+        const nextIssues = await lintDetailedField(kernel, targetField);
+        nextCache.set(targetField.field, {
+          includeTextlintRules: targetField.includeTextlintRules,
+          issues: nextIssues,
+          text: targetField.text,
         });
+        issues.push(...nextIssues);
+      }
 
-        return result.messages.map((message) =>
-          toDraftProofreadingIssue({
-            field,
-            message,
-            sourceText: text,
-          }),
-        );
-      }),
-    )
-  ).flat();
+      cachedIssuesByField = nextCache;
 
-  return sortDraftProofreadingIssues(issues);
+      return sortDraftProofreadingIssues(issues);
+    },
+  };
 }
 
 async function lintDetailedField(
   kernel: TextlintKernel,
-  input: {
-    field: DraftProofreadingEditableField;
-    includeTextlintRules: boolean;
-    text: string;
-  },
-) {
-  const baseOptions = {
+  input: DetailedTargetField,
+): Promise<DraftProofreadingIssue[]> {
+  const lintOptions = {
     ext: ".txt",
     filePath: `/virtual/${input.field}.txt`,
-    plugins: [
-      {
-        plugin: textPlugin,
-        pluginId: "text",
-      },
-    ],
+    plugins: textPlugins,
   };
-  const prhRuleEntry: TextlintKernelRule = {
-    options: {
-      ruleContents: [prhRuleContent],
-    } as TextlintRuleOptions,
-    rule: prhRule,
-    ruleId: "prh",
-  };
-  const fullRuleSet = [
-    ...(input.includeTextlintRules ? workerSafeTextlintRuleEntries : []),
-    prhRuleEntry,
-  ];
 
   try {
-    return await kernel.lintText(input.text, {
-      ...baseOptions,
-      rules: fullRuleSet,
+    const result = await kernel.lintText(input.text, {
+      ...lintOptions,
+      rules: input.includeTextlintRules ? detailedRuleSets.withTextlint : detailedRuleSets.prhOnly,
     });
+
+    return result.messages.map((message) =>
+      toDraftProofreadingIssue({
+        field: input.field,
+        message,
+        sourceText: input.text,
+      }),
+    );
   } catch (fullRuleError) {
     if (!input.includeTextlintRules) {
       throw fullRuleError;
     }
 
-    return kernel.lintText(input.text, {
-      ...baseOptions,
-      rules: [prhRuleEntry],
+    const result = await kernel.lintText(input.text, {
+      ...lintOptions,
+      rules: detailedRuleSets.prhOnly,
     });
+
+    return result.messages.map((message) =>
+      toDraftProofreadingIssue({
+        field: input.field,
+        message,
+        sourceText: input.text,
+      }),
+    );
   }
 }
 
-function buildDetailedTargetFields(draft: DraftInput): Array<{
-  field: DraftProofreadingEditableField;
-  includePreset: boolean;
-  text: string;
-}> {
+function buildDetailedTargetFields(draft: DraftInput): DetailedTargetField[] {
   return [
     {
       field: "subject",
-      includePreset: false,
+      includeTextlintRules: false,
       text: draft.subject,
     },
     {
       field: "opening",
-      includePreset: true,
+      includeTextlintRules: true,
       text: draft.opening,
     },
     {
       field: "body",
-      includePreset: true,
+      includeTextlintRules: true,
       text: draft.body,
     },
     {
       field: "closing",
-      includePreset: true,
+      includeTextlintRules: true,
       text: draft.closing,
     },
   ];

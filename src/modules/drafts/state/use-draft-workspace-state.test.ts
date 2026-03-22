@@ -583,13 +583,77 @@ describe("draft workspace state", () => {
 
     expect(run).toHaveBeenCalledWith({
       draft: draftForm,
-      signatureBody: "株式会社△△\n田中 太郎",
     });
     expect(result.current.workspaceProps.issues).toHaveLength(1);
     expect(result.current.workspaceProps.detailedCheckStatus).toBe("ready");
 
     unmount();
     expect(dispose).toHaveBeenCalled();
+  });
+
+  it("does not rerun detailed proofreading when only the selected signature body changes", async () => {
+    vi.useFakeTimers();
+    const draftForm = createDraftInput({
+      body: "本文です。",
+      signatureId: "signature-default",
+    });
+    configureWorkspaceMocks(draftForm);
+    const run = vi.fn().mockResolvedValue([]);
+    mockState.createDetailedRunner.mockReturnValue({
+      dispose: vi.fn(),
+      run,
+    });
+
+    const initialSnapshot = createCleanSnapshot({
+      signatures: [
+        createSignature({
+          body: "株式会社△△\n田中 太郎",
+          id: "signature-default",
+          isDefault: true,
+        }),
+      ],
+    });
+    const updatedSnapshot = createCleanSnapshot({
+      signatures: [
+        createSignature({
+          body: "株式会社△△\n佐藤 花子",
+          id: "signature-default",
+          isDefault: true,
+        }),
+      ],
+    });
+
+    const { rerender } = renderHook(
+      ({ snapshot }) =>
+        useDraftWorkspaceState(
+          createStateOptions({
+            snapshot,
+          }),
+        ),
+      {
+        initialProps: {
+          snapshot: initialSnapshot,
+        },
+      },
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(DETAIL_TEST_DEBOUNCE_MS);
+    });
+
+    expect(run).toHaveBeenCalledTimes(1);
+
+    run.mockClear();
+
+    rerender({
+      snapshot: updatedSnapshot,
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(DETAIL_TEST_DEBOUNCE_MS);
+    });
+
+    expect(run).not.toHaveBeenCalled();
   });
 
   it("applies a detailed issue suggestion back into the draft form", async () => {
