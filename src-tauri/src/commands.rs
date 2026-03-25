@@ -1,3 +1,4 @@
+use chrono::{Datelike, Local, Timelike};
 use crate::app::state::AppState;
 use crate::app::{
     backup::ImportedBackupSnapshot,
@@ -170,12 +171,33 @@ fn selected_dialog_path_to_string(path: FilePath) -> Result<String, String> {
     Ok(path.display().to_string())
 }
 
+fn backup_default_file_name_from_parts(
+    year: i32,
+    month: u32,
+    day: u32,
+    hour: u32,
+    minute: u32,
+) -> String {
+    format!("maildraft-backup-{year:04}{month:02}{day:02}-{hour:02}{minute:02}.json")
+}
+
+fn create_backup_default_file_name() -> String {
+    let now = Local::now();
+    backup_default_file_name_from_parts(
+        now.year(),
+        now.month(),
+        now.day(),
+        now.hour(),
+        now.minute(),
+    )
+}
+
 async fn pick_backup_export_path(app: AppHandle) -> Result<Option<String>, String> {
     tauri::async_runtime::spawn_blocking(move || {
         app.dialog()
             .file()
             .set_title("MailDraft バックアップを書き出す")
-            .set_file_name("maildraft-backup.json")
+            .set_file_name(create_backup_default_file_name())
             .add_filter("MailDraft バックアップ", &["json"])
             .blocking_save_file()
             .map(selected_dialog_path_to_string)
@@ -773,6 +795,14 @@ mod tests {
             .templates
             .iter()
             .any(|template| template.id == "template-backup"));
+    }
+
+    #[test]
+    fn backup_default_file_name_matches_frontend_format() {
+        assert_eq!(
+            backup_default_file_name_from_parts(2024, 1, 2, 3, 4),
+            "maildraft-backup-20240102-0304.json"
+        );
     }
 
     #[test]

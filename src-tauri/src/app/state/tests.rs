@@ -358,6 +358,35 @@ fn runtime_startup_fails_when_existing_sqlite_is_unavailable() {
 }
 
 #[test]
+fn runtime_startup_fails_when_existing_empty_sqlite_conflicts_with_legacy_json() {
+    let directory = tempdir().expect("tempdir");
+    let root = directory.path();
+    let store_path = root.join("maildraft-store.json");
+    let settings_path = root.join("maildraft-settings.json");
+    let sqlite_path = root.join("maildraft.sqlite3");
+
+    let legacy_snapshot = StoreSnapshot::seeded();
+    let legacy_settings = AppSettings {
+        logging: LoggingSettings {
+            mode: LoggingMode::Standard,
+            retention_days: 30,
+        },
+        proofreading: ProofreadingSettings {
+            disabled_rule_ids: vec!["prh".to_string()],
+        },
+    };
+    write_store_snapshot(&store_path, &legacy_snapshot).expect("write legacy store");
+    write_app_settings(&settings_path, &legacy_settings).expect("write legacy settings");
+    let connection = rusqlite::Connection::open(&sqlite_path).expect("create sqlite file");
+    drop(connection);
+
+    let error = AppState::new_for_runtime_tests(root)
+        .err()
+        .expect("runtime startup should fail");
+    assert!(error.contains("既存の SQLite データベースと従来の JSON データが競合しています。"));
+}
+
+#[test]
 fn runtime_startup_fails_when_existing_sqlite_schema_is_newer_than_supported() {
     let directory = tempdir().expect("tempdir");
     let root = directory.path();
