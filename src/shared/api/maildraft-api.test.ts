@@ -169,12 +169,12 @@ describe("maildraftApi", () => {
       run: () => maildraftApi.loadProofreadingSettings(),
     },
     {
-      expectedArgs: ["export_backup", { path: "/tmp/backup.json" }],
-      run: () => maildraftApi.exportBackup("/tmp/backup.json"),
+      expectedArgs: ["export_backup"],
+      run: () => maildraftApi.exportBackup(),
     },
     {
-      expectedArgs: ["import_backup", { path: "/tmp/backup.json" }],
-      run: () => maildraftApi.importBackup("/tmp/backup.json"),
+      expectedArgs: ["import_backup"],
+      run: () => maildraftApi.importBackup(),
     },
     {
       expectedArgs: ["load_recent_logs", { limit: 25 }],

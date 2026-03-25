@@ -83,6 +83,7 @@ pub(crate) fn bootstrap_runtime_repository(
     settings_path: PathBuf,
     database_path: PathBuf,
 ) -> Result<PreparedRepositoryBootstrap, String> {
+    let sqlite_exists = database_path.exists();
     let legacy_repository = Arc::new(JsonRepository::new(
         store_path.clone(),
         settings_path.clone(),
@@ -90,66 +91,49 @@ pub(crate) fn bootstrap_runtime_repository(
     let sqlite_repository = sqlite::SqliteRepository::new(database_path);
     let legacy_exists = legacy_json_state_exists(&store_path, &settings_path);
 
-    match sqlite_repository.has_saved_state() {
-        Ok(true) => load_bootstrap(Arc::new(sqlite_repository)),
-        Ok(false) if legacy_exists => {
-            let legacy_bootstrap = load_bootstrap(legacy_repository.clone())?;
-            match sqlite_repository
-                .save_full_state(
-                    &legacy_bootstrap.store_outcome.value,
-                    &legacy_bootstrap.settings_outcome.value,
-                )
-            {
-                Ok(()) => {
-                    let mut sqlite_bootstrap = load_bootstrap(Arc::new(sqlite_repository))?;
-                    sqlite_bootstrap.extra_startup_notices.extend(
-                        [
-                            legacy_bootstrap.settings_outcome.startup_notice,
-                            legacy_bootstrap.store_outcome.startup_notice,
-                        ]
-                        .into_iter()
-                        .flatten(),
-                    );
-                    sqlite_bootstrap.extra_startup_notices.push(StartupNoticeSnapshot {
-                        message: "ローカルデータを SQLite へ移行しました。".to_string(),
-                        tone: StartupNoticeTone::Notice,
-                    });
-                    Ok(sqlite_bootstrap)
-                }
-                Err(error) => {
-                    eprintln!("MailDraft SQLite migration failed, falling back to legacy JSON storage: {error}");
-                    let mut legacy_bootstrap = legacy_bootstrap;
-                    legacy_bootstrap.extra_startup_notices.push(StartupNoticeSnapshot {
-                        message: "SQLite への移行に失敗したため従来形式で起動しました。".to_string(),
-                        tone: StartupNoticeTone::Warning,
-                    });
-                    Ok(legacy_bootstrap)
-                }
-            }
-        }
-        Ok(false) => load_bootstrap(Arc::new(sqlite_repository)).or_else(|error| {
-            eprintln!(
-                "MailDraft could not initialize SQLite storage and will use legacy JSON storage: {error}"
-            );
-            let mut bootstrap = load_bootstrap(legacy_repository)?;
-            bootstrap.extra_startup_notices.push(StartupNoticeSnapshot {
-                message: "SQLite を利用できなかったため従来形式で起動しました。".to_string(),
-                tone: StartupNoticeTone::Warning,
-            });
-            Ok(bootstrap)
-        }),
-        Err(error) => {
-            eprintln!(
-                "MailDraft could not open SQLite storage and will use legacy JSON storage: {error}"
-            );
-            let mut bootstrap = load_bootstrap(legacy_repository)?;
-            bootstrap.extra_startup_notices.push(StartupNoticeSnapshot {
-                message: "SQLite を利用できなかったため従来形式で起動しました。".to_string(),
-                tone: StartupNoticeTone::Warning,
-            });
-            Ok(bootstrap)
-        }
+    if sqlite_exists {
+        return match sqlite_repository.has_saved_state() {
+            Ok(true) => load_bootstrap(Arc::new(sqlite_repository))
+                .map_err(|error| format!("既存の SQLite データベースを読み込めませんでした。 {error}")),
+            Ok(false) if legacy_exists => Err(
+                "既存の SQLite データベースと従来の JSON データが競合しています。SQLite を修復または削除してから再起動してください。"
+                    .to_string(),
+            ),
+            Ok(false) => load_bootstrap(Arc::new(sqlite_repository))
+                .map_err(|error| format!("SQLite データベースを初期化できませんでした。 {error}")),
+            Err(error) => Err(format!(
+                "既存の SQLite データベースを開けませんでした。 {error}"
+            )),
+        };
     }
+
+    if legacy_exists {
+        let legacy_bootstrap = load_bootstrap(legacy_repository.clone())?;
+        sqlite_repository
+            .save_full_state(
+                &legacy_bootstrap.store_outcome.value,
+                &legacy_bootstrap.settings_outcome.value,
+            )
+            .map_err(|error| format!("SQLite への移行に失敗しました。 {error}"))?;
+        let mut sqlite_bootstrap = load_bootstrap(Arc::new(sqlite_repository))
+            .map_err(|error| format!("移行直後の SQLite データベースを読み込めませんでした。 {error}"))?;
+        sqlite_bootstrap.extra_startup_notices.extend(
+            [
+                legacy_bootstrap.settings_outcome.startup_notice,
+                legacy_bootstrap.store_outcome.startup_notice,
+            ]
+            .into_iter()
+            .flatten(),
+        );
+        sqlite_bootstrap.extra_startup_notices.push(StartupNoticeSnapshot {
+            message: "ローカルデータを SQLite へ移行しました。".to_string(),
+            tone: StartupNoticeTone::Notice,
+        });
+        return Ok(sqlite_bootstrap);
+    }
+
+    load_bootstrap(Arc::new(sqlite_repository))
+        .map_err(|error| format!("SQLite データベースを初期化できませんでした。 {error}"))
 }
 
 fn load_bootstrap(

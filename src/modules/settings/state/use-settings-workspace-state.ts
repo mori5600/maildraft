@@ -1,8 +1,7 @@
-import { confirm, open, save } from "@tauri-apps/plugin-dialog";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { useEffect, useRef, useState } from "react";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
-import { BACKUP_FILE_FILTER, createBackupDefaultFileName } from "../../../shared/lib/backup";
 import type { StoreSnapshot } from "../../../shared/types/store";
 import { draftProofreadingRuleLabel } from "../../drafts/proofreading/model";
 import {
@@ -195,17 +194,10 @@ export function useSettingsWorkspaceState({
     try {
       onClearError();
       setIsExportingBackup(true);
-      const path = await save({
-        title: "MailDraft バックアップを書き出す",
-        defaultPath: createBackupDefaultFileName(),
-        filters: [BACKUP_FILE_FILTER],
-      });
-
-      if (!path) {
+      const exportedPath = await maildraftApi.exportBackup();
+      if (!exportedPath) {
         return;
       }
-
-      await maildraftApi.exportBackup(path);
       onNotice("バックアップを書き出しました。");
     } catch (exportError) {
       onError(toErrorMessage(exportError));
@@ -232,17 +224,10 @@ export function useSettingsWorkspaceState({
       }
 
       setIsImportingBackup(true);
-      const selected = await open({
-        title: "MailDraft バックアップを読み込む",
-        multiple: false,
-        filters: [BACKUP_FILE_FILTER],
-      });
-
-      if (!selected || Array.isArray(selected)) {
+      const imported = await maildraftApi.importBackup();
+      if (!imported) {
         return;
       }
-
-      const imported = await maildraftApi.importBackup(selected);
       onBackupImported(imported.snapshot);
       hydrateLoggingSettings(imported.loggingSettings);
       hydrateProofreadingSettings(imported.proofreadingSettings);

@@ -20,6 +20,8 @@ use crate::modules::{
     templates::TemplateInput,
     variable_presets::VariablePresetInput,
 };
+use tauri::AppHandle;
+use tauri_plugin_dialog::{DialogExt, FilePath};
 
 fn load_snapshot_impl(state: &AppState) -> Result<StoreSnapshot, String> {
     state.load_snapshot()
@@ -159,6 +161,42 @@ fn export_backup_impl(state: &AppState, path: String) -> Result<String, String> 
 
 fn import_backup_impl(state: &AppState, path: String) -> Result<ImportedBackupSnapshot, String> {
     state.import_backup(&path)
+}
+
+fn selected_dialog_path_to_string(path: FilePath) -> Result<String, String> {
+    let path = path
+        .into_path()
+        .map_err(|_| "選択したファイルパスを処理できませんでした。".to_string())?;
+    Ok(path.display().to_string())
+}
+
+async fn pick_backup_export_path(app: AppHandle) -> Result<Option<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .set_title("MailDraft バックアップを書き出す")
+            .set_file_name("maildraft-backup.json")
+            .add_filter("MailDraft バックアップ", &["json"])
+            .blocking_save_file()
+            .map(selected_dialog_path_to_string)
+            .transpose()
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+async fn pick_backup_import_path(app: AppHandle) -> Result<Option<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .set_title("MailDraft バックアップを読み込む")
+            .add_filter("MailDraft バックアップ", &["json"])
+            .blocking_pick_file()
+            .map(selected_dialog_path_to_string)
+            .transpose()
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }
 
 fn load_recent_logs_impl(
@@ -373,19 +411,27 @@ pub(crate) fn load_proofreading_settings(
 }
 
 #[tauri::command]
-pub(crate) fn export_backup(
+pub(crate) async fn export_backup(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
-    path: String,
-) -> Result<String, String> {
-    export_backup_impl(&state, path)
+) -> Result<Option<String>, String> {
+    let Some(path) = pick_backup_export_path(app).await? else {
+        return Ok(None);
+    };
+
+    export_backup_impl(&state, path).map(Some)
 }
 
 #[tauri::command]
-pub(crate) fn import_backup(
+pub(crate) async fn import_backup(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
-    path: String,
-) -> Result<ImportedBackupSnapshot, String> {
-    import_backup_impl(&state, path)
+) -> Result<Option<ImportedBackupSnapshot>, String> {
+    let Some(path) = pick_backup_import_path(app).await? else {
+        return Ok(None);
+    };
+
+    import_backup_impl(&state, path).map(Some)
 }
 
 #[tauri::command]
@@ -1341,8 +1387,8 @@ mod tests {
     }
 
     #[test]
-    fn tauri_command_wrappers_cover_template_signature_backup_and_logging_contracts() {
-        let (state, directory) = make_state();
+    fn tauri_command_wrappers_cover_template_signature_and_logging_contracts() {
+        let (state, _directory) = make_state();
 
         let logging_before =
             load_logging_settings(as_tauri_state(&state)).expect("load logging settings");
@@ -1465,19 +1511,6 @@ mod tests {
 
         let cleared_logging = clear_logs(as_tauri_state(&state)).expect("clear logs");
         assert_eq!(cleared_logging.mode, saved_logging.mode);
-
-        let backup_path = directory.path().join("wrapper-backup.json");
-        let exported_path =
-            export_backup(as_tauri_state(&state), backup_path.display().to_string())
-                .expect("export backup");
-        assert_eq!(exported_path, backup_path.display().to_string());
-
-        let imported = import_backup(as_tauri_state(&state), exported_path).expect("import backup");
-        assert_eq!(imported.snapshot.templates.len(), 1);
-        assert_eq!(
-            imported.proofreading_settings.disabled_rule_ids,
-            vec!["prh".to_string(), "whitespace.trailing".to_string()]
-        );
 
         let emptied = empty_trash(as_tauri_state(&state)).expect("empty trash");
         assert!(emptied.trash.drafts.is_empty());

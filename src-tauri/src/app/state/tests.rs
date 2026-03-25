@@ -329,7 +329,7 @@ fn runtime_startup_prefers_existing_sqlite_over_legacy_json() {
 }
 
 #[test]
-fn runtime_startup_falls_back_to_json_when_sqlite_is_unavailable() {
+fn runtime_startup_fails_when_existing_sqlite_is_unavailable() {
     let directory = tempdir().expect("tempdir");
     let root = directory.path();
     let store_path = root.join("maildraft-store.json");
@@ -351,25 +351,28 @@ fn runtime_startup_falls_back_to_json_when_sqlite_is_unavailable() {
     write_app_settings(&settings_path, &legacy_settings).expect("write legacy settings");
     fs::create_dir_all(&sqlite_path).expect("block sqlite path with directory");
 
-    let state = AppState::new_for_runtime_tests(root).expect("runtime fallback state");
-    let startup_notice = state
-        .load_startup_notice()
-        .expect("load startup notice")
-        .expect("sqlite fallback notice");
+    let error = AppState::new_for_runtime_tests(root)
+        .err()
+        .expect("runtime startup should fail");
+    assert!(error.contains("既存の SQLite データベースを開けませんでした。"));
+}
 
-    assert_eq!(
-        serde_json::to_value(state.load_snapshot().expect("runtime snapshot"))
-            .expect("serialize runtime snapshot"),
-        serde_json::to_value(&legacy_snapshot).expect("serialize legacy snapshot"),
-    );
-    assert_eq!(
-        settings_value(&state),
-        serde_json::to_value(legacy_settings.normalized()).expect("serialize legacy settings"),
-    );
-    assert_eq!(startup_notice.tone, StartupNoticeTone::Warning);
-    assert!(startup_notice
-        .message
-        .contains("SQLite を利用できなかったため従来形式で起動しました。"));
+#[test]
+fn runtime_startup_fails_when_existing_sqlite_schema_is_newer_than_supported() {
+    let directory = tempdir().expect("tempdir");
+    let root = directory.path();
+    let sqlite_path = root.join("maildraft.sqlite3");
+    let connection = rusqlite::Connection::open(&sqlite_path).expect("create sqlite");
+    connection
+        .pragma_update(None, "user_version", 999)
+        .expect("set sqlite schema version");
+    drop(connection);
+
+    let error = AppState::new_for_runtime_tests(root)
+        .err()
+        .expect("runtime startup should fail");
+    assert!(error.contains("既存の SQLite データベースを開けませんでした。"));
+    assert!(error.contains("SQLite スキーマのバージョンが新しすぎます。"));
 }
 
 #[test]

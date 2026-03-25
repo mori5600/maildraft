@@ -10,16 +10,12 @@ import {
 } from "../../../test/ui-fixtures";
 import { useSettingsWorkspaceState } from "./use-settings-workspace-state";
 
-const { confirmMock, openMock, saveMock } = vi.hoisted(() => ({
+const { confirmMock } = vi.hoisted(() => ({
   confirmMock: vi.fn(),
-  openMock: vi.fn(),
-  saveMock: vi.fn(),
 }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   confirm: confirmMock,
-  open: openMock,
-  save: saveMock,
 }));
 
 function deferred<T>() {
@@ -272,14 +268,15 @@ describe("settings workspace state", () => {
     expect(result.current.settingsWorkspaceProps.isLoadingRecentLogs).toBe(false);
   });
 
-  it("exports a backup when a path is chosen and skips canceled exports", async () => {
+  it("exports a backup when Rust confirms a destination and skips canceled exports", async () => {
     const onClearError = vi.fn();
     const onError = vi.fn();
     const onNotice = vi.fn();
-    const exportDeferred = deferred<string>();
+    const exportDeferred = deferred<string | null>();
 
-    saveMock.mockResolvedValueOnce(null).mockResolvedValueOnce("C:/tmp/maildraft-backup.json");
-    vi.spyOn(maildraftApi, "exportBackup").mockReturnValue(exportDeferred.promise);
+    vi.spyOn(maildraftApi, "exportBackup")
+      .mockResolvedValueOnce(null)
+      .mockReturnValueOnce(exportDeferred.promise);
 
     const { result } = renderHook(() =>
       useSettingsWorkspaceState({
@@ -294,7 +291,7 @@ describe("settings workspace state", () => {
       await result.current.settingsWorkspaceProps.onExportBackup();
     });
 
-    expect(maildraftApi.exportBackup).not.toHaveBeenCalled();
+    expect(maildraftApi.exportBackup).toHaveBeenCalledTimes(1);
     expect(result.current.settingsWorkspaceProps.isExportingBackup).toBe(false);
 
     let exportPromise!: Promise<void>;
@@ -309,12 +306,7 @@ describe("settings workspace state", () => {
       await exportPromise;
     });
 
-    expect(saveMock).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        title: "MailDraft バックアップを書き出す",
-      }),
-    );
-    expect(maildraftApi.exportBackup).toHaveBeenCalledWith("C:/tmp/maildraft-backup.json");
+    expect(maildraftApi.exportBackup).toHaveBeenCalledTimes(2);
     expect(onClearError).toHaveBeenCalledTimes(2);
     expect(onError).not.toHaveBeenCalled();
     expect(onNotice).toHaveBeenCalledWith("バックアップを書き出しました。");
@@ -330,14 +322,15 @@ describe("settings workspace state", () => {
       loggingSettings: ReturnType<typeof createLoggingSettingsSnapshot>;
       proofreadingSettings: ReturnType<typeof createProofreadingSettingsSnapshot>;
       snapshot: ReturnType<typeof createStoreSnapshot>;
-    }>();
+    } | null>();
 
     confirmMock
       .mockResolvedValueOnce(false)
       .mockResolvedValueOnce(true)
       .mockResolvedValueOnce(true);
-    openMock.mockResolvedValueOnce(null).mockResolvedValueOnce("C:/tmp/backup.json");
-    vi.spyOn(maildraftApi, "importBackup").mockReturnValue(importDeferred.promise);
+    vi.spyOn(maildraftApi, "importBackup")
+      .mockResolvedValueOnce(null)
+      .mockReturnValueOnce(importDeferred.promise);
 
     const { result } = renderHook(() =>
       useSettingsWorkspaceState({
@@ -351,12 +344,12 @@ describe("settings workspace state", () => {
     await act(async () => {
       await result.current.settingsWorkspaceProps.onImportBackup();
     });
-    expect(openMock).not.toHaveBeenCalled();
+    expect(maildraftApi.importBackup).not.toHaveBeenCalled();
 
     await act(async () => {
       await result.current.settingsWorkspaceProps.onImportBackup();
     });
-    expect(maildraftApi.importBackup).not.toHaveBeenCalled();
+    expect(maildraftApi.importBackup).toHaveBeenCalledTimes(1);
     expect(result.current.settingsWorkspaceProps.isImportingBackup).toBe(false);
 
     let importPromise!: Promise<void>;
@@ -383,7 +376,7 @@ describe("settings workspace state", () => {
       await importPromise;
     });
 
-    expect(maildraftApi.importBackup).toHaveBeenCalledWith("C:/tmp/backup.json");
+    expect(maildraftApi.importBackup).toHaveBeenCalledTimes(2);
     expect(onBackupImported).toHaveBeenCalledWith(
       expect.objectContaining({
         drafts: [],

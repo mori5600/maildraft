@@ -125,12 +125,12 @@ export const maildraftApi = {
     return invoke<ProofreadingSettingsSnapshot>("load_proofreading_settings");
   },
 
-  exportBackup(path: string) {
-    return invoke<string>("export_backup", { path });
+  exportBackup() {
+    return invoke<string | null>("export_backup");
   },
 
-  importBackup(path: string) {
-    return invoke<ImportedBackupSnapshot>("import_backup", { path });
+  importBackup() {
+    return invoke<ImportedBackupSnapshot | null>("import_backup");
   },
 
   loadRecentLogs(limit?: number) {
