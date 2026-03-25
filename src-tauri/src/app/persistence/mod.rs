@@ -115,8 +115,10 @@ pub(crate) fn bootstrap_runtime_repository(
                 &legacy_bootstrap.settings_outcome.value,
             )
             .map_err(|error| format!("SQLite への移行に失敗しました。 {error}"))?;
-        let mut sqlite_bootstrap = load_bootstrap(Arc::new(sqlite_repository))
-            .map_err(|error| format!("移行直後の SQLite データベースを読み込めませんでした。 {error}"))?;
+        let mut sqlite_bootstrap =
+            load_bootstrap(Arc::new(sqlite_repository)).map_err(|error| {
+                format!("移行直後の SQLite データベースを読み込めませんでした。 {error}")
+            })?;
         sqlite_bootstrap.extra_startup_notices.extend(
             [
                 legacy_bootstrap.settings_outcome.startup_notice,
@@ -125,10 +127,12 @@ pub(crate) fn bootstrap_runtime_repository(
             .into_iter()
             .flatten(),
         );
-        sqlite_bootstrap.extra_startup_notices.push(StartupNoticeSnapshot {
-            message: "ローカルデータを SQLite へ移行しました。".to_string(),
-            tone: StartupNoticeTone::Notice,
-        });
+        sqlite_bootstrap
+            .extra_startup_notices
+            .push(StartupNoticeSnapshot {
+                message: "ローカルデータを SQLite へ移行しました。".to_string(),
+                tone: StartupNoticeTone::Notice,
+            });
         return Ok(sqlite_bootstrap);
     }
 
