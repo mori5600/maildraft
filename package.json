@@ -2,6 +2,7 @@
   "name": "maildraft",
   "private": true,
   "version": "1.4.0",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,6 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage --pool forks",
+    "licenses:generate": "node ./scripts/generate-third-party-notices.mjs",
     "perf:backup": "node ./scripts/generate-performance-backup.mjs",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
