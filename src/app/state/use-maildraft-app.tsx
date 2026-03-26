@@ -7,25 +7,16 @@ import { useSignatureWorkspaceState } from "../../modules/signatures/state/use-s
 import { useTemplateWorkspaceState } from "../../modules/templates/state/use-template-workspace-state";
 import { useTrashWorkspaceState } from "../../modules/trash/state/use-trash-workspace-state";
 import type { StoreSnapshot, WorkspaceView } from "../../shared/types/store";
-import { buildHydratedWorkspaceState, buildWorkspaceSummaries } from "./maildraft-app-helpers";
+import { buildWorkspaceSummaries } from "./maildraft-app-helpers";
+import {
+  changeWorkspaceView,
+  EMPTY_SNAPSHOT,
+  hydrateImportedBackup,
+  hydrateWorkspaceSnapshot,
+} from "./maildraft-app-orchestration";
 import { useAppBootstrap } from "./use-app-bootstrap";
 import { useAppShellState } from "./use-app-shell-state";
-import { type ShortcutActionSet, useAppShortcuts } from "./use-app-shortcuts";
-
-const EMPTY_SNAPSHOT: StoreSnapshot = {
-  drafts: [],
-  draftHistory: [],
-  variablePresets: [],
-  templates: [],
-  signatures: [],
-  memos: [],
-  trash: {
-    drafts: [],
-    templates: [],
-    signatures: [],
-    memos: [],
-  },
-};
+import { useAppShortcuts } from "./use-app-shortcuts";
 
 /**
  * Wires the app shell to workspace hooks and shared imperative draft actions.
@@ -73,8 +64,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
   });
   const settingsState = useSettingsWorkspaceState({
     onBackupImported: (nextSnapshot) => {
-      hydrateAll(nextSnapshot);
-      draftWorkspaceRef.current?.hydrateSnapshot(nextSnapshot);
+      hydrateImportedBackup(nextSnapshot, draftWorkspaceRef.current, hydrateAll);
     },
     onClearError: shell.clearError,
     onError: shell.setError,
@@ -82,12 +72,13 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
   });
 
   function hydrateAll(nextSnapshot: StoreSnapshot) {
-    const hydratedState = buildHydratedWorkspaceState(nextSnapshot);
-    shell.setSnapshot(nextSnapshot);
-    memoState.hydrateMemoState(nextSnapshot);
-    templateState.hydrateTemplateState(nextSnapshot, hydratedState.selectedTemplateId);
-    signatureState.hydrateSignatureState(nextSnapshot, hydratedState.selectedSignatureId);
-    shell.setSelectedTrashItemKey(hydratedState.selectedTrashItemKey);
+    hydrateWorkspaceSnapshot(nextSnapshot, {
+      hydrateMemoState: memoState.hydrateMemoState,
+      hydrateSignatureState: signatureState.hydrateSignatureState,
+      hydrateTemplateState: templateState.hydrateTemplateState,
+      setSelectedTrashItemKey: shell.setSelectedTrashItemKey,
+      setSnapshot: shell.setSnapshot,
+    });
   }
 
   useAppBootstrap({
@@ -101,25 +92,15 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     onWarning: shell.setWarning,
   });
 
-  function changeView(nextView: WorkspaceView) {
-    if (shell.view === "drafts" && nextView !== "drafts") {
-      draftWorkspaceRef.current?.flushPendingDraft();
-    }
-
-    if (shell.view === "templates" && nextView !== "templates") {
-      templateState.flushPendingTemplate();
-    }
-
-    if (shell.view === "signatures" && nextView !== "signatures") {
-      signatureState.flushPendingSignature();
-    }
-
-    if (shell.view === "memo" && nextView !== "memo") {
-      memoState.flushPendingMemo();
-    }
-
-    shell.setViewState(nextView);
-  }
+  const changeView = (nextView: WorkspaceView) =>
+    changeWorkspaceView(nextView, {
+      currentView: shell.view,
+      flushDrafts: () => draftWorkspaceRef.current?.flushPendingDraft(),
+      flushMemo: memoState.flushPendingMemo,
+      flushSignatures: signatureState.flushPendingSignature,
+      flushTemplates: templateState.flushPendingTemplate,
+      setViewState: shell.setViewState,
+    });
 
   const trashState = useTrashWorkspaceState({
     onClearError: shell.clearError,
@@ -201,7 +182,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       toggleMemoPinned,
       toggleSignaturePinned: signatureState.toggleSignaturePinned,
       toggleTemplatePinned: templateState.toggleTemplatePinned,
-    } satisfies ShortcutActionSet,
+    },
     isLoading: shell.isLoading,
     view: shell.view,
   });

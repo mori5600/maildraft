@@ -3,7 +3,7 @@ use serde_json::Value;
 
 use crate::app::settings::AppSettings;
 
-use super::{now_unix_millis, AppResult, STORAGE_DOCUMENT_APP};
+use super::{paths::now_unix_millis, AppResult, STORAGE_DOCUMENT_APP};
 
 const SETTINGS_DOCUMENT_VERSION: u8 = 1;
 

@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use super::{backup_path, AppResult};
+use super::{paths::backup_path, AppResult};
 
 pub(super) fn write_json_safely(path: &Path, content: &str) -> AppResult<()> {
     if let Some(parent) = path.parent() {
@@ -52,7 +52,7 @@ mod tests {
     use tempfile::tempdir;
 
     use super::{temporary_path, write_json_safely};
-    use crate::app::storage::backup_path;
+    use super::super::paths::backup_path;
 
     #[test]
     fn write_json_safely_creates_parent_directories_and_replaces_content() {
