@@ -70,16 +70,6 @@
 - Treat a failing `npm run format:check` as a blocking issue for release-preflight verification
 - If formatting needs to be fixed, run `npm run format` and then re-run `npm run format:check`
 
-## Version Control
-
-- This repository uses `jj` for normal day-to-day work.
-- Use `jj status`, `jj diff`, and `jj log` to inspect current work.
-- Prefer `jj commit -m "..."` for finished changes.
-- Use `jj squash` to fold fixups into the previous change when needed.
-- Push with `jj git push --remote origin` when bookmark tracking is already configured.
-- If you need to publish the current change to `main` explicitly, confirm the target first and then use a `jj git push --remote origin --named ...` form that matches the current bookmark state.
-- An empty `@` working copy after commit is normal in `jj`.
-
 ## Implementation Guidance for Codex
 
 - Make focused changes and preserve the current module boundaries.
