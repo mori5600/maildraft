@@ -1,12 +1,17 @@
 import { RECENT_LOG_LIMIT } from "../model";
 
-export type SettingsSection = "logging" | "proofreading" | "backup";
+export type SettingsSection = "editor" | "logging" | "proofreading" | "backup";
 
 export const SETTINGS_SECTIONS: Array<{
   id: SettingsSection;
   label: string;
   description: string;
 }> = [
+  {
+    id: "editor",
+    label: "エディタ",
+    description: "インデントとタブ幅",
+  },
   {
     id: "logging",
     label: "ログ",

@@ -99,7 +99,7 @@ export const HELP_USAGE_GROUPS: HelpGuideGroup[] = [
       },
       {
         title: "複数行の入力欄では Tab で空白インデントする",
-        body: "本文やメモ本文のような複数行の入力欄では、`Tab` で空白を挿入し、`Shift+Tab` で行頭インデントを戻せます。フォーカス移動を優先したい場合は、Windows / Linux では `Ctrl+M`、macOS では `Shift+Alt+M` で Tab のフォーカス移動モードを切り替えます。",
+        body: "本文やメモ本文のような複数行の入力欄では、`Tab` で設定済みのインデントを挿入し、`Shift+Tab` で行頭インデントを戻せます。設定画面の `エディタ` でスペース / タブと幅を変更できます。フォーカス移動を優先したい場合は、Windows / Linux では `Ctrl+M`、macOS では `Shift+Alt+M` で Tab のフォーカス移動モードを切り替えます。",
       },
     ],
   },
@@ -224,7 +224,7 @@ export const KEYBOARD_SHORTCUT_GROUPS: ShortcutGroup[] = [
       },
       {
         keys: "Tab / Shift+Tab",
-        description: "複数行エディタで空白インデント / アウトデント",
+        description: "複数行エディタで設定済みインデント / アウトデント",
         note: "件名や名前のような単一行入力欄では従来どおり次の項目へ移動します",
       },
       {

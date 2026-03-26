@@ -42,8 +42,8 @@ pub fn load_app_settings_with_status(path: &Path) -> AppResult<LoadOutcome<AppSe
         },
         AppSettings::default,
         StorageNoticeMessages {
-            recovered_from_backup: "診断設定をバックアップから復旧しました。",
-            reset_to_defaults: "診断設定を復旧できなかったため既定値で起動しました。",
+            recovered_from_backup: "設定をバックアップから復旧しました。",
+            reset_to_defaults: "設定を復旧できなかったため既定値で起動しました。",
         },
         MAX_SETTINGS_FILE_BYTES,
     )

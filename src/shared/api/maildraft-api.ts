@@ -4,6 +4,8 @@ import type { DraftInput } from "../../modules/drafts/model";
 import type { VariablePresetInput } from "../../modules/drafts/variable-presets";
 import type { Memo, MemoInput } from "../../modules/memo/model";
 import type {
+  EditorSettingsInput,
+  EditorSettingsSnapshot,
   ImportedBackupSnapshot,
   LogEntrySnapshot,
   LoggingSettingsInput,
@@ -121,6 +123,10 @@ export const maildraftApi = {
     return invoke<LoggingSettingsSnapshot>("load_logging_settings");
   },
 
+  loadEditorSettings() {
+    return invoke<EditorSettingsSnapshot>("load_editor_settings");
+  },
+
   loadProofreadingSettings() {
     return invoke<ProofreadingSettingsSnapshot>("load_proofreading_settings");
   },
@@ -139,6 +145,10 @@ export const maildraftApi = {
 
   saveLoggingSettings(input: LoggingSettingsInput) {
     return invoke<LoggingSettingsSnapshot>("save_logging_settings", { input });
+  },
+
+  saveEditorSettings(input: EditorSettingsInput) {
+    return invoke<EditorSettingsSnapshot>("save_editor_settings", { input });
   },
 
   saveProofreadingSettings(input: ProofreadingSettingsInput) {

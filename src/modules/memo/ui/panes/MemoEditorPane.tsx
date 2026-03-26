@@ -4,6 +4,7 @@ import { truncate } from "../../../../shared/lib/text";
 import { formatStoredTime } from "../../../../shared/lib/time";
 import { visualizeWhitespace } from "../../../../shared/lib/whitespace";
 import { CodeEditor } from "../../../../shared/ui/code-editor/CodeEditor";
+import type { EditorSettings } from "../../../../shared/ui/code-editor/editor-settings";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Input, Panel } from "../../../../shared/ui/primitives";
 import { memoCharacterCount, type MemoInput, memoLabel, memoLineCount } from "../../model";
@@ -12,6 +13,7 @@ interface MemoEditorPaneProps {
   activeMemoUpdatedAt: string | null;
   autoSaveLabel: string;
   canStartDraftFromMemo: boolean;
+  editorSettings?: EditorSettings;
   memoForm: MemoInput;
   onChangeMemo: <K extends keyof MemoInput>(field: K, value: MemoInput[K]) => void;
   onCreateMemo: () => void;
@@ -27,6 +29,7 @@ export function MemoEditorPane({
   activeMemoUpdatedAt,
   autoSaveLabel,
   canStartDraftFromMemo,
+  editorSettings,
   memoForm,
   onChangeMemo,
   onCreateMemo,
@@ -99,6 +102,7 @@ export function MemoEditorPane({
             showWhitespace={showWhitespace}
             textClassName="mail-note-editor-text"
             value={memoForm.body}
+            editorSettings={editorSettings}
             onChange={(value) => onChangeMemo("body", value)}
           />
         </div>

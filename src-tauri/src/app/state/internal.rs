@@ -3,7 +3,8 @@ use std::time::Instant;
 use crate::app::{
     logging::{LogEntry, LogLevel},
     settings::{
-        AppSettings, LoggingSettings, LoggingSettingsSnapshot, ProofreadingSettingsSnapshot,
+        AppSettings, EditorSettingsSnapshot, LoggingSettings, LoggingSettingsSnapshot,
+        ProofreadingSettingsSnapshot,
     },
 };
 use crate::modules::store::StoreSnapshot;
@@ -88,6 +89,15 @@ impl AppState {
         };
 
         Ok(ProofreadingSettingsSnapshot::from(&proofreading_settings))
+    }
+
+    pub(super) fn editor_settings_snapshot(&self) -> AppResult<EditorSettingsSnapshot> {
+        let editor_settings = {
+            let settings = self.settings.lock().map_err(|error| error.to_string())?;
+            settings.editor.clone()
+        };
+
+        Ok(EditorSettingsSnapshot::from(&editor_settings))
     }
 
     pub(super) fn logger_snapshot(

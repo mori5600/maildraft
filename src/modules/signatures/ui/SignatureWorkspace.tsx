@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import type { SignatureSortOption } from "../../../shared/lib/list-sort";
 import { visualizeWhitespace } from "../../../shared/lib/whitespace";
+import type { EditorSettings } from "../../../shared/ui/code-editor/editor-settings";
 import { PreviewOverlay } from "../../../shared/ui/PreviewOverlay";
 import type { Signature, SignatureInput } from "../model";
 import { SignatureEditorPane } from "./panes/SignatureEditorPane";
@@ -14,6 +15,7 @@ interface SignatureWorkspaceProps {
   selectedSignatureId: string | null;
   signatureForm: SignatureInput;
   autoSaveLabel: string;
+  editorSettings?: EditorSettings;
   showWhitespace: boolean;
   searchQuery: string;
   sort: SignatureSortOption;
@@ -35,6 +37,7 @@ export function SignatureWorkspace({
   selectedSignatureId,
   signatureForm,
   autoSaveLabel,
+  editorSettings,
   showWhitespace,
   searchQuery,
   sort,
@@ -73,6 +76,7 @@ export function SignatureWorkspace({
         <SignatureEditorPane
           autoSaveLabel={autoSaveLabel}
           canDuplicate={canDuplicate}
+          editorSettings={editorSettings}
           selectedSignatureId={selectedSignatureId}
           showWhitespace={showWhitespace}
           signatureForm={signatureForm}

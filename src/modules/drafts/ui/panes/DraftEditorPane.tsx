@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { CodeEditor } from "../../../../shared/ui/code-editor/CodeEditor";
+import type { EditorSettings } from "../../../../shared/ui/code-editor/editor-settings";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Field, Panel, Select } from "../../../../shared/ui/primitives";
 import type { Signature } from "../../../signatures/model";
@@ -20,6 +21,7 @@ interface DraftEditorPaneProps {
   templates: Template[];
   signatures: Signature[];
   selectedDraftId: string | null;
+  editorSettings?: EditorSettings;
   showWhitespace: boolean;
   autoSaveLabel: string;
   canDuplicate: boolean;
@@ -38,6 +40,7 @@ export function DraftEditorPane({
   templates,
   signatures,
   selectedDraftId,
+  editorSettings,
   showWhitespace,
   autoSaveLabel,
   canDuplicate,
@@ -130,6 +133,7 @@ export function DraftEditorPane({
                 singleLine
                 showWhitespace={showWhitespace}
                 value={draftForm.title}
+                editorSettings={editorSettings}
                 onChange={(value) => onChangeDraft("title", value)}
               />
             </Field>
@@ -144,6 +148,7 @@ export function DraftEditorPane({
                 singleLine
                 showWhitespace={showWhitespace}
                 value={draftForm.subject}
+                editorSettings={editorSettings}
                 onChange={(value) => onChangeDraft("subject", value)}
               />
             </Field>
@@ -209,6 +214,7 @@ export function DraftEditorPane({
               placeholder={"株式会社〇〇\n営業部\n佐藤 様"}
               showWhitespace={showWhitespace}
               value={draftForm.recipient}
+              editorSettings={editorSettings}
               onChange={(value) => onChangeDraft("recipient", value)}
             />
           </Field>
@@ -223,6 +229,7 @@ export function DraftEditorPane({
               placeholder={"いつもお世話になっております。\n株式会社△△の田中です。"}
               showWhitespace={showWhitespace}
               value={draftForm.opening}
+              editorSettings={editorSettings}
               onChange={(value) => onChangeDraft("opening", value)}
             />
           </Field>
@@ -237,6 +244,7 @@ export function DraftEditorPane({
               placeholder="本文"
               showWhitespace={showWhitespace}
               value={draftForm.body}
+              editorSettings={editorSettings}
               onChange={(value) => onChangeDraft("body", value)}
             />
           </Field>
@@ -251,6 +259,7 @@ export function DraftEditorPane({
               placeholder="引き続きよろしくお願いいたします。"
               showWhitespace={showWhitespace}
               value={draftForm.closing}
+              editorSettings={editorSettings}
               onChange={(value) => onChangeDraft("closing", value)}
             />
           </Field>

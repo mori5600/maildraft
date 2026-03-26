@@ -199,7 +199,7 @@ describe("maildraft app helpers", () => {
 
     expect(resolveSaveShortcutAction("templates")).toBe("saveTemplate");
     expect(resolveSaveShortcutAction("memo")).toBe("saveMemo");
-    expect(resolveSaveShortcutAction("settings")).toBe("saveLoggingSettings");
+    expect(resolveSaveShortcutAction("settings")).toBe("saveSettingsSection");
     expect(resolveSaveShortcutAction("help")).toBeNull();
 
     expect(resolvePinShortcutAction("drafts")).toBe("toggleDraftPinned");

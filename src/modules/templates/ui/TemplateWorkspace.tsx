@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import type { TemplateSortOption } from "../../../shared/lib/list-sort";
 import { visualizeWhitespace } from "../../../shared/lib/whitespace";
+import type { EditorSettings } from "../../../shared/ui/code-editor/editor-settings";
 import { PreviewOverlay } from "../../../shared/ui/PreviewOverlay";
 import { Button } from "../../../shared/ui/primitives";
 import type { Signature } from "../../signatures/model";
@@ -19,6 +20,7 @@ interface TemplateWorkspaceProps {
   templateForm: TemplateInput;
   autoSaveLabel: string;
   previewText: string;
+  editorSettings?: EditorSettings;
   showWhitespace: boolean;
   searchQuery: string;
   sort: TemplateSortOption;
@@ -43,6 +45,7 @@ export function TemplateWorkspace({
   templateForm,
   autoSaveLabel,
   previewText,
+  editorSettings,
   showWhitespace,
   searchQuery,
   sort,
@@ -82,6 +85,7 @@ export function TemplateWorkspace({
         <TemplateEditorPane
           autoSaveLabel={autoSaveLabel}
           canDuplicate={canDuplicate}
+          editorSettings={editorSettings}
           selectedTemplateId={selectedTemplateId}
           showWhitespace={showWhitespace}
           signatures={signatures}

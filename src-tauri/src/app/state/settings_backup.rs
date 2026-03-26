@@ -4,8 +4,8 @@ use crate::app::{
     backup::{decode_backup_document, BackupDocument, ImportedBackupSnapshot},
     logging::{LogEntry, LogEntrySnapshot, LogLevel},
     settings::{
-        LoggingSettingsInput, LoggingSettingsSnapshot, ProofreadingSettingsInput,
-        ProofreadingSettingsSnapshot,
+        EditorSettingsInput, EditorSettingsSnapshot, LoggingSettingsInput, LoggingSettingsSnapshot,
+        ProofreadingSettingsInput, ProofreadingSettingsSnapshot,
     },
     validation::{
         ensure_content_size, read_text_file_with_limit, validate_export_backup_path,
@@ -16,7 +16,8 @@ use crate::app::{
 
 use super::{
     context::{
-        elapsed_millis, logging_settings_context, proofreading_settings_context,
+        editor_settings_context, elapsed_millis, logging_settings_context,
+        proofreading_settings_context,
         snapshot_counts_context,
     },
     AppResult, AppState,
@@ -32,6 +33,11 @@ impl AppState {
     /// This does not touch the store or log files.
     pub fn load_logging_settings(&self) -> AppResult<LoggingSettingsSnapshot> {
         self.logging_settings_snapshot()
+    }
+
+    /// Returns the current editor settings snapshot.
+    pub fn load_editor_settings(&self) -> AppResult<EditorSettingsSnapshot> {
+        self.editor_settings_snapshot()
     }
 
     /// Returns the current proofreading settings snapshot.
@@ -150,6 +156,7 @@ impl AppState {
         drop(app_settings);
 
         let logging_settings = self.logger_snapshot(&settings.logging)?;
+        let editor_settings = EditorSettingsSnapshot::from(&settings.editor);
         let proofreading_settings = ProofreadingSettingsSnapshot::from(&settings.proofreading);
 
         self.log_event_with_settings(
@@ -167,6 +174,7 @@ impl AppState {
 
         Ok(ImportedBackupSnapshot {
             snapshot,
+            editor_settings,
             logging_settings,
             proofreading_settings,
         })
@@ -277,6 +285,39 @@ impl AppState {
         });
 
         Ok(ProofreadingSettingsSnapshot::from(&next_settings))
+    }
+
+    /// Saves editor settings.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the settings lock cannot be acquired or persistence fails.
+    pub fn save_editor_settings(
+        &self,
+        input: EditorSettingsInput,
+    ) -> AppResult<EditorSettingsSnapshot> {
+        let started_at = Instant::now();
+        let next_settings = input.into_settings();
+
+        {
+            let mut settings = self.settings.lock().map_err(|error| error.to_string())?;
+            let previous = settings.clone();
+
+            settings.editor = next_settings.clone();
+            self.persist_locked_settings_with_rollback(&mut settings, previous)?;
+        }
+
+        self.log_event(LogEntry {
+            level: LogLevel::Info,
+            event_name: "settings.editor_saved",
+            module: "settings",
+            result: "success",
+            duration_ms: Some(elapsed_millis(started_at)),
+            error_code: None,
+            safe_context: editor_settings_context(&next_settings),
+        });
+
+        Ok(EditorSettingsSnapshot::from(&next_settings))
     }
 
     /// Deletes retained log files and returns the current logging settings snapshot.

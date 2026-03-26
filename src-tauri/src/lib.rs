@@ -10,13 +10,14 @@ use std::io::Error;
 use app::state::AppState;
 use commands::{
     clear_logs, delete_draft, delete_memo, delete_signature, delete_template,
-    delete_variable_preset, empty_trash, export_backup, import_backup, load_logging_settings,
-    load_proofreading_settings, load_recent_logs, load_snapshot, load_startup_notice,
+    delete_variable_preset, empty_trash, export_backup, import_backup, load_editor_settings,
+    load_logging_settings, load_proofreading_settings, load_recent_logs, load_snapshot,
+    load_startup_notice,
     permanently_delete_draft_from_trash, permanently_delete_memo_from_trash,
     permanently_delete_signature_from_trash, permanently_delete_template_from_trash,
-    restore_draft_from_trash, restore_draft_history, restore_memo_from_trash,
-    restore_signature_from_trash, restore_template_from_trash, save_draft, save_logging_settings,
-    save_memo, save_proofreading_settings, save_signature, save_template, save_variable_preset,
+    restore_draft_from_trash, restore_draft_history, restore_memo_from_trash, restore_signature_from_trash,
+    restore_template_from_trash, save_draft, save_editor_settings, save_logging_settings, save_memo,
+    save_proofreading_settings, save_signature, save_template, save_variable_preset,
 };
 
 /// Starts the Tauri runtime.
@@ -59,11 +60,13 @@ pub fn run() {
             permanently_delete_signature_from_trash,
             empty_trash,
             load_logging_settings,
+            load_editor_settings,
             load_proofreading_settings,
             export_backup,
             import_backup,
             load_recent_logs,
             save_logging_settings,
+            save_editor_settings,
             save_proofreading_settings,
             clear_logs
         ])

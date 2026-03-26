@@ -54,7 +54,7 @@ export type SaveShortcutAction =
   | "saveMemo"
   | "saveTemplate"
   | "saveSignature"
-  | "saveLoggingSettings";
+  | "saveSettingsSection";
 export type PinShortcutAction =
   | "toggleDraftPinned"
   | "toggleMemoPinned"
@@ -79,7 +79,7 @@ const SAVE_SHORTCUT_ACTIONS = {
   signatures: "saveSignature",
   memo: "saveMemo",
   trash: null,
-  settings: "saveLoggingSettings",
+  settings: "saveSettingsSection",
   help: null,
 } satisfies Record<WorkspaceView, SaveShortcutAction | null>;
 

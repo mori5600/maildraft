@@ -12,7 +12,7 @@ function createActions(): ShortcutActionSet {
     createSignature: vi.fn(),
     createTemplate: vi.fn(),
     saveDraft: vi.fn(async () => {}),
-    saveLoggingSettings: vi.fn(async () => {}),
+    saveSettingsSection: vi.fn(async () => {}),
     saveMemo: vi.fn(async () => {}),
     saveSignature: vi.fn(async () => {}),
     saveTemplate: vi.fn(async () => {}),
@@ -119,8 +119,8 @@ describe("app shortcuts", () => {
 
     dispatchShortcut({ ctrlKey: true, key: "s" });
     await Promise.resolve();
-    expect(nextActions.saveLoggingSettings).toHaveBeenCalledTimes(1);
-    expect(actions.saveLoggingSettings).not.toHaveBeenCalled();
+    expect(nextActions.saveSettingsSection).toHaveBeenCalledTimes(1);
+    expect(actions.saveSettingsSection).not.toHaveBeenCalled();
   });
 
   it("ignores blocked shortcut events and removes the listener on unmount", () => {

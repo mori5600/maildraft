@@ -3,18 +3,24 @@ import { useEffect, useRef, useState } from "react";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import type { StoreSnapshot } from "../../../shared/types/store";
+import { normalizeEditorTabSize } from "../../../shared/ui/code-editor/editor-settings";
 import { draftProofreadingRuleLabel } from "../../drafts/proofreading/model";
 import {
+  createDefaultEditorSettingsSnapshot,
   createDefaultLoggingSettingsSnapshot,
   createDefaultProofreadingSettingsSnapshot,
+  type EditorSettingsInput,
+  type EditorSettingsSnapshot,
   type LogEntrySnapshot,
   type LoggingSettingsInput,
   type LoggingSettingsSnapshot,
   normalizeProofreadingRuleIds,
   type ProofreadingSettingsSnapshot,
   RECENT_LOG_LIMIT,
+  toEditorSettingsInput,
   toLoggingSettingsInput,
 } from "../model";
+import type { SettingsSection } from "../ui/settings-workspace-content";
 
 interface SettingsWorkspaceStateOptions {
   onBackupImported: (snapshot: StoreSnapshot) => void;
@@ -36,12 +42,12 @@ function toErrorMessage(error: unknown): string {
 }
 
 /**
- * Owns logging settings, backup import/export flow, and recent log loading for the settings view.
+ * Owns editor and logging settings, backup import/export flow, and recent log loading.
  *
  * @remarks
  * Backup import replaces the full store snapshot through `onBackupImported` and then rehydrates
- * logging settings from the imported payload. Export, import, and recent-log refresh each expose
- * dedicated pending flags so the settings UI can gate duplicate actions.
+ * settings from the imported payload. Export, import, editor save, and recent-log refresh each
+ * expose dedicated pending flags so the settings UI can gate duplicate actions.
  */
 export function useSettingsWorkspaceState({
   onBackupImported,
@@ -49,6 +55,13 @@ export function useSettingsWorkspaceState({
   onError,
   onNotice,
 }: SettingsWorkspaceStateOptions) {
+  const [activeSection, setActiveSection] = useState<SettingsSection>("editor");
+  const [editorSettings, setEditorSettings] = useState<EditorSettingsSnapshot>(
+    createDefaultEditorSettingsSnapshot(),
+  );
+  const [editorForm, setEditorForm] = useState<EditorSettingsInput>(
+    toEditorSettingsInput(createDefaultEditorSettingsSnapshot()),
+  );
   const [loggingSettings, setLoggingSettings] = useState<LoggingSettingsSnapshot>(
     createDefaultLoggingSettingsSnapshot(),
   );
@@ -62,12 +75,19 @@ export function useSettingsWorkspaceState({
   const [isLoadingRecentLogs, setIsLoadingRecentLogs] = useState(false);
   const [isExportingBackup, setIsExportingBackup] = useState(false);
   const [isImportingBackup, setIsImportingBackup] = useState(false);
+  const [isSavingEditorSettings, setIsSavingEditorSettings] = useState(false);
   const [isSavingProofreadingSettings, setIsSavingProofreadingSettings] = useState(false);
   const proofreadingSettingsRef = useRef(proofreadingSettings);
 
   useEffect(() => {
     proofreadingSettingsRef.current = proofreadingSettings;
   }, [proofreadingSettings]);
+
+  function hydrateEditorSettings(nextEditorSettings: EditorSettingsSnapshot) {
+    const normalized = toEditorSettingsInput(nextEditorSettings);
+    setEditorSettings(normalized);
+    setEditorForm(normalized);
+  }
 
   function hydrateLoggingSettings(nextLoggingSettings: LoggingSettingsSnapshot) {
     setLoggingSettings(nextLoggingSettings);
@@ -92,6 +112,19 @@ export function useSettingsWorkspaceState({
     }));
   }
 
+  function changeEditor<K extends keyof EditorSettingsInput>(
+    field: K,
+    value: EditorSettingsInput[K],
+  ) {
+    setEditorForm((current) => ({
+      ...current,
+      [field]:
+        field === "tabSize"
+          ? normalizeEditorTabSize(value as EditorSettingsInput["tabSize"])
+          : value,
+    }));
+  }
+
   async function saveLoggingSettings() {
     try {
       onClearError();
@@ -100,6 +133,20 @@ export function useSettingsWorkspaceState({
       onNotice("ログ設定を保存しました。");
     } catch (saveError) {
       onError(toErrorMessage(saveError));
+    }
+  }
+
+  async function saveEditorSettings() {
+    try {
+      onClearError();
+      setIsSavingEditorSettings(true);
+      const nextEditorSettings = await maildraftApi.saveEditorSettings(editorForm);
+      hydrateEditorSettings(nextEditorSettings);
+      onNotice("エディタ設定を保存しました。");
+    } catch (saveError) {
+      onError(toErrorMessage(saveError));
+    } finally {
+      setIsSavingEditorSettings(false);
     }
   }
 
@@ -229,6 +276,7 @@ export function useSettingsWorkspaceState({
         return;
       }
       onBackupImported(imported.snapshot);
+      hydrateEditorSettings(imported.editorSettings);
       hydrateLoggingSettings(imported.loggingSettings);
       hydrateProofreadingSettings(imported.proofreadingSettings);
       onNotice("バックアップを読み込みました。");
@@ -239,21 +287,42 @@ export function useSettingsWorkspaceState({
     }
   }
 
+  async function saveSettingsSection() {
+    if (activeSection === "editor") {
+      await saveEditorSettings();
+      return;
+    }
+
+    if (activeSection === "logging") {
+      await saveLoggingSettings();
+    }
+  }
+
   return {
+    hydrateEditorSettings,
     hydrateLoggingSettings,
     hydrateProofreadingSettings,
     disableProofreadingRule,
     enableProofreadingRule,
     resetDisabledProofreadingRules,
+    saveSettingsSection,
+    saveEditorSettings,
     saveLoggingSettings,
     settingsWorkspaceProps: {
+      activeSection,
+      editorForm,
+      editorSettings,
+      isSavingEditorSettings,
       isExportingBackup,
       isImportingBackup,
       isLoadingRecentLogs,
       isSavingProofreadingSettings,
       loggingForm,
       loggingSettings,
+      onChangeEditor: changeEditor,
       proofreadingSettings,
+      onSaveEditorSettings: saveEditorSettings,
+      onSelectSection: setActiveSection,
       onChangeLogging: changeLogging,
       onClearLogs: clearLogs,
       onEnableProofreadingRule: enableProofreadingRule,

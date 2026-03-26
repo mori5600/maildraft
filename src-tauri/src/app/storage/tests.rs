@@ -214,6 +214,7 @@ fn settings_round_trip_and_accept_legacy_settings() {
             mode: LoggingMode::Standard,
             retention_days: 30,
         },
+        editor: Default::default(),
         proofreading: ProofreadingSettings {
             disabled_rule_ids: vec![" whitespace.trailing ".to_string(), "prh".to_string()],
         },
@@ -251,6 +252,7 @@ fn broken_settings_fall_back_to_backup_then_defaults() {
                 mode: LoggingMode::Standard,
                 retention_days: 30,
             },
+            editor: Default::default(),
             proofreading: ProofreadingSettings {
                 disabled_rule_ids: vec!["prh".to_string()],
             },
@@ -263,7 +265,7 @@ fn broken_settings_fall_back_to_backup_then_defaults() {
     assert_eq!(
         recovered.startup_notice,
         Some(StartupNoticeSnapshot {
-            message: "診断設定をバックアップから復旧しました。".to_string(),
+            message: "設定をバックアップから復旧しました。".to_string(),
             tone: StartupNoticeTone::Notice,
         })
     );
@@ -280,7 +282,7 @@ fn broken_settings_fall_back_to_backup_then_defaults() {
     assert_eq!(
         defaulted.startup_notice,
         Some(StartupNoticeSnapshot {
-            message: "診断設定を復旧できなかったため既定値で起動しました。".to_string(),
+            message: "設定を復旧できなかったため既定値で起動しました。".to_string(),
             tone: StartupNoticeTone::Warning,
         })
     );
@@ -301,7 +303,7 @@ fn missing_primary_with_broken_backup_quarantines_backup_and_defaults_settings()
     assert_eq!(
         loaded.startup_notice,
         Some(StartupNoticeSnapshot {
-            message: "診断設定を復旧できなかったため既定値で起動しました。".to_string(),
+            message: "設定を復旧できなかったため既定値で起動しました。".to_string(),
             tone: StartupNoticeTone::Warning,
         })
     );

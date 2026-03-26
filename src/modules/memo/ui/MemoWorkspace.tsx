@@ -1,4 +1,5 @@
 import type { MemoSortOption } from "../../../shared/lib/list-sort";
+import type { EditorSettings } from "../../../shared/ui/code-editor/editor-settings";
 import type { Memo, MemoInput } from "../model";
 import { MemoEditorPane } from "./panes/MemoEditorPane";
 import { MemoListPane } from "./panes/MemoListPane";
@@ -10,6 +11,7 @@ interface MemoWorkspaceProps {
   canStartDraftFromMemo: boolean;
   memos: Memo[];
   memoForm: MemoInput;
+  editorSettings?: EditorSettings;
   onChangeMemo: <K extends keyof MemoInput>(field: K, value: MemoInput[K]) => void;
   onChangeSearchQuery: (value: string) => void;
   onChangeSort: (value: MemoSortOption) => void;
@@ -33,6 +35,7 @@ export function MemoWorkspace({
   canStartDraftFromMemo,
   memos,
   memoForm,
+  editorSettings,
   onChangeMemo,
   onChangeSearchQuery,
   onChangeSort,
@@ -67,6 +70,7 @@ export function MemoWorkspace({
         activeMemoUpdatedAt={activeMemoUpdatedAt}
         autoSaveLabel={autoSaveLabel}
         canStartDraftFromMemo={canStartDraftFromMemo}
+        editorSettings={editorSettings}
         memoForm={memoForm}
         onChangeMemo={onChangeMemo}
         onCreateMemo={onCreateMemo}

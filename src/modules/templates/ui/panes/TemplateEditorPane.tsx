@@ -1,4 +1,5 @@
 import { CodeEditor } from "../../../../shared/ui/code-editor/CodeEditor";
+import type { EditorSettings } from "../../../../shared/ui/code-editor/editor-settings";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Field, Panel, Select } from "../../../../shared/ui/primitives";
 import type { Signature } from "../../../signatures/model";
@@ -8,6 +9,7 @@ interface TemplateEditorPaneProps {
   signatures: Signature[];
   selectedTemplateId: string | null;
   templateForm: TemplateInput;
+  editorSettings?: EditorSettings;
   showWhitespace: boolean;
   autoSaveLabel: string;
   canDuplicate: boolean;
@@ -22,6 +24,7 @@ export function TemplateEditorPane({
   signatures,
   selectedTemplateId,
   templateForm,
+  editorSettings,
   showWhitespace,
   autoSaveLabel,
   canDuplicate,
@@ -80,6 +83,7 @@ export function TemplateEditorPane({
                 singleLine
                 showWhitespace={showWhitespace}
                 value={templateForm.name}
+                editorSettings={editorSettings}
                 onChange={(value) => onChangeTemplate("name", value)}
               />
             </Field>
@@ -91,6 +95,7 @@ export function TemplateEditorPane({
                 singleLine
                 showWhitespace={showWhitespace}
                 value={templateForm.subject}
+                editorSettings={editorSettings}
                 onChange={(value) => onChangeTemplate("subject", value)}
               />
             </Field>
@@ -130,6 +135,7 @@ export function TemplateEditorPane({
               placeholder={"株式会社〇〇\n営業部\n佐藤 様"}
               showWhitespace={showWhitespace}
               value={templateForm.recipient}
+              editorSettings={editorSettings}
               onChange={(value) => onChangeTemplate("recipient", value)}
             />
           </Field>
@@ -141,6 +147,7 @@ export function TemplateEditorPane({
               textClassName="mail-compose-text"
               showWhitespace={showWhitespace}
               value={templateForm.opening}
+              editorSettings={editorSettings}
               onChange={(value) => onChangeTemplate("opening", value)}
             />
           </Field>
@@ -152,6 +159,7 @@ export function TemplateEditorPane({
               textClassName="mail-compose-text"
               showWhitespace={showWhitespace}
               value={templateForm.body}
+              editorSettings={editorSettings}
               onChange={(value) => onChangeTemplate("body", value)}
             />
           </Field>
@@ -163,6 +171,7 @@ export function TemplateEditorPane({
               textClassName="mail-compose-text"
               showWhitespace={showWhitespace}
               value={templateForm.closing}
+              editorSettings={editorSettings}
               onChange={(value) => onChangeTemplate("closing", value)}
             />
           </Field>

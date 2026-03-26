@@ -2,12 +2,14 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  createEditorSettingsSnapshot,
   createLoggingSettingsSnapshot,
   createProofreadingSettingsSnapshot,
   createStoreSnapshot,
 } from "../../test/ui-fixtures";
 
 const apiMocks = vi.hoisted(() => ({
+  loadEditorSettings: vi.fn(),
   loadLoggingSettings: vi.fn(),
   loadProofreadingSettings: vi.fn(),
   loadSnapshot: vi.fn(),
@@ -16,6 +18,7 @@ const apiMocks = vi.hoisted(() => ({
 
 vi.mock("../../shared/api/maildraft-api", () => ({
   maildraftApi: {
+    loadEditorSettings: apiMocks.loadEditorSettings,
     loadLoggingSettings: apiMocks.loadLoggingSettings,
     loadProofreadingSettings: apiMocks.loadProofreadingSettings,
     loadSnapshot: apiMocks.loadSnapshot,
@@ -37,6 +40,7 @@ function deferred<T>() {
 
 function createCallbacks() {
   return {
+    hydrateEditorSettings: vi.fn(),
     hydrateLoggingSettings: vi.fn(),
     hydrateProofreadingSettings: vi.fn(),
     hydrateSnapshot: vi.fn(),
@@ -53,13 +57,15 @@ describe("useAppBootstrap", () => {
     vi.clearAllMocks();
   });
 
-  it("loads snapshot and logging settings and shows the default notice when startup is clean", async () => {
+  it("loads snapshot, editor settings, and logging settings and shows the default notice when startup is clean", async () => {
     const snapshot = createStoreSnapshot();
+    const editorSettings = createEditorSettingsSnapshot({ indentStyle: "tabs", tabSize: 4 });
     const loggingSettings = createLoggingSettingsSnapshot();
     const proofreadingSettings = createProofreadingSettingsSnapshot();
     const callbacks = createCallbacks();
 
     apiMocks.loadSnapshot.mockResolvedValue(snapshot);
+    apiMocks.loadEditorSettings.mockResolvedValue(editorSettings);
     apiMocks.loadLoggingSettings.mockResolvedValue(loggingSettings);
     apiMocks.loadProofreadingSettings.mockResolvedValue(proofreadingSettings);
     apiMocks.loadStartupNotice.mockResolvedValue(null);
@@ -68,6 +74,7 @@ describe("useAppBootstrap", () => {
 
     await waitFor(() => {
       expect(callbacks.hydrateSnapshot).toHaveBeenCalledWith(snapshot);
+      expect(callbacks.hydrateEditorSettings).toHaveBeenCalledWith(editorSettings);
       expect(callbacks.hydrateLoggingSettings).toHaveBeenCalledWith(loggingSettings);
       expect(callbacks.hydrateProofreadingSettings).toHaveBeenCalledWith(proofreadingSettings);
     });
@@ -75,18 +82,20 @@ describe("useAppBootstrap", () => {
     expect(callbacks.onLoadingChange).toHaveBeenNthCalledWith(1, true);
     expect(callbacks.onLoadingChange).toHaveBeenLastCalledWith(false);
     expect(callbacks.onClearError).toHaveBeenCalledTimes(1);
-    expect(callbacks.onNotice).toHaveBeenCalledWith("ローカルデータと診断設定を読み込みました。");
+    expect(callbacks.onNotice).toHaveBeenCalledWith("ローカルデータと設定を読み込みました。");
     expect(callbacks.onWarning).not.toHaveBeenCalled();
     expect(callbacks.onError).not.toHaveBeenCalled();
   });
 
   it("surfaces a startup notice with notice tone as-is", async () => {
     const snapshot = createStoreSnapshot();
+    const editorSettings = createEditorSettingsSnapshot();
     const loggingSettings = createLoggingSettingsSnapshot();
     const proofreadingSettings = createProofreadingSettingsSnapshot();
     const callbacks = createCallbacks();
 
     apiMocks.loadSnapshot.mockResolvedValue(snapshot);
+    apiMocks.loadEditorSettings.mockResolvedValue(editorSettings);
     apiMocks.loadLoggingSettings.mockResolvedValue(loggingSettings);
     apiMocks.loadProofreadingSettings.mockResolvedValue(proofreadingSettings);
     apiMocks.loadStartupNotice.mockResolvedValue({
@@ -105,6 +114,7 @@ describe("useAppBootstrap", () => {
 
   it("uses the latest callbacks after rerender while an in-flight bootstrap resolves", async () => {
     const snapshot = createStoreSnapshot();
+    const editorSettings = createEditorSettingsSnapshot({ tabSize: 6 });
     const loggingSettings = createLoggingSettingsSnapshot();
     const proofreadingSettings = createProofreadingSettingsSnapshot({
       disabledRuleIds: ["prh"],
@@ -117,6 +127,7 @@ describe("useAppBootstrap", () => {
     const latestCallbacks = createCallbacks();
 
     apiMocks.loadSnapshot.mockReturnValue(snapshotDeferred.promise);
+    apiMocks.loadEditorSettings.mockResolvedValue(editorSettings);
     apiMocks.loadLoggingSettings.mockReturnValue(loggingDeferred.promise);
     apiMocks.loadProofreadingSettings.mockReturnValue(proofreadingDeferred.promise);
     apiMocks.loadStartupNotice.mockReturnValue(startupDeferred.promise);
@@ -141,6 +152,7 @@ describe("useAppBootstrap", () => {
 
     await waitFor(() => {
       expect(latestCallbacks.hydrateSnapshot).toHaveBeenCalledWith(snapshot);
+      expect(latestCallbacks.hydrateEditorSettings).toHaveBeenCalledWith(editorSettings);
       expect(latestCallbacks.hydrateLoggingSettings).toHaveBeenCalledWith(loggingSettings);
       expect(latestCallbacks.hydrateProofreadingSettings).toHaveBeenCalledWith(
         proofreadingSettings,
@@ -150,6 +162,7 @@ describe("useAppBootstrap", () => {
     });
 
     expect(initialCallbacks.hydrateSnapshot).not.toHaveBeenCalled();
+    expect(initialCallbacks.hydrateEditorSettings).not.toHaveBeenCalled();
     expect(initialCallbacks.hydrateLoggingSettings).not.toHaveBeenCalled();
     expect(initialCallbacks.hydrateProofreadingSettings).not.toHaveBeenCalled();
     expect(initialCallbacks.onWarning).not.toHaveBeenCalled();
@@ -159,6 +172,7 @@ describe("useAppBootstrap", () => {
     const callbacks = createCallbacks();
 
     apiMocks.loadSnapshot.mockRejectedValue(new Error("読み込みに失敗しました。"));
+    apiMocks.loadEditorSettings.mockResolvedValue(createEditorSettingsSnapshot());
     apiMocks.loadLoggingSettings.mockResolvedValue(createLoggingSettingsSnapshot());
     apiMocks.loadProofreadingSettings.mockResolvedValue(createProofreadingSettingsSnapshot());
     apiMocks.loadStartupNotice.mockResolvedValue(null);
@@ -170,6 +184,7 @@ describe("useAppBootstrap", () => {
     });
 
     expect(callbacks.hydrateSnapshot).not.toHaveBeenCalled();
+    expect(callbacks.hydrateEditorSettings).not.toHaveBeenCalled();
     expect(callbacks.hydrateLoggingSettings).not.toHaveBeenCalled();
     expect(callbacks.hydrateProofreadingSettings).not.toHaveBeenCalled();
     expect(callbacks.onLoadingChange).toHaveBeenLastCalledWith(false);

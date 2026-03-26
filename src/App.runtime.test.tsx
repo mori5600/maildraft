@@ -1,5 +1,5 @@
 import { EditorView } from "@codemirror/view";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -11,7 +11,7 @@ import {
   installMockTauriRuntime,
   resetMockTauriRuntime,
 } from "./test/tauri-runtime";
-import { createLoggingSettingsSnapshot } from "./test/ui-fixtures";
+import { createEditorSettingsSnapshot, createLoggingSettingsSnapshot } from "./test/ui-fixtures";
 
 function installLocalStorageMock() {
   const values = new Map<string, string>();
@@ -100,9 +100,10 @@ describe("App runtime integration", () => {
     render(<App />);
 
     await expectEditorText("一覧名", "4/12 打ち合わせお礼");
-    expect(runtime.commandCalls.slice(0, 4).map((call) => call.cmd)).toEqual([
+    expect(runtime.commandCalls.slice(0, 5).map((call) => call.cmd)).toEqual([
       "load_snapshot",
       "load_logging_settings",
+      "load_editor_settings",
       "load_proofreading_settings",
       "load_startup_notice",
     ]);
@@ -183,6 +184,7 @@ describe("App runtime integration", () => {
     await expectEditorText("一覧名", "4/12 打ち合わせお礼");
 
     await user.click(screen.getByTitle("設定 (Ctrl/Cmd+6)"));
+    await user.click(screen.getByRole("button", { name: /ログ/ }));
     await user.selectOptions(screen.getByLabelText(/記録レベル/), "standard");
     await user.click(
       within(screen.getByText("ログ設定").closest("section") as HTMLElement).getByRole("button", {
@@ -195,6 +197,53 @@ describe("App runtime integration", () => {
     });
     expect(runtime.commandCalls.some((call) => call.cmd === "save_logging_settings")).toBe(true);
     expect(await screen.findByText("ログ設定を保存しました。")).toBeInTheDocument();
+  });
+
+  it("persists editor settings through the Tauri command boundary and applies them to multiline editors", async () => {
+    const user = userEvent.setup();
+    const runtime = installMockTauriRuntime({
+      editorSettings: createEditorSettingsSnapshot({
+        indentStyle: "spaces",
+        tabSize: 2,
+      }),
+      snapshot: createSeededRuntimeSnapshot(),
+    });
+
+    render(<App />);
+    await expectEditorText("一覧名", "4/12 打ち合わせお礼");
+
+    await user.click(screen.getByTitle("設定 (Ctrl/Cmd+6)"));
+    await user.selectOptions(screen.getByLabelText("インデント種別"), "tabs");
+    await user.selectOptions(screen.getByLabelText("タブ幅"), "4");
+    await user.click(
+      within(screen.getByText("エディタ設定").closest("section") as HTMLElement).getByRole(
+        "button",
+        { name: "保存" },
+      ),
+    );
+
+    await waitFor(() => {
+      expect(runtime.getEditorSettings()).toEqual({
+        indentStyle: "tabs",
+        tabSize: 4,
+      });
+    });
+    expect(runtime.commandCalls.some((call) => call.cmd === "save_editor_settings")).toBe(true);
+    expect(await screen.findByText("エディタ設定を保存しました。")).toBeInTheDocument();
+
+    await user.click(screen.getByTitle("下書き (Ctrl/Cmd+1)"));
+
+    const bodyView = getEditorView("本文");
+    bodyView.focus();
+    bodyView.dispatch({
+      selection: { anchor: bodyView.state.doc.length },
+    });
+    fireEvent.keyDown(bodyView.contentDOM, { key: "Tab" });
+
+    await waitFor(() => {
+      expect(bodyView.state.doc.toString().endsWith("\t")).toBe(true);
+    });
+    expect(bodyView.state.tabSize).toBe(4);
   });
 
   it("normalizes newlines in single-line CodeMirror fields before saving", async () => {

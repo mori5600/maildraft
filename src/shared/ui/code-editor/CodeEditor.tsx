@@ -2,12 +2,14 @@ import { EditorSelection, EditorState, type Extension } from "@codemirror/state"
 import { EditorView } from "@codemirror/view";
 import { useEffect, useEffectEvent, useRef } from "react";
 
+import { type EditorSettings, normalizeEditorSettings } from "./editor-settings";
 import {
   createCodeEditorBaseExtensions,
   createCodeEditorCompartments,
   createCodeEditorContentAttributesExtension,
   createCodeEditorEditorAttributesExtension,
   createCodeEditorGutterExtension,
+  createCodeEditorIndentExtension,
   createCodeEditorLayoutExtension,
   createCodeEditorPlaceholderExtension,
   createCodeEditorTabExtension,
@@ -32,6 +34,7 @@ function normalizeEditorText(value: string, singleLine: boolean): string {
 export interface CodeEditorProps {
   ariaLabel?: string;
   className?: string;
+  editorSettings?: EditorSettings;
   isHighlighted?: boolean;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -51,6 +54,7 @@ export interface CodeEditorProps {
 export function CodeEditor({
   ariaLabel,
   className,
+  editorSettings,
   isHighlighted = false,
   textClassName = "mail-editor-text",
   onChange,
@@ -64,6 +68,9 @@ export function CodeEditor({
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const compartmentsRef = useRef(createCodeEditorCompartments());
+  const normalizedEditorSettings = normalizeEditorSettings(editorSettings);
+  const editorIndentStyle = normalizedEditorSettings.indentStyle;
+  const editorTabSize = normalizedEditorSettings.tabSize;
   const normalizedValue = normalizeEditorText(value, singleLine);
   const normalizedPlaceholder =
     typeof placeholder === "string" ? normalizeEditorText(placeholder, singleLine) : placeholder;
@@ -74,6 +81,7 @@ export function CodeEditor({
     ariaLabel,
     normalizedPlaceholder,
     normalizedValue,
+    editorSettings: normalizedEditorSettings,
     showLineNumbers,
     showWhitespace,
     singleLine,
@@ -107,8 +115,14 @@ export function CodeEditor({
       compartmentsRef.current.gutter.of(
         createCodeEditorGutterExtension(initialConfig.showLineNumbers),
       ),
+      compartmentsRef.current.indent.of(
+        createCodeEditorIndentExtension(initialConfig.editorSettings.tabSize),
+      ),
       compartmentsRef.current.interaction.of(
-        createCodeEditorTabExtension({ singleLine: initialConfig.singleLine }),
+        createCodeEditorTabExtension({
+          editorSettings: initialConfig.editorSettings,
+          singleLine: initialConfig.singleLine,
+        }),
       ),
       compartmentsRef.current.contentAttributes.of(
         createCodeEditorContentAttributesExtension({
@@ -176,11 +190,30 @@ export function CodeEditor({
     }
 
     view.dispatch({
-      effects: compartmentsRef.current.interaction.reconfigure(
-        createCodeEditorTabExtension({ singleLine }),
+      effects: compartmentsRef.current.indent.reconfigure(
+        createCodeEditorIndentExtension(editorTabSize),
       ),
     });
-  }, [singleLine]);
+  }, [editorTabSize]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) {
+      return;
+    }
+
+    view.dispatch({
+      effects: compartmentsRef.current.interaction.reconfigure(
+        createCodeEditorTabExtension({
+          editorSettings: {
+            indentStyle: editorIndentStyle,
+            tabSize: editorTabSize,
+          },
+          singleLine,
+        }),
+      ),
+    });
+  }, [editorIndentStyle, editorTabSize, singleLine]);
 
   useEffect(() => {
     const view = viewRef.current;

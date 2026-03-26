@@ -3,8 +3,8 @@ use crate::app::{
     backup::ImportedBackupSnapshot,
     logging::LogEntrySnapshot,
     settings::{
-        LoggingSettingsInput, LoggingSettingsSnapshot, ProofreadingSettingsInput,
-        ProofreadingSettingsSnapshot,
+        EditorSettingsInput, EditorSettingsSnapshot, LoggingSettingsInput, LoggingSettingsSnapshot,
+        ProofreadingSettingsInput, ProofreadingSettingsSnapshot,
     },
 };
 use chrono::{Datelike, Local, Timelike};
@@ -21,6 +21,10 @@ pub(crate) fn load_proofreading_settings_impl(
     state: &AppState,
 ) -> Result<ProofreadingSettingsSnapshot, String> {
     state.load_proofreading_settings()
+}
+
+pub(crate) fn load_editor_settings_impl(state: &AppState) -> Result<EditorSettingsSnapshot, String> {
+    state.load_editor_settings()
 }
 
 pub(crate) fn export_backup_impl(state: &AppState, path: String) -> Result<String, String> {
@@ -105,6 +109,13 @@ pub(crate) fn save_logging_settings_impl(
     state.save_logging_settings(input)
 }
 
+pub(crate) fn save_editor_settings_impl(
+    state: &AppState,
+    input: EditorSettingsInput,
+) -> Result<EditorSettingsSnapshot, String> {
+    state.save_editor_settings(input)
+}
+
 pub(crate) fn save_proofreading_settings_impl(
     state: &AppState,
     input: ProofreadingSettingsInput,
@@ -128,6 +139,13 @@ pub(crate) fn load_proofreading_settings(
     state: tauri::State<'_, AppState>,
 ) -> Result<ProofreadingSettingsSnapshot, String> {
     load_proofreading_settings_impl(&state)
+}
+
+#[tauri::command]
+pub(crate) fn load_editor_settings(
+    state: tauri::State<'_, AppState>,
+) -> Result<EditorSettingsSnapshot, String> {
+    load_editor_settings_impl(&state)
 }
 
 #[tauri::command]
@@ -168,6 +186,14 @@ pub(crate) fn save_logging_settings(
     input: LoggingSettingsInput,
 ) -> Result<LoggingSettingsSnapshot, String> {
     save_logging_settings_impl(&state, input)
+}
+
+#[tauri::command]
+pub(crate) fn save_editor_settings(
+    state: tauri::State<'_, AppState>,
+    input: EditorSettingsInput,
+) -> Result<EditorSettingsSnapshot, String> {
+    save_editor_settings_impl(&state, input)
 }
 
 #[tauri::command]

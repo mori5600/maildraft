@@ -18,8 +18,9 @@ pub(crate) use memo::{
     delete_memo, permanently_delete_memo_from_trash, restore_memo_from_trash, save_memo,
 };
 pub(crate) use settings::{
-    clear_logs, export_backup, import_backup, load_logging_settings, load_proofreading_settings,
-    load_recent_logs, save_logging_settings, save_proofreading_settings,
+    clear_logs, export_backup, import_backup, load_editor_settings, load_logging_settings,
+    load_proofreading_settings, load_recent_logs, save_editor_settings, save_logging_settings,
+    save_proofreading_settings,
 };
 pub(crate) use signatures::{
     delete_signature, permanently_delete_signature_from_trash, restore_signature_from_trash,

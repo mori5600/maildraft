@@ -28,8 +28,8 @@ use crate::{
         logging::{LogEntry, LogLevel},
         persistence::{sqlite::SqliteRepository, PersistenceRepository},
         settings::{
-            AppSettings, LoggingMode, LoggingSettings, LoggingSettingsInput, ProofreadingSettings,
-            ProofreadingSettingsInput,
+            AppSettings, EditorIndentStyle, EditorSettings, EditorSettingsInput, LoggingMode,
+            LoggingSettings, LoggingSettingsInput, ProofreadingSettings, ProofreadingSettingsInput,
         },
         storage::{
             load_app_settings, load_store_snapshot, write_app_settings, write_store_snapshot,

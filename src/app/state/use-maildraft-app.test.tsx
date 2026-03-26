@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createDraftInput,
+  createEditorSettingsSnapshot,
   createLoggingSettingsSnapshot,
   createMemoInput,
   createProofreadingSettingsSnapshot,
@@ -28,10 +29,11 @@ const mockState = vi.hoisted(() => ({
   signatureHydrate: vi.fn(),
   signatureSave: vi.fn(async () => {}),
   signatureTogglePinned: vi.fn(),
+  settingsHydrateEditor: vi.fn(),
   settingsHydrateLogging: vi.fn(),
   settingsHydrateProofreading: vi.fn(),
   settingsDisableProofreadingRule: vi.fn(async () => {}),
-  settingsSaveLogging: vi.fn(async () => {}),
+  settingsSaveSettingsSection: vi.fn(async () => {}),
   memoOptions: [] as Array<{
     onOpenDraftInput: (input: ReturnType<typeof createDraftInput>) => void;
     onSnapshotChange: (snapshot: ReturnType<typeof createStoreSnapshot>) => void;
@@ -47,6 +49,7 @@ const mockState = vi.hoisted(() => ({
     onViewChange: (view: string) => void;
   }>,
   bootstrapOptions: [] as Array<{
+    hydrateEditorSettings: (settings: ReturnType<typeof createEditorSettingsSnapshot>) => void;
     hydrateLoggingSettings: (settings: ReturnType<typeof createLoggingSettingsSnapshot>) => void;
     hydrateProofreadingSettings: (
       settings: ReturnType<typeof createProofreadingSettingsSnapshot>,
@@ -67,7 +70,7 @@ const mockState = vi.hoisted(() => ({
       createSignature: () => void;
       createTemplate: () => void;
       saveDraft: () => Promise<void>;
-      saveLoggingSettings: () => Promise<void>;
+      saveSettingsSection: () => Promise<void>;
       saveMemo: () => Promise<void>;
       saveSignature: () => Promise<void>;
       saveTemplate: () => Promise<void>;
@@ -231,10 +234,13 @@ vi.mock("../../modules/settings/state/use-settings-workspace-state", () => ({
     mockState.settingsOptions.push(options);
     return {
       disableProofreadingRule: mockState.settingsDisableProofreadingRule,
+      hydrateEditorSettings: mockState.settingsHydrateEditor,
       hydrateLoggingSettings: mockState.settingsHydrateLogging,
       hydrateProofreadingSettings: mockState.settingsHydrateProofreading,
-      saveLoggingSettings: mockState.settingsSaveLogging,
+      saveLoggingSettings: vi.fn(async () => {}),
+      saveSettingsSection: mockState.settingsSaveSettingsSection,
       settingsWorkspaceProps: {
+        editorSettings: createEditorSettingsSnapshot(),
         loggingSettings: createLoggingSettingsSnapshot(),
         proofreadingSettings: createProofreadingSettingsSnapshot({
           disabledRuleIds: ["prh"],
@@ -273,6 +279,7 @@ vi.mock("../../modules/trash/state/use-trash-workspace-state", () => ({
 
 vi.mock("./use-app-bootstrap", () => ({
   useAppBootstrap: (options: {
+    hydrateEditorSettings: (settings: ReturnType<typeof createEditorSettingsSnapshot>) => void;
     hydrateLoggingSettings: (settings: ReturnType<typeof createLoggingSettingsSnapshot>) => void;
     hydrateProofreadingSettings: (
       settings: ReturnType<typeof createProofreadingSettingsSnapshot>,
@@ -298,7 +305,7 @@ vi.mock("./use-app-shortcuts", () => ({
       createSignature: () => void;
       createTemplate: () => void;
       saveDraft: () => Promise<void>;
-      saveLoggingSettings: () => Promise<void>;
+      saveSettingsSection: () => Promise<void>;
       saveMemo: () => Promise<void>;
       saveSignature: () => Promise<void>;
       saveTemplate: () => Promise<void>;
@@ -371,6 +378,22 @@ describe("useMaildraftApp", () => {
     expect(result.current.templateWorkspaceProps.showWhitespace).toBe(true);
     expect(result.current.signatureWorkspaceProps.showWhitespace).toBe(true);
     expect(result.current.trashWorkspaceProps.showWhitespace).toBe(true);
+    expect(result.current.draftWorkspaceProps.editorSettings).toMatchObject({
+      indentStyle: "spaces",
+      tabSize: 2,
+    });
+    expect(result.current.memoWorkspaceProps.editorSettings).toMatchObject({
+      indentStyle: "spaces",
+      tabSize: 2,
+    });
+    expect(result.current.templateWorkspaceProps.editorSettings).toMatchObject({
+      indentStyle: "spaces",
+      tabSize: 2,
+    });
+    expect(result.current.signatureWorkspaceProps.editorSettings).toMatchObject({
+      indentStyle: "spaces",
+      tabSize: 2,
+    });
     expect(result.current.draftWorkspaceProps.disabledProofreadingRuleIds).toEqual(["prh"]);
 
     act(() => {
@@ -449,7 +472,7 @@ describe("useMaildraftApp", () => {
       actions?.createSignature();
       actions?.createTemplate();
       await actions?.saveDraft();
-      await actions?.saveLoggingSettings();
+      await actions?.saveSettingsSection();
       await actions?.saveMemo();
       await actions?.saveSignature();
       await actions?.saveTemplate();
@@ -464,7 +487,7 @@ describe("useMaildraftApp", () => {
     expect(mockState.signatureCreate).toHaveBeenCalledTimes(1);
     expect(mockState.templateCreate).toHaveBeenCalledTimes(1);
     expect(draftWorkspaceRef.current.saveDraft).toHaveBeenCalledTimes(1);
-    expect(mockState.settingsSaveLogging).toHaveBeenCalledTimes(1);
+    expect(mockState.settingsSaveSettingsSection).toHaveBeenCalledTimes(1);
     expect(mockState.memoSave).toHaveBeenCalledTimes(1);
     expect(mockState.signatureSave).toHaveBeenCalledTimes(1);
     expect(mockState.templateSave).toHaveBeenCalledTimes(1);
@@ -593,6 +616,9 @@ describe("useMaildraftApp", () => {
       bootstrap?.onError("読み込みエラー");
       bootstrap?.onClearError();
       bootstrap?.onNotice("読み込み完了");
+      bootstrap?.hydrateEditorSettings(
+        createEditorSettingsSnapshot({ indentStyle: "tabs", tabSize: 4 }),
+      );
       bootstrap?.hydrateLoggingSettings(createLoggingSettingsSnapshot({ mode: "standard" }));
       bootstrap?.hydrateProofreadingSettings(
         createProofreadingSettingsSnapshot({ disabledRuleIds: ["whitespace.trailing"] }),
@@ -604,6 +630,7 @@ describe("useMaildraftApp", () => {
     expect(result.current.error).toBeNull();
     expect(result.current.warning).toBeNull();
     expect(result.current.notice).toBe("読み込み完了");
+    expect(mockState.settingsHydrateEditor).toHaveBeenCalled();
     expect(mockState.settingsHydrateLogging).toHaveBeenCalled();
     expect(mockState.settingsHydrateProofreading).toHaveBeenCalled();
     expect(mockState.memoHydrate).toHaveBeenCalledWith(nextSnapshot);

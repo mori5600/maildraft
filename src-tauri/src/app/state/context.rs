@@ -2,7 +2,7 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use serde_json::{json, Map, Value};
 
-use crate::app::settings::{LoggingSettings, ProofreadingSettings};
+use crate::app::settings::{EditorSettings, LoggingSettings, ProofreadingSettings};
 use crate::modules::{
     drafts::DraftInput, memo::MemoInput, signatures::SignatureInput, store::StoreSnapshot,
     templates::TemplateInput, variable_presets::VariablePresetInput,
@@ -159,6 +159,13 @@ pub(super) fn proofreading_settings_context(settings: &ProofreadingSettings) -> 
         "disabled_rule_count".to_string(),
         json!(settings.disabled_rule_ids.len()),
     );
+    context
+}
+
+pub(super) fn editor_settings_context(settings: &EditorSettings) -> Map<String, Value> {
+    let mut context = Map::new();
+    context.insert("indent_style".to_string(), json!(settings.indent_style.as_str()));
+    context.insert("tab_size".to_string(), json!(settings.tab_size));
     context
 }
 

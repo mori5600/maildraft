@@ -17,7 +17,7 @@ export interface ShortcutActionSet {
   createSignature: () => void;
   createTemplate: () => void;
   saveDraft: () => Promise<void>;
-  saveLoggingSettings: () => Promise<void>;
+  saveSettingsSection: () => Promise<void>;
   saveMemo: () => Promise<void>;
   saveSignature: () => Promise<void>;
   saveTemplate: () => Promise<void>;

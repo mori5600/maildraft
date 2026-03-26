@@ -192,6 +192,62 @@ describe("CodeEditor", () => {
     expect(getEditorView("本文").state.doc.toString()).not.toContain("\t");
   });
 
+  it("inserts the configured number of spaces in multiline editors", async () => {
+    const user = userEvent.setup();
+
+    function ControlledEditor() {
+      const [value, setValue] = useState("alpha");
+
+      return (
+        <CodeEditor
+          ariaLabel="本文"
+          editorSettings={{ indentStyle: "spaces", tabSize: 4 }}
+          value={value}
+          onChange={setValue}
+        />
+      );
+    }
+
+    render(<ControlledEditor />);
+
+    const textbox = screen.getByRole("textbox", { name: "本文" });
+    await user.click(textbox);
+    await user.keyboard("{End}{Tab}");
+
+    await waitFor(() => {
+      expect(getEditorView("本文").state.doc.toString()).toBe("alpha    ");
+    });
+    expect(getEditorView("本文").state.tabSize).toBe(4);
+  });
+
+  it("inserts tab characters when configured for tab indentation", async () => {
+    const user = userEvent.setup();
+
+    function ControlledEditor() {
+      const [value, setValue] = useState("alpha");
+
+      return (
+        <CodeEditor
+          ariaLabel="本文"
+          editorSettings={{ indentStyle: "tabs", tabSize: 4 }}
+          value={value}
+          onChange={setValue}
+        />
+      );
+    }
+
+    render(<ControlledEditor />);
+
+    const textbox = screen.getByRole("textbox", { name: "本文" });
+    await user.click(textbox);
+    await user.keyboard("{End}{Tab}");
+
+    await waitFor(() => {
+      expect(getEditorView("本文").state.doc.toString()).toBe("alpha\t");
+    });
+    expect(getEditorView("本文").state.tabSize).toBe(4);
+  });
+
   it("moves focus out of multiline editors after Ctrl+M toggle and Tab", async () => {
     const user = userEvent.setup();
 
@@ -453,6 +509,96 @@ describe("CodeEditor", () => {
     fireEvent.keyDown(view.contentDOM, { key: "Tab", shiftKey: true });
 
     expect(view.state.doc.toString()).toBe("alpha\nbeta");
+  });
+
+  it("indents and outdents selected lines with the configured space width", () => {
+    render(
+      <CodeEditor
+        ariaLabel="本文"
+        editorSettings={{ indentStyle: "spaces", tabSize: 4 }}
+        value={"alpha\nbeta"}
+        onChange={vi.fn()}
+      />,
+    );
+
+    const view = getEditorView("本文");
+    view.focus();
+    view.dispatch({
+      selection: EditorSelection.single(0, view.state.doc.length),
+    });
+
+    fireEvent.keyDown(view.contentDOM, { key: "Tab" });
+    expect(view.state.doc.toString()).toBe("    alpha\n    beta");
+
+    fireEvent.keyDown(view.contentDOM, { key: "Tab", shiftKey: true });
+    expect(view.state.doc.toString()).toBe("alpha\nbeta");
+  });
+
+  it("outdents tab-indented lines when configured for tab indentation", () => {
+    render(
+      <CodeEditor
+        ariaLabel="本文"
+        editorSettings={{ indentStyle: "tabs", tabSize: 4 }}
+        value={"\talpha\n\tbeta"}
+        onChange={vi.fn()}
+      />,
+    );
+
+    const view = getEditorView("本文");
+    view.focus();
+    view.dispatch({
+      selection: EditorSelection.single(0, view.state.doc.length),
+    });
+
+    fireEvent.keyDown(view.contentDOM, { key: "Tab", shiftKey: true });
+    expect(view.state.doc.toString()).toBe("alpha\nbeta");
+  });
+
+  it("reconfigures indentation behavior when editor settings props change", async () => {
+    const user = userEvent.setup();
+
+    function ControlledEditor({
+      indentStyle,
+      tabSize,
+    }: {
+      indentStyle: "spaces" | "tabs";
+      tabSize: number;
+    }) {
+      const [value, setValue] = useState("alpha");
+
+      return (
+        <CodeEditor
+          ariaLabel="本文"
+          editorSettings={{ indentStyle, tabSize }}
+          value={value}
+          onChange={setValue}
+        />
+      );
+    }
+
+    const { rerender } = render(<ControlledEditor indentStyle="spaces" tabSize={2} />);
+
+    const textbox = screen.getByRole("textbox", { name: "本文" });
+    await user.click(textbox);
+    await user.keyboard("{End}{Tab}");
+
+    await waitFor(() => {
+      expect(getEditorView("本文").state.doc.toString()).toBe("alpha  ");
+    });
+
+    rerender(<ControlledEditor indentStyle="tabs" tabSize={6} />);
+    const view = getEditorView("本文");
+    view.focus();
+    view.dispatch({
+      selection: EditorSelection.cursor(view.state.doc.length),
+    });
+
+    fireEvent.keyDown(view.contentDOM, { key: "Tab" });
+
+    await waitFor(() => {
+      expect(view.state.doc.toString()).toBe("alpha  \t");
+    });
+    expect(view.state.tabSize).toBe(6);
   });
 
   it("keeps single-line editors on focus navigation when Tab is pressed", async () => {

@@ -1,4 +1,10 @@
 import type { StoreSnapshot } from "../../shared/types/store";
+import {
+  DEFAULT_EDITOR_SETTINGS,
+  type EditorIndentStyle,
+  type EditorSettings,
+  normalizeEditorSettings,
+} from "../../shared/ui/code-editor/editor-settings";
 
 export type LoggingMode = "off" | "errors_only" | "standard";
 
@@ -21,6 +27,10 @@ export interface ProofreadingSettingsInput {
 
 export type ProofreadingSettingsSnapshot = ProofreadingSettingsInput;
 
+export type EditorSettingsInput = EditorSettings;
+
+export type EditorSettingsSnapshot = EditorSettingsInput;
+
 export interface LogEntrySnapshot {
   timestampMs: number;
   level: string;
@@ -37,9 +47,27 @@ export const RECENT_LOG_LIMIT = 80;
 
 export interface ImportedBackupSnapshot {
   snapshot: StoreSnapshot;
+  editorSettings: EditorSettingsSnapshot;
   loggingSettings: LoggingSettingsSnapshot;
   proofreadingSettings: ProofreadingSettingsSnapshot;
 }
+
+export const EDITOR_INDENT_STYLE_OPTIONS: Array<{
+  value: EditorIndentStyle;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "spaces",
+    label: "スペース",
+    description: "Tab で指定した個数のスペースを挿入します。",
+  },
+  {
+    value: "tabs",
+    label: "タブ",
+    description: "Tab でタブ文字を挿入し、表示幅はタブ幅に合わせます。",
+  },
+];
 
 export const LOGGING_MODE_OPTIONS: Array<{
   value: LoggingMode;
@@ -83,6 +111,12 @@ export function createDefaultProofreadingSettingsSnapshot(): ProofreadingSetting
   };
 }
 
+export function createDefaultEditorSettingsSnapshot(): EditorSettingsSnapshot {
+  return {
+    ...DEFAULT_EDITOR_SETTINGS,
+  };
+}
+
 export function toLoggingSettingsInput(snapshot: LoggingSettingsSnapshot): LoggingSettingsInput {
   return {
     mode: snapshot.mode,
@@ -96,6 +130,10 @@ export function toProofreadingSettingsInput(
   return {
     disabledRuleIds: normalizeProofreadingRuleIds(snapshot.disabledRuleIds),
   };
+}
+
+export function toEditorSettingsInput(snapshot: EditorSettingsSnapshot): EditorSettingsInput {
+  return normalizeEditorSettings(snapshot);
 }
 
 export function loggingModeDescription(mode: LoggingMode): string {

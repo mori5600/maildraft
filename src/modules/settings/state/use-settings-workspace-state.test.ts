@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import {
+  createEditorSettingsSnapshot,
   createLogEntry,
   createLoggingSettingsSnapshot,
   createProofreadingSettingsSnapshot,
@@ -94,6 +95,143 @@ describe("settings workspace state", () => {
     expect(onError).not.toHaveBeenCalled();
     expect(onNotice).toHaveBeenCalledWith("ログ設定を保存しました。");
     expect(onBackupImported).not.toHaveBeenCalled();
+  });
+
+  it("hydrates and saves editor settings", async () => {
+    const onBackupImported = vi.fn();
+    const onClearError = vi.fn();
+    const onError = vi.fn();
+    const onNotice = vi.fn();
+    const saveDeferred = deferred<ReturnType<typeof createEditorSettingsSnapshot>>();
+
+    vi.spyOn(maildraftApi, "saveEditorSettings").mockReturnValue(saveDeferred.promise);
+
+    const { result } = renderHook(() =>
+      useSettingsWorkspaceState({
+        onBackupImported,
+        onClearError,
+        onError,
+        onNotice,
+      }),
+    );
+
+    act(() => {
+      result.current.hydrateEditorSettings(
+        createEditorSettingsSnapshot({
+          indentStyle: "spaces",
+          tabSize: 2,
+        }),
+      );
+    });
+
+    act(() => {
+      result.current.settingsWorkspaceProps.onChangeEditor("indentStyle", "tabs");
+      result.current.settingsWorkspaceProps.onChangeEditor("tabSize", 4);
+    });
+
+    let savePromise!: Promise<void>;
+    act(() => {
+      savePromise = result.current.settingsWorkspaceProps.onSaveEditorSettings();
+    });
+
+    await waitFor(() => {
+      expect(result.current.settingsWorkspaceProps.isSavingEditorSettings).toBe(true);
+    });
+
+    saveDeferred.resolve(
+      createEditorSettingsSnapshot({
+        indentStyle: "tabs",
+        tabSize: 4,
+      }),
+    );
+    await act(async () => {
+      await savePromise;
+    });
+
+    expect(maildraftApi.saveEditorSettings).toHaveBeenCalledWith({
+      indentStyle: "tabs",
+      tabSize: 4,
+    });
+    expect(result.current.settingsWorkspaceProps.editorSettings).toEqual({
+      indentStyle: "tabs",
+      tabSize: 4,
+    });
+    expect(result.current.settingsWorkspaceProps.editorForm).toEqual({
+      indentStyle: "tabs",
+      tabSize: 4,
+    });
+    expect(result.current.settingsWorkspaceProps.isSavingEditorSettings).toBe(false);
+    expect(onClearError).toHaveBeenCalledTimes(1);
+    expect(onError).not.toHaveBeenCalled();
+    expect(onNotice).toHaveBeenCalledWith("エディタ設定を保存しました。");
+    expect(onBackupImported).not.toHaveBeenCalled();
+  });
+
+  it("normalizes invalid editor tab sizes in the editor form", () => {
+    const { result } = renderHook(() =>
+      useSettingsWorkspaceState({
+        onBackupImported: vi.fn(),
+        onClearError: vi.fn(),
+        onError: vi.fn(),
+        onNotice: vi.fn(),
+      }),
+    );
+
+    act(() => {
+      result.current.settingsWorkspaceProps.onChangeEditor("tabSize", 99);
+    });
+
+    expect(result.current.settingsWorkspaceProps.editorForm.tabSize).toBe(2);
+  });
+
+  it("saves the active settings section for editor and logging only", async () => {
+    vi.spyOn(maildraftApi, "saveEditorSettings").mockResolvedValue(
+      createEditorSettingsSnapshot({
+        indentStyle: "tabs",
+        tabSize: 3,
+      }),
+    );
+    vi.spyOn(maildraftApi, "saveLoggingSettings").mockResolvedValue(
+      createLoggingSettingsSnapshot({
+        mode: "standard",
+      }),
+    );
+
+    const { result } = renderHook(() =>
+      useSettingsWorkspaceState({
+        onBackupImported: vi.fn(),
+        onClearError: vi.fn(),
+        onError: vi.fn(),
+        onNotice: vi.fn(),
+      }),
+    );
+
+    act(() => {
+      result.current.settingsWorkspaceProps.onChangeEditor("indentStyle", "tabs");
+      result.current.settingsWorkspaceProps.onChangeEditor("tabSize", 3);
+    });
+    await act(async () => {
+      await result.current.saveSettingsSection();
+    });
+    expect(maildraftApi.saveEditorSettings).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      result.current.settingsWorkspaceProps.onSelectSection("logging");
+      result.current.settingsWorkspaceProps.onChangeLogging("mode", "standard");
+    });
+    await act(async () => {
+      await result.current.saveSettingsSection();
+    });
+    expect(maildraftApi.saveLoggingSettings).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      result.current.settingsWorkspaceProps.onSelectSection("proofreading");
+    });
+    await act(async () => {
+      await result.current.saveSettingsSection();
+    });
+    expect(maildraftApi.saveEditorSettings).toHaveBeenCalledTimes(1);
+    expect(maildraftApi.saveLoggingSettings).toHaveBeenCalledTimes(1);
   });
 
   it("saves proofreading settings and supports re-enabling disabled rules", async () => {
@@ -319,6 +457,7 @@ describe("settings workspace state", () => {
     const onError = vi.fn();
     const onNotice = vi.fn();
     const importDeferred = deferred<{
+      editorSettings: ReturnType<typeof createEditorSettingsSnapshot>;
       loggingSettings: ReturnType<typeof createLoggingSettingsSnapshot>;
       proofreadingSettings: ReturnType<typeof createProofreadingSettingsSnapshot>;
       snapshot: ReturnType<typeof createStoreSnapshot>;
@@ -360,6 +499,10 @@ describe("settings workspace state", () => {
       expect(result.current.settingsWorkspaceProps.isImportingBackup).toBe(true);
     });
     importDeferred.resolve({
+      editorSettings: createEditorSettingsSnapshot({
+        indentStyle: "tabs",
+        tabSize: 4,
+      }),
       loggingSettings: createLoggingSettingsSnapshot({
         mode: "standard",
         retentionDays: 30,
@@ -386,6 +529,10 @@ describe("settings workspace state", () => {
     expect(result.current.settingsWorkspaceProps.loggingSettings).toMatchObject({
       mode: "standard",
       retentionDays: 30,
+    });
+    expect(result.current.settingsWorkspaceProps.editorSettings).toEqual({
+      indentStyle: "tabs",
+      tabSize: 4,
     });
     expect(result.current.settingsWorkspaceProps.proofreadingSettings.disabledRuleIds).toEqual([
       "prh",

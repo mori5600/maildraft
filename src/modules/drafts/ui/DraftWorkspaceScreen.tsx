@@ -1,6 +1,7 @@
 import { forwardRef, useImperativeHandle } from "react";
 
 import type { StoreSnapshot } from "../../../shared/types/store";
+import type { EditorSettings } from "../../../shared/ui/code-editor/editor-settings";
 import {
   type DraftWorkspaceHandle,
   useDraftWorkspaceState,
@@ -9,6 +10,7 @@ import { DraftWorkspace } from "./DraftWorkspace";
 
 interface DraftWorkspaceScreenProps {
   disabledProofreadingRuleIds: string[];
+  editorSettings?: EditorSettings;
   onDisableProofreadingRule: (ruleId: string) => Promise<void>;
   onClearError: () => void;
   onError: (message: string) => void;
@@ -24,6 +26,7 @@ export const DraftWorkspaceScreen = forwardRef<DraftWorkspaceHandle, DraftWorksp
   function DraftWorkspaceScreen(
     {
       disabledProofreadingRuleIds,
+      editorSettings,
       onClearError,
       onDisableProofreadingRule,
       onError,
@@ -46,6 +49,12 @@ export const DraftWorkspaceScreen = forwardRef<DraftWorkspaceHandle, DraftWorksp
 
     useImperativeHandle(ref, () => state.handle, [state.handle]);
 
-    return <DraftWorkspace {...state.workspaceProps} showWhitespace={showWhitespace} />;
+    return (
+      <DraftWorkspace
+        {...state.workspaceProps}
+        editorSettings={editorSettings}
+        showWhitespace={showWhitespace}
+      />
+    );
   },
 );

@@ -82,6 +82,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
   }
 
   useAppBootstrap({
+    hydrateEditorSettings: settingsState.hydrateEditorSettings,
     hydrateLoggingSettings: settingsState.hydrateLoggingSettings,
     hydrateProofreadingSettings: settingsState.hydrateProofreadingSettings,
     hydrateSnapshot: hydrateAll,
@@ -174,7 +175,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       createSignature: signatureState.createSignature,
       createTemplate: templateState.createTemplate,
       saveDraft,
-      saveLoggingSettings: settingsState.saveLoggingSettings,
+      saveSettingsSection: settingsState.saveSettingsSection,
       saveMemo: memoState.saveMemo,
       saveSignature: signatureState.saveSignature,
       saveTemplate: templateState.saveTemplate,
@@ -191,6 +192,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     draftWorkspaceProps: {
       disabledProofreadingRuleIds:
         settingsState.settingsWorkspaceProps.proofreadingSettings.disabledRuleIds,
+      editorSettings: settingsState.settingsWorkspaceProps.editorSettings,
       onDisableProofreadingRule: settingsState.disableProofreadingRule,
       onClearError: shell.clearError,
       onError: (message: string) => shell.setError(message),
@@ -203,6 +205,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     isLoading: shell.isLoading,
     memoWorkspaceProps: {
       ...memoState.memoWorkspaceProps,
+      editorSettings: settingsState.settingsWorkspaceProps.editorSettings,
       showWhitespace: shell.showWhitespace,
     },
     notice: shell.notice,
@@ -211,10 +214,12 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     showWhitespace: shell.showWhitespace,
     signatureWorkspaceProps: {
       ...signatureState.signatureWorkspaceProps,
+      editorSettings: settingsState.settingsWorkspaceProps.editorSettings,
       showWhitespace: shell.showWhitespace,
     },
     templateWorkspaceProps: {
       ...templateState.templateWorkspaceProps,
+      editorSettings: settingsState.settingsWorkspaceProps.editorSettings,
       showWhitespace: shell.showWhitespace,
     },
     theme: shell.theme,

@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SQLITE_SCHEMA_VERSION: i32 = 1;
+const SQLITE_SCHEMA_VERSION: i32 = 2;
 
 pub(super) fn apply_migrations(connection: &Connection) -> Result<(), String> {
     let current_version = connection
@@ -212,10 +212,25 @@ pub(super) fn apply_migrations(connection: &Connection) -> Result<(), String> {
                 "#,
             )
             .map_err(|error| error.to_string())?;
+    }
+
+    if current_version < 2 {
         connection
-            .pragma_update(None, "user_version", SQLITE_SCHEMA_VERSION)
+            .execute_batch(
+                r#"
+                CREATE TABLE IF NOT EXISTS settings_editor (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    indent_style TEXT NOT NULL CHECK (indent_style IN ('spaces', 'tabs')),
+                    tab_size INTEGER NOT NULL CHECK (tab_size BETWEEN 1 AND 8)
+                );
+                "#,
+            )
             .map_err(|error| error.to_string())?;
     }
+
+    connection
+        .pragma_update(None, "user_version", SQLITE_SCHEMA_VERSION)
+        .map_err(|error| error.to_string())?;
 
     Ok(())
 }

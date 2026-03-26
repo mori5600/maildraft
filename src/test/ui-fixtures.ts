@@ -2,8 +2,11 @@ import type { Draft, DraftHistoryEntry, DraftInput } from "../modules/drafts/mod
 import type { VariablePreset } from "../modules/drafts/variable-presets";
 import type { Memo, MemoInput } from "../modules/memo/model";
 import {
+  createDefaultEditorSettingsSnapshot,
   createDefaultLoggingSettingsSnapshot,
   createDefaultProofreadingSettingsSnapshot,
+  type EditorSettingsInput,
+  type EditorSettingsSnapshot,
   type LogEntrySnapshot,
   type LoggingSettingsInput,
   type LoggingSettingsSnapshot,
@@ -165,6 +168,24 @@ export function createLoggingSettingsInput(
   return {
     mode: "errors_only",
     retentionDays: 14,
+    ...overrides,
+  };
+}
+
+export function createEditorSettingsSnapshot(
+  overrides: Partial<EditorSettingsSnapshot> = {},
+): EditorSettingsSnapshot {
+  return {
+    ...createDefaultEditorSettingsSnapshot(),
+    ...overrides,
+  };
+}
+
+export function createEditorSettingsInput(
+  overrides: Partial<EditorSettingsInput> = {},
+): EditorSettingsInput {
+  return {
+    ...createDefaultEditorSettingsSnapshot(),
     ...overrides,
   };
 }

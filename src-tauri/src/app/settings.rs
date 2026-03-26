@@ -20,6 +20,23 @@ impl LoggingMode {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum EditorIndentStyle {
+    #[default]
+    Spaces,
+    Tabs,
+}
+
+impl EditorIndentStyle {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Spaces => "spaces",
+            Self::Tabs => "tabs",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LoggingSettings {
@@ -47,6 +64,32 @@ impl LoggingSettings {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EditorSettings {
+    pub indent_style: EditorIndentStyle,
+    pub tab_size: u8,
+}
+
+impl Default for EditorSettings {
+    fn default() -> Self {
+        Self {
+            indent_style: EditorIndentStyle::Spaces,
+            tab_size: 2,
+        }
+    }
+}
+
+impl EditorSettings {
+    pub fn normalized(mut self) -> Self {
+        self.tab_size = match self.tab_size {
+            1..=8 => self.tab_size,
+            _ => 2,
+        };
+        self
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ProofreadingSettings {
@@ -67,12 +110,15 @@ pub struct AppSettings {
     #[serde(default)]
     pub logging: LoggingSettings,
     #[serde(default)]
+    pub editor: EditorSettings,
+    #[serde(default)]
     pub proofreading: ProofreadingSettings,
 }
 
 impl AppSettings {
     pub fn normalized(mut self) -> Self {
         self.logging = self.logging.normalized();
+        self.editor = self.editor.normalized();
         self.proofreading = self.proofreading.normalized();
         self
     }
@@ -106,6 +152,39 @@ pub struct LoggingSettingsSnapshot {
     pub file_count: usize,
     pub max_file_size_bytes: u64,
     pub max_rotated_files: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EditorSettingsInput {
+    pub indent_style: EditorIndentStyle,
+    pub tab_size: u8,
+}
+
+impl EditorSettingsInput {
+    pub fn into_settings(self) -> EditorSettings {
+        EditorSettings {
+            indent_style: self.indent_style,
+            tab_size: self.tab_size,
+        }
+        .normalized()
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EditorSettingsSnapshot {
+    pub indent_style: EditorIndentStyle,
+    pub tab_size: u8,
+}
+
+impl From<&EditorSettings> for EditorSettingsSnapshot {
+    fn from(settings: &EditorSettings) -> Self {
+        Self {
+            indent_style: settings.indent_style,
+            tab_size: settings.tab_size,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -152,8 +231,8 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use super::{
-        AppSettings, LoggingMode, LoggingSettings, LoggingSettingsInput, ProofreadingSettings,
-        ProofreadingSettingsInput,
+        AppSettings, EditorIndentStyle, EditorSettings, EditorSettingsInput, LoggingMode,
+        LoggingSettings, LoggingSettingsInput, ProofreadingSettings, ProofreadingSettingsInput,
     };
 
     #[test]
@@ -194,6 +273,10 @@ mod tests {
                 mode: LoggingMode::Standard,
                 retention_days: 3,
             },
+            editor: EditorSettings {
+                indent_style: EditorIndentStyle::Tabs,
+                tab_size: 99,
+            },
             proofreading: ProofreadingSettings {
                 disabled_rule_ids: vec![
                     " whitespace.trailing ".to_string(),
@@ -205,9 +288,33 @@ mod tests {
         }
         .normalized();
         assert_eq!(app_settings.logging.retention_days, 14);
+        assert_eq!(app_settings.editor.indent_style, EditorIndentStyle::Tabs);
+        assert_eq!(app_settings.editor.tab_size, 2);
         assert_eq!(
             app_settings.proofreading.disabled_rule_ids,
             vec!["prh".to_string(), "whitespace.trailing".to_string()]
+        );
+    }
+
+    #[test]
+    fn editor_settings_normalized_limits_tab_size() {
+        let settings = EditorSettingsInput {
+            indent_style: EditorIndentStyle::Tabs,
+            tab_size: 0,
+        }
+        .into_settings();
+
+        assert_eq!(settings.indent_style, EditorIndentStyle::Tabs);
+        assert_eq!(settings.tab_size, 2);
+
+        assert_eq!(
+            EditorSettings {
+                indent_style: EditorIndentStyle::Spaces,
+                tab_size: 8,
+            }
+            .normalized()
+            .tab_size,
+            8
         );
     }
 

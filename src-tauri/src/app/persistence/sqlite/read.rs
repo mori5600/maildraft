@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use rusqlite::{Connection, OptionalExtension};
 
 use crate::{
-    app::settings::{AppSettings, LoggingSettings, ProofreadingSettings},
+    app::settings::{AppSettings, EditorIndentStyle, EditorSettings, LoggingSettings, ProofreadingSettings},
     modules::{
         drafts::{Draft, DraftHistoryEntry},
         memo::Memo,
@@ -31,6 +31,24 @@ pub(super) fn load_settings(connection: &Connection) -> Result<AppSettings, Stri
         .map_err(|error| error.to_string())?
         .unwrap_or_default();
 
+    let editor = connection
+        .query_row(
+            "SELECT indent_style, tab_size FROM settings_editor WHERE id = 1",
+            [],
+            |row| {
+                Ok(EditorSettings {
+                    indent_style: match row.get::<_, String>(0)?.as_str() {
+                        "tabs" => EditorIndentStyle::Tabs,
+                        _ => EditorIndentStyle::Spaces,
+                    },
+                    tab_size: row.get::<_, u8>(1)?,
+                })
+            },
+        )
+        .optional()
+        .map_err(|error| error.to_string())?
+        .unwrap_or_default();
+
     let mut disabled_rule_ids = Vec::new();
     let mut statement = connection
         .prepare("SELECT rule_id FROM settings_proofreading_disabled_rules ORDER BY sort_order ASC")
@@ -44,6 +62,7 @@ pub(super) fn load_settings(connection: &Connection) -> Result<AppSettings, Stri
 
     Ok(AppSettings {
         logging,
+        editor,
         proofreading: ProofreadingSettings { disabled_rule_ids },
     }
     .normalized())

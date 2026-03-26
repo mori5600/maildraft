@@ -8,6 +8,7 @@ fn load_settings_defaults_missing_files_and_normalizes_saved_values() {
     let default_settings = load_app_settings(&missing_path).expect("default settings");
     assert_eq!(default_settings.logging.mode, LoggingMode::ErrorsOnly);
     assert_eq!(default_settings.logging.retention_days, 14);
+    assert_eq!(default_settings.editor.tab_size, 2);
     assert!(default_settings.proofreading.disabled_rule_ids.is_empty());
 
     let saved_path = directory.path().join("settings.json");
@@ -16,6 +17,7 @@ fn load_settings_defaults_missing_files_and_normalizes_saved_values() {
             mode: LoggingMode::Standard,
             retention_days: 99,
         },
+        editor: Default::default(),
         proofreading: ProofreadingSettings {
             disabled_rule_ids: vec![" prh ".to_string(), "whitespace.trailing".to_string()],
         },
@@ -57,7 +59,7 @@ fn load_startup_notice_reports_recovery_and_default_fallback() {
     assert_eq!(notice.tone, StartupNoticeTone::Warning);
     assert_eq!(
         notice.message,
-        "診断設定を復旧できなかったため既定値で起動しました。 ローカルデータをバックアップから復旧しました。"
+        "設定を復旧できなかったため既定値で起動しました。 ローカルデータをバックアップから復旧しました。"
     );
 }
 
@@ -88,6 +90,7 @@ fn runtime_startup_migrates_legacy_json_documents_into_sqlite() {
             mode: LoggingMode::Standard,
             retention_days: 30,
         },
+        editor: Default::default(),
         proofreading: ProofreadingSettings {
             disabled_rule_ids: vec!["prh".to_string()],
         },
@@ -140,6 +143,7 @@ fn runtime_startup_prefers_existing_sqlite_over_legacy_json() {
             mode: LoggingMode::Off,
             retention_days: 14,
         },
+        editor: Default::default(),
         proofreading: ProofreadingSettings {
             disabled_rule_ids: vec!["prh".to_string()],
         },
@@ -155,6 +159,7 @@ fn runtime_startup_prefers_existing_sqlite_over_legacy_json() {
             mode: LoggingMode::Standard,
             retention_days: 30,
         },
+        editor: Default::default(),
         proofreading: ProofreadingSettings {
             disabled_rule_ids: vec!["whitespace.trailing".to_string()],
         },
@@ -192,6 +197,7 @@ fn runtime_startup_fails_when_existing_sqlite_is_unavailable() {
             mode: LoggingMode::Standard,
             retention_days: 30,
         },
+        editor: Default::default(),
         proofreading: ProofreadingSettings {
             disabled_rule_ids: vec!["prh".to_string()],
         },
@@ -220,6 +226,7 @@ fn runtime_startup_fails_when_existing_empty_sqlite_conflicts_with_legacy_json()
             mode: LoggingMode::Standard,
             retention_days: 30,
         },
+        editor: Default::default(),
         proofreading: ProofreadingSettings {
             disabled_rule_ids: vec!["prh".to_string()],
         },

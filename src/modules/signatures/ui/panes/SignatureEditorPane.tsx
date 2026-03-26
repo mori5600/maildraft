@@ -1,4 +1,5 @@
 import { CodeEditor } from "../../../../shared/ui/code-editor/CodeEditor";
+import type { EditorSettings } from "../../../../shared/ui/code-editor/editor-settings";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Field, Panel } from "../../../../shared/ui/primitives";
 import type { SignatureInput } from "../../model";
@@ -6,6 +7,7 @@ import type { SignatureInput } from "../../model";
 interface SignatureEditorPaneProps {
   signatureForm: SignatureInput;
   selectedSignatureId: string | null;
+  editorSettings?: EditorSettings;
   showWhitespace: boolean;
   autoSaveLabel: string;
   canDuplicate: boolean;
@@ -19,6 +21,7 @@ interface SignatureEditorPaneProps {
 export function SignatureEditorPane({
   signatureForm,
   selectedSignatureId,
+  editorSettings,
   showWhitespace,
   autoSaveLabel,
   canDuplicate,
@@ -71,6 +74,7 @@ export function SignatureEditorPane({
               singleLine
               showWhitespace={showWhitespace}
               value={signatureForm.name}
+              editorSettings={editorSettings}
               onChange={(value) => onChangeSignature("name", value)}
             />
           </Field>
@@ -92,6 +96,7 @@ export function SignatureEditorPane({
               textClassName="mail-signature-edit-text"
               showWhitespace={showWhitespace}
               value={signatureForm.body}
+              editorSettings={editorSettings}
               onChange={(value) => onChangeSignature("body", value)}
             />
           </Field>

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import type {
+  EditorSettingsSnapshot,
   LoggingSettingsSnapshot,
   ProofreadingSettingsSnapshot,
 } from "../../modules/settings/model";
@@ -9,6 +10,7 @@ import type { StartupNoticeSnapshot, StoreSnapshot } from "../../shared/types/st
 import { toErrorMessage } from "./maildraft-app-helpers";
 
 interface AppBootstrapOptions {
+  hydrateEditorSettings: (settings: EditorSettingsSnapshot) => void;
   hydrateLoggingSettings: (settings: LoggingSettingsSnapshot) => void;
   hydrateProofreadingSettings: (settings: ProofreadingSettingsSnapshot) => void;
   hydrateSnapshot: (snapshot: StoreSnapshot) => void;
@@ -25,7 +27,7 @@ function applyStartupNotice(
   onWarning: (message: string) => void,
 ) {
   if (!startupNotice) {
-    onNotice("ローカルデータと診断設定を読み込みました。");
+    onNotice("ローカルデータと設定を読み込みました。");
     return;
   }
 
@@ -44,6 +46,7 @@ function applyStartupNotice(
  * Handler refs keep the bootstrap effect single-shot while still calling the latest callbacks after rerenders.
  */
 export function useAppBootstrap({
+  hydrateEditorSettings,
   hydrateLoggingSettings,
   hydrateProofreadingSettings,
   hydrateSnapshot,
@@ -53,6 +56,7 @@ export function useAppBootstrap({
   onNotice,
   onWarning,
 }: AppBootstrapOptions) {
+  const hydrateEditorSettingsRef = useRef(hydrateEditorSettings);
   const hydrateLoggingSettingsRef = useRef(hydrateLoggingSettings);
   const hydrateProofreadingSettingsRef = useRef(hydrateProofreadingSettings);
   const hydrateSnapshotRef = useRef(hydrateSnapshot);
@@ -61,6 +65,10 @@ export function useAppBootstrap({
   const loadingChangeRef = useRef(onLoadingChange);
   const noticeRef = useRef(onNotice);
   const warningRef = useRef(onWarning);
+
+  useEffect(() => {
+    hydrateEditorSettingsRef.current = hydrateEditorSettings;
+  }, [hydrateEditorSettings]);
 
   useEffect(() => {
     hydrateLoggingSettingsRef.current = hydrateLoggingSettings;
@@ -99,15 +107,22 @@ export function useAppBootstrap({
       try {
         loadingChangeRef.current(true);
         clearErrorRef.current();
-        const [nextSnapshot, nextLoggingSettings, nextProofreadingSettings, startupNotice] =
-          await Promise.all([
-            maildraftApi.loadSnapshot(),
-            maildraftApi.loadLoggingSettings(),
-            maildraftApi.loadProofreadingSettings(),
-            maildraftApi.loadStartupNotice(),
-          ]);
+        const [
+          nextSnapshot,
+          nextLoggingSettings,
+          nextEditorSettings,
+          nextProofreadingSettings,
+          startupNotice,
+        ] = await Promise.all([
+          maildraftApi.loadSnapshot(),
+          maildraftApi.loadLoggingSettings(),
+          maildraftApi.loadEditorSettings(),
+          maildraftApi.loadProofreadingSettings(),
+          maildraftApi.loadStartupNotice(),
+        ]);
         hydrateSnapshotRef.current(nextSnapshot);
         hydrateLoggingSettingsRef.current(nextLoggingSettings);
+        hydrateEditorSettingsRef.current(nextEditorSettings);
         hydrateProofreadingSettingsRef.current(nextProofreadingSettings);
         applyStartupNotice(startupNotice, noticeRef.current, warningRef.current);
       } catch (loadError) {

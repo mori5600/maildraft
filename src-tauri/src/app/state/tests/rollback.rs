@@ -335,6 +335,7 @@ fn import_backup_rolls_back_store_and_settings_when_settings_persistence_fails()
                     mode: LoggingMode::Standard,
                     retention_days: 30,
                 },
+                editor: Default::default(),
                 proofreading: ProofreadingSettings {
                     disabled_rule_ids: vec!["prh".to_string()],
                 },
@@ -406,6 +407,7 @@ fn import_backup_rolls_back_store_and_settings_when_log_pruning_fails() {
                     mode: LoggingMode::Standard,
                     retention_days: 30,
                 },
+                editor: Default::default(),
                 proofreading: ProofreadingSettings {
                     disabled_rule_ids: vec!["prh".to_string()],
                 },
@@ -464,6 +466,7 @@ fn runtime_import_backup_rolls_back_sqlite_state_when_log_pruning_fails() {
                     mode: LoggingMode::Standard,
                     retention_days: 30,
                 },
+                editor: Default::default(),
                 proofreading: ProofreadingSettings {
                     disabled_rule_ids: vec!["prh".to_string()],
                 },

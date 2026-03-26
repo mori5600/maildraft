@@ -3,12 +3,15 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  createEditorSettingsInput,
+  createEditorSettingsSnapshot,
   createLogEntry,
   createLoggingSettingsInput,
   createLoggingSettingsSnapshot,
   createProofreadingSettingsSnapshot,
 } from "../../../test/ui-fixtures";
 import { BackupPane } from "./panes/BackupPane";
+import { EditorSettingsPane } from "./panes/EditorSettingsPane";
 import { LoggingOverviewPane } from "./panes/LoggingOverviewPane";
 import { LoggingSettingsPane } from "./panes/LoggingSettingsPane";
 import { ProofreadingSettingsPane } from "./panes/ProofreadingSettingsPane";
@@ -18,15 +21,42 @@ import { RECENT_LOGS_DESCRIPTION } from "./settings-workspace-content";
 import { SettingsWorkspace } from "./SettingsWorkspace";
 
 describe("settings UI", () => {
-  it("renders settings navigation", async () => {
+  it("renders settings navigation including the editor section", async () => {
     const user = userEvent.setup();
     const handleSelectSection = vi.fn();
-    render(<SettingsSectionNav activeSection="logging" onSelectSection={handleSelectSection} />);
+    render(<SettingsSectionNav activeSection="editor" onSelectSection={handleSelectSection} />);
 
+    await user.click(screen.getByRole("button", { name: /ログ/ }));
+    expect(handleSelectSection).toHaveBeenCalledWith("logging");
     await user.click(screen.getByRole("button", { name: /校正/ }));
     expect(handleSelectSection).toHaveBeenCalledWith("proofreading");
     await user.click(screen.getByRole("button", { name: /バックアップ/ }));
     expect(handleSelectSection).toHaveBeenCalledWith("backup");
+  });
+
+  it("handles editor settings changes and save actions", async () => {
+    const user = userEvent.setup();
+    const handleChangeEditor = vi.fn();
+    const handleSaveEditorSettings = vi.fn(async () => {});
+
+    render(
+      <EditorSettingsPane
+        editorForm={createEditorSettingsInput()}
+        editorSettings={createEditorSettingsSnapshot()}
+        isDirty
+        isSaving={false}
+        onChangeEditor={handleChangeEditor}
+        onSaveEditorSettings={handleSaveEditorSettings}
+      />,
+    );
+
+    await user.selectOptions(screen.getByLabelText("インデント種別"), "tabs");
+    expect(handleChangeEditor).toHaveBeenCalledWith("indentStyle", "tabs");
+    await user.selectOptions(screen.getByLabelText("タブ幅"), "4");
+    expect(handleChangeEditor).toHaveBeenCalledWith("tabSize", 4);
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    expect(handleSaveEditorSettings).toHaveBeenCalled();
+    expect(screen.getByText("プレビュー")).toBeInTheDocument();
   });
 
   it("handles logging settings and overview actions", async () => {
@@ -115,19 +145,27 @@ describe("settings UI", () => {
     expect(handleResetRules).toHaveBeenCalled();
   });
 
-  it("connects settings workspace overlay", async () => {
+  it("connects settings workspace overlay and section switching", async () => {
     const user = userEvent.setup();
+    const handleChangeEditor = vi.fn();
+    const handleSelectSection = vi.fn();
     const handleRefreshRecentLogs = vi.fn(async () => {});
+
     render(
       <SettingsWorkspace
+        activeSection="editor"
+        editorForm={createEditorSettingsInput()}
+        editorSettings={createEditorSettingsSnapshot()}
         isExportingBackup={false}
         isImportingBackup={false}
         isLoadingRecentLogs={false}
+        isSavingEditorSettings={false}
         isSavingProofreadingSettings={false}
         loggingForm={createLoggingSettingsInput()}
         loggingSettings={createLoggingSettingsSnapshot()}
         proofreadingSettings={createProofreadingSettingsSnapshot()}
         recentLogs={[createLogEntry()]}
+        onChangeEditor={handleChangeEditor}
         onChangeLogging={vi.fn()}
         onClearLogs={vi.fn(async () => {})}
         onEnableProofreadingRule={vi.fn(async () => {})}
@@ -135,7 +173,48 @@ describe("settings UI", () => {
         onImportBackup={vi.fn(async () => {})}
         onResetDisabledProofreadingRules={vi.fn(async () => {})}
         onRefreshRecentLogs={handleRefreshRecentLogs}
+        onSaveEditorSettings={vi.fn(async () => {})}
         onSaveLoggingSettings={vi.fn(async () => {})}
+        onSelectSection={handleSelectSection}
+      />,
+    );
+
+    expect(screen.getByText("エディタ設定")).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText("インデント種別"), "tabs");
+    expect(handleChangeEditor).toHaveBeenCalledWith("indentStyle", "tabs");
+
+    await user.click(screen.getByRole("button", { name: /ログ/ }));
+    expect(handleSelectSection).toHaveBeenCalledWith("logging");
+  });
+
+  it("opens recent logs overlay from the logging section", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <SettingsWorkspace
+        activeSection="logging"
+        editorForm={createEditorSettingsInput()}
+        editorSettings={createEditorSettingsSnapshot()}
+        isExportingBackup={false}
+        isImportingBackup={false}
+        isLoadingRecentLogs={false}
+        isSavingEditorSettings={false}
+        isSavingProofreadingSettings={false}
+        loggingForm={createLoggingSettingsInput()}
+        loggingSettings={createLoggingSettingsSnapshot()}
+        proofreadingSettings={createProofreadingSettingsSnapshot()}
+        recentLogs={[createLogEntry()]}
+        onChangeEditor={vi.fn()}
+        onChangeLogging={vi.fn()}
+        onClearLogs={vi.fn(async () => {})}
+        onEnableProofreadingRule={vi.fn(async () => {})}
+        onExportBackup={vi.fn(async () => {})}
+        onImportBackup={vi.fn(async () => {})}
+        onResetDisabledProofreadingRules={vi.fn(async () => {})}
+        onRefreshRecentLogs={vi.fn(async () => {})}
+        onSaveEditorSettings={vi.fn(async () => {})}
+        onSaveLoggingSettings={vi.fn(async () => {})}
+        onSelectSection={vi.fn()}
       />,
     );
 
@@ -143,11 +222,5 @@ describe("settings UI", () => {
     await user.click(screen.getByRole("button", { name: "ログを見る" }));
     expect(screen.getByText("最近のログ")).toBeInTheDocument();
     expect(screen.getByText(RECENT_LOGS_DESCRIPTION)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "更新" }));
-    expect(handleRefreshRecentLogs).toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: /校正/ }));
-    expect(screen.getByText("校正ルール")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /バックアップ/ }));
-    expect(screen.getByRole("button", { name: "書き出し" })).toBeInTheDocument();
   });
 });

@@ -26,6 +26,14 @@ fn logging_settings_and_backup_methods_round_trip_state() {
         .expect("save logging settings");
     assert_eq!(settings_snapshot.mode, LoggingMode::Standard);
     assert_eq!(settings_snapshot.retention_days, 30);
+    let editor_snapshot = state
+        .save_editor_settings(EditorSettingsInput {
+            indent_style: EditorIndentStyle::Tabs,
+            tab_size: 4,
+        })
+        .expect("save editor settings");
+    assert_eq!(editor_snapshot.indent_style, EditorIndentStyle::Tabs);
+    assert_eq!(editor_snapshot.tab_size, 4);
     let proofreading_snapshot = state
         .save_proofreading_settings(ProofreadingSettingsInput {
             disabled_rule_ids: vec![" prh ".to_string(), "whitespace.trailing".to_string()],
@@ -39,6 +47,8 @@ fn logging_settings_and_backup_methods_round_trip_state() {
     let persisted_settings = read_settings_file(&settings_file_path(&state));
     assert_eq!(persisted_settings.logging.mode, LoggingMode::Standard);
     assert_eq!(persisted_settings.logging.retention_days, 30);
+    assert_eq!(persisted_settings.editor.indent_style, EditorIndentStyle::Tabs);
+    assert_eq!(persisted_settings.editor.tab_size, 4);
     assert_eq!(
         persisted_settings.proofreading.disabled_rule_ids,
         vec!["prh".to_string(), "whitespace.trailing".to_string()]
@@ -77,6 +87,8 @@ fn logging_settings_and_backup_methods_round_trip_state() {
         .import_backup(backup_path.to_str().expect("backup path"))
         .expect("import backup");
     assert_eq!(imported.snapshot.templates.len(), 2);
+    assert_eq!(imported.editor_settings.indent_style, EditorIndentStyle::Tabs);
+    assert_eq!(imported.editor_settings.tab_size, 4);
     assert_eq!(imported.logging_settings.mode, LoggingMode::Standard);
     assert_eq!(imported.logging_settings.retention_days, 30);
     assert_eq!(
@@ -117,6 +129,12 @@ fn runtime_backup_methods_round_trip_with_sqlite_repository() {
         })
         .expect("save logging settings");
     state
+        .save_editor_settings(EditorSettingsInput {
+            indent_style: EditorIndentStyle::Tabs,
+            tab_size: 4,
+        })
+        .expect("save editor settings");
+    state
         .save_proofreading_settings(ProofreadingSettingsInput {
             disabled_rule_ids: vec![" prh ".to_string(), "whitespace.trailing".to_string()],
         })
@@ -139,6 +157,8 @@ fn runtime_backup_methods_round_trip_with_sqlite_repository() {
         .memos
         .iter()
         .any(|memo| memo.id == "memo-runtime-exported"));
+    assert_eq!(document.settings.editor.indent_style, EditorIndentStyle::Tabs);
+    assert_eq!(document.settings.editor.tab_size, 4);
     assert_eq!(document.settings.logging.mode, LoggingMode::Standard);
     assert_eq!(document.settings.logging.retention_days, 30);
     assert_eq!(
@@ -162,6 +182,8 @@ fn runtime_backup_methods_round_trip_with_sqlite_repository() {
         .memos
         .iter()
         .any(|memo| memo.id == "memo-runtime-exported"));
+    assert_eq!(imported.editor_settings.indent_style, EditorIndentStyle::Tabs);
+    assert_eq!(imported.editor_settings.tab_size, 4);
     assert_eq!(imported.logging_settings.mode, LoggingMode::Standard);
     assert_eq!(imported.logging_settings.retention_days, 30);
     assert_eq!(
@@ -179,6 +201,8 @@ fn runtime_backup_methods_round_trip_with_sqlite_repository() {
         .memos
         .iter()
         .any(|memo| memo.id == "memo-runtime-exported"));
+    assert_eq!(persisted_settings.editor.indent_style, EditorIndentStyle::Tabs);
+    assert_eq!(persisted_settings.editor.tab_size, 4);
     assert_eq!(persisted_settings.logging.mode, LoggingMode::Standard);
     assert_eq!(persisted_settings.logging.retention_days, 30);
     assert_eq!(
@@ -260,6 +284,10 @@ fn import_backup_normalizes_snapshot_and_logging_settings_before_persisting() {
                     mode: LoggingMode::Standard,
                     retention_days: 99,
                 },
+                editor: EditorSettings {
+                    indent_style: EditorIndentStyle::Tabs,
+                    tab_size: 0,
+                },
                 proofreading: ProofreadingSettings {
                     disabled_rule_ids: vec![" whitespace.trailing ".to_string(), "prh".to_string()],
                 },
@@ -273,6 +301,8 @@ fn import_backup_normalizes_snapshot_and_logging_settings_before_persisting() {
         .import_backup(backup_path.to_str().expect("backup path"))
         .expect("import backup");
 
+    assert_eq!(imported.editor_settings.indent_style, EditorIndentStyle::Tabs);
+    assert_eq!(imported.editor_settings.tab_size, 2);
     assert_eq!(imported.logging_settings.mode, LoggingMode::Standard);
     assert_eq!(imported.logging_settings.retention_days, 14);
     assert_eq!(
@@ -324,6 +354,8 @@ fn import_backup_normalizes_snapshot_and_logging_settings_before_persisting() {
     assert_eq!(persisted_store.drafts[0].template_id, None);
     assert_eq!(persisted_store.drafts[0].signature_id, None);
     assert_eq!(persisted_store.templates[0].signature_id, None);
+    assert_eq!(persisted_settings.editor.indent_style, EditorIndentStyle::Tabs);
+    assert_eq!(persisted_settings.editor.tab_size, 2);
     assert_eq!(persisted_settings.logging.retention_days, 14);
     assert_eq!(
         persisted_settings.proofreading.disabled_rule_ids,

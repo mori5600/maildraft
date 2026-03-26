@@ -22,12 +22,14 @@ import {
   type ViewUpdate,
 } from "@codemirror/view";
 
+import { editorIndentUnitText, type EditorSettings } from "./editor-settings";
 import { codeEditorTheme } from "./theme";
 
 export interface CodeEditorCompartments {
   contentAttributes: Compartment;
   editorAttributes: Compartment;
   gutter: Compartment;
+  indent: Compartment;
   interaction: Compartment;
   layout: Compartment;
   placeholder: Compartment;
@@ -48,6 +50,7 @@ export function createCodeEditorCompartments(): CodeEditorCompartments {
     contentAttributes: new Compartment(),
     editorAttributes: new Compartment(),
     gutter: new Compartment(),
+    indent: new Compartment(),
     interaction: new Compartment(),
     layout: new Compartment(),
     placeholder: new Compartment(),
@@ -81,6 +84,17 @@ export function createCodeEditorPlaceholderExtension(placeholderText?: string): 
 
 export function createCodeEditorGutterExtension(showLineNumbers: boolean): Extension {
   return showLineNumbers ? [lineNumbers()] : [];
+}
+
+export function createCodeEditorIndentExtension(tabSize: number): Extension {
+  return [
+    EditorState.tabSize.of(tabSize),
+    EditorView.theme({
+      "&": {
+        tabSize: String(tabSize),
+      },
+    }),
+  ];
 }
 
 export function createCodeEditorContentAttributesExtension(
@@ -158,10 +172,10 @@ export function createCodeEditorLayoutExtension(options: { singleLine?: boolean 
 }
 
 export interface CodeEditorTabOptions {
+  editorSettings: EditorSettings;
   singleLine?: boolean;
 }
 
-const DEFAULT_SOFT_TAB_TEXT = "  ";
 const TAB_FOCUS_MODE_DISABLED = -1;
 const TAB_FOCUS_MODE_ENABLED = 0;
 const TEMPORARY_TAB_FOCUS_MODE_DURATION_MS = 2000;
@@ -180,7 +194,8 @@ const trackedTabFocusModes = new WeakMap<EditorView, number>();
 type CodeEditorTabBehavior = "focus" | "soft-indent";
 
 interface CodeEditorTabStrategyInput {
-  softTabText: string;
+  indentUnitText: string;
+  tabSize: number;
 }
 
 const tabFocusModeTrackingExtension = ViewPlugin.fromClass(
@@ -218,28 +233,30 @@ const tabBehaviorStrategies: Record<
   (input: CodeEditorTabStrategyInput) => Extension
 > = {
   focus: () => [],
-  "soft-indent": ({ softTabText }) =>
+  "soft-indent": ({ indentUnitText, tabSize }) =>
     keymap.of([
       {
         key: "Tab",
-        run: createSoftIndentCommand(softTabText),
+        run: createSoftIndentCommand(indentUnitText),
       },
       {
         key: "Shift-Tab",
-        run: createSoftOutdentCommand(softTabText),
+        run: createSoftOutdentCommand(indentUnitText, tabSize),
       },
     ]),
 };
 
 export function createCodeEditorTabExtension(options: CodeEditorTabOptions): Extension {
   const tabBehavior: CodeEditorTabBehavior = options.singleLine ? "focus" : "soft-indent";
+  const indentUnitText = editorIndentUnitText(options.editorSettings);
 
   return tabBehaviorStrategies[tabBehavior]({
-    softTabText: DEFAULT_SOFT_TAB_TEXT,
+    indentUnitText,
+    tabSize: options.editorSettings.tabSize,
   });
 }
 
-function createSoftIndentCommand(softTabText: string): (view: EditorView) => boolean {
+function createSoftIndentCommand(indentUnitText: string): (view: EditorView) => boolean {
   return (view) => {
     if (isTabFocusModeActive(view)) {
       return false;
@@ -249,7 +266,7 @@ function createSoftIndentCommand(softTabText: string): (view: EditorView) => boo
     if (hasIndentedSelection(state)) {
       dispatch(
         state.update({
-          changes: buildLineIndentChanges(state, softTabText),
+          changes: buildLineIndentChanges(state, indentUnitText),
         }),
       );
       return true;
@@ -259,9 +276,9 @@ function createSoftIndentCommand(softTabText: string): (view: EditorView) => boo
       changes: {
         from: range.from,
         to: range.to,
-        insert: softTabText,
+        insert: indentUnitText,
       },
-      range: EditorSelection.cursor(range.from + softTabText.length),
+      range: EditorSelection.cursor(range.from + indentUnitText.length),
     }));
 
     dispatch(state.update(transactionSpec));
@@ -269,14 +286,17 @@ function createSoftIndentCommand(softTabText: string): (view: EditorView) => boo
   };
 }
 
-function createSoftOutdentCommand(softTabText: string): (view: EditorView) => boolean {
+function createSoftOutdentCommand(
+  indentUnitText: string,
+  tabSize: number,
+): (view: EditorView) => boolean {
   return (view) => {
     if (isTabFocusModeActive(view)) {
       return false;
     }
 
     const { state, dispatch } = view;
-    const changes = buildLineOutdentChanges(state, softTabText);
+    const changes = buildLineOutdentChanges(state, indentUnitText, tabSize);
 
     if (changes.length > 0) {
       dispatch(
@@ -344,21 +364,22 @@ function hasIndentedSelection(state: EditorState): boolean {
 
 function buildLineIndentChanges(
   state: EditorState,
-  softTabText: string,
+  indentUnitText: string,
 ): Array<{ from: number; insert: string }> {
   return collectSelectedLines(state).map((line) => ({
     from: line.from,
-    insert: softTabText,
+    insert: indentUnitText,
   }));
 }
 
 function buildLineOutdentChanges(
   state: EditorState,
-  softTabText: string,
+  indentUnitText: string,
+  tabSize: number,
 ): Array<{ from: number; to: number; insert: string }> {
   return collectSelectedLines(state)
     .map((line) => {
-      const removableIndentLength = getRemovableIndentLength(line.text, softTabText);
+      const removableIndentLength = getRemovableIndentLength(line.text, indentUnitText, tabSize);
 
       return removableIndentLength > 0
         ? {
@@ -402,12 +423,12 @@ function getSelectedRangeEnd(range: SelectionRange): number {
   return Math.max(range.from, range.to - 1);
 }
 
-function getRemovableIndentLength(text: string, softTabText: string): number {
-  if (text.startsWith(softTabText)) {
-    return softTabText.length;
+function getRemovableIndentLength(text: string, indentUnitText: string, tabSize: number): number {
+  if (text.startsWith(indentUnitText)) {
+    return indentUnitText.length;
   }
 
-  const maxRemovableLength = getSoftTabWidth(softTabText);
+  const maxRemovableLength = getIndentWidth(indentUnitText, tabSize);
 
   if (text.startsWith("\t")) {
     return 1;
@@ -430,8 +451,8 @@ function countLeadingSpaces(text: string): number {
   return count;
 }
 
-function getSoftTabWidth(softTabText: string): number {
-  return countColumn(softTabText, softTabText.length);
+function getIndentWidth(indentUnitText: string, tabSize: number): number {
+  return countColumn(indentUnitText, tabSize);
 }
 
 const visibleWhitespaceMarks = {

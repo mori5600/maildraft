@@ -1,4 +1,5 @@
 import type { DraftSortOption } from "../../../shared/lib/list-sort";
+import type { EditorSettings } from "../../../shared/ui/code-editor/editor-settings";
 import type { Signature } from "../../signatures/model";
 import type { Template } from "../../templates/model";
 import type { Draft, DraftHistoryEntry, DraftInput } from "../model";
@@ -29,6 +30,7 @@ interface DraftWorkspaceProps {
   variablePresets: VariablePreset[];
   selectedVariablePresetId: string | null;
   variablePresetName: string;
+  editorSettings?: EditorSettings;
   showWhitespace: boolean;
   autoSaveLabel: string;
   searchQuery: string;
@@ -78,6 +80,7 @@ export function DraftWorkspace({
   variablePresets,
   selectedVariablePresetId,
   variablePresetName,
+  editorSettings,
   showWhitespace,
   autoSaveLabel,
   searchQuery,
@@ -140,6 +143,7 @@ export function DraftWorkspace({
           autoSaveLabel={autoSaveLabel}
           canDuplicate={canDuplicate}
           draftForm={draftForm}
+          editorSettings={editorSettings}
           selectedDraftId={selectedDraftId}
           showWhitespace={showWhitespace}
           signatures={signatures}

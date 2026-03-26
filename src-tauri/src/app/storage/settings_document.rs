@@ -58,7 +58,10 @@ mod tests {
     use serde_json::json;
 
     use super::{decode_settings, encode_settings, SETTINGS_DOCUMENT_VERSION};
-    use crate::app::settings::{AppSettings, LoggingMode, LoggingSettings, ProofreadingSettings};
+    use crate::app::settings::{
+        AppSettings, EditorIndentStyle, EditorSettings, LoggingMode, LoggingSettings,
+        ProofreadingSettings,
+    };
 
     #[test]
     fn decode_settings_accepts_current_and_legacy_documents() {
@@ -72,6 +75,10 @@ mod tests {
                         "mode": "standard",
                         "retentionDays": 30,
                     },
+                    "editor": {
+                        "indentStyle": "tabs",
+                        "tabSize": 4,
+                    },
                     "proofreading": {
                         "disabledRuleIds": [" whitespace.trailing ", "prh"],
                     }
@@ -82,6 +89,8 @@ mod tests {
         .expect("decode current settings");
         assert_eq!(current.logging.mode, LoggingMode::Standard);
         assert_eq!(current.logging.retention_days, 30);
+        assert_eq!(current.editor.indent_style, EditorIndentStyle::Tabs);
+        assert_eq!(current.editor.tab_size, 4);
         assert_eq!(
             current.proofreading.disabled_rule_ids,
             vec!["prh".to_string(), "whitespace.trailing".to_string()]
@@ -143,6 +152,10 @@ mod tests {
                 mode: LoggingMode::Standard,
                 retention_days: 99,
             },
+            editor: EditorSettings {
+                indent_style: EditorIndentStyle::Tabs,
+                tab_size: 0,
+            },
             proofreading: ProofreadingSettings {
                 disabled_rule_ids: vec![" whitespace.trailing ".to_string(), "prh".to_string()],
             },
@@ -153,6 +166,8 @@ mod tests {
         assert_eq!(decoded["app"], json!("maildraft"));
         assert_eq!(decoded["version"], json!(SETTINGS_DOCUMENT_VERSION));
         assert_eq!(decoded["settings"]["logging"]["retentionDays"], json!(14));
+        assert_eq!(decoded["settings"]["editor"]["indentStyle"], json!("tabs"));
+        assert_eq!(decoded["settings"]["editor"]["tabSize"], json!(2));
         assert_eq!(
             decoded["settings"]["proofreading"]["disabledRuleIds"],
             json!(["prh", "whitespace.trailing"])

@@ -6,15 +6,19 @@ use tempfile::tempdir;
 
 use super::{
     clear_logs, delete_draft, delete_memo, delete_signature, delete_template,
-    delete_variable_preset, empty_trash, load_logging_settings, load_proofreading_settings,
-    load_recent_logs, load_snapshot, load_startup_notice, permanently_delete_draft_from_trash,
-    permanently_delete_memo_from_trash, permanently_delete_signature_from_trash,
-    permanently_delete_template_from_trash, restore_draft_from_trash, restore_draft_history,
-    restore_memo_from_trash, restore_signature_from_trash, restore_template_from_trash, save_draft,
+    delete_variable_preset, empty_trash, load_editor_settings, load_logging_settings,
+    load_proofreading_settings, load_recent_logs, load_snapshot, load_startup_notice,
+    permanently_delete_draft_from_trash, permanently_delete_memo_from_trash,
+    permanently_delete_signature_from_trash, permanently_delete_template_from_trash,
+    restore_draft_from_trash, restore_draft_history, restore_memo_from_trash,
+    restore_signature_from_trash, restore_template_from_trash, save_draft, save_editor_settings,
     save_logging_settings, save_memo, save_proofreading_settings, save_signature, save_template,
     save_variable_preset,
 };
-use crate::app::settings::{LoggingMode, LoggingSettingsInput, ProofreadingSettingsInput};
+use crate::app::settings::{
+    EditorIndentStyle, EditorSettingsInput, LoggingMode, LoggingSettingsInput,
+    ProofreadingSettingsInput,
+};
 use crate::app::state::AppState;
 use crate::modules::{
     drafts::DraftInput, memo::MemoInput, signatures::SignatureInput, templates::TemplateInput,
@@ -32,8 +36,9 @@ use super::memo::{
 };
 use super::settings::{
     backup_default_file_name_from_parts, clear_logs_impl, export_backup_impl, import_backup_impl,
-    load_logging_settings_impl, load_proofreading_settings_impl, load_recent_logs_impl,
-    save_logging_settings_impl, save_proofreading_settings_impl,
+    load_editor_settings_impl, load_logging_settings_impl, load_proofreading_settings_impl,
+    load_recent_logs_impl, save_editor_settings_impl, save_logging_settings_impl,
+    save_proofreading_settings_impl,
 };
 use super::signatures::{
     delete_signature_impl, permanently_delete_signature_from_trash_impl,
@@ -278,6 +283,9 @@ fn settings_and_logs_commands_round_trip() {
 
     let initial = load_logging_settings_impl(&state).expect("load settings");
     assert_eq!(initial.mode, LoggingMode::ErrorsOnly);
+    let initial_editor = load_editor_settings_impl(&state).expect("load editor settings");
+    assert_eq!(initial_editor.indent_style, EditorIndentStyle::Spaces);
+    assert_eq!(initial_editor.tab_size, 2);
     let initial_proofreading =
         load_proofreading_settings_impl(&state).expect("load proofreading settings");
     assert!(initial_proofreading.disabled_rule_ids.is_empty());
@@ -291,6 +299,16 @@ fn settings_and_logs_commands_round_trip() {
     )
     .expect("save settings");
     assert_eq!(saved.retention_days, 30);
+    let saved_editor = save_editor_settings_impl(
+        &state,
+        EditorSettingsInput {
+            indent_style: EditorIndentStyle::Tabs,
+            tab_size: 4,
+        },
+    )
+    .expect("save editor settings");
+    assert_eq!(saved_editor.indent_style, EditorIndentStyle::Tabs);
+    assert_eq!(saved_editor.tab_size, 4);
     let saved_proofreading = save_proofreading_settings_impl(
         &state,
         ProofreadingSettingsInput {
@@ -741,10 +759,23 @@ fn settings_commands_normalize_invalid_retention_in_their_contract() {
     )
     .expect("save settings");
     let saved_json = serde_json::to_value(&saved).expect("serialize settings");
+    let saved_editor = save_editor_settings_impl(
+        &state,
+        EditorSettingsInput {
+            indent_style: EditorIndentStyle::Tabs,
+            tab_size: 99,
+        },
+    )
+    .expect("save editor settings");
+    let editor_json = serde_json::to_value(&saved_editor).expect("serialize editor settings");
 
     assert_eq!(saved.retention_days, 14);
     assert_eq!(saved_json["mode"], json!("off"));
     assert_eq!(saved_json["retentionDays"], json!(14));
+    assert_eq!(saved_editor.indent_style, EditorIndentStyle::Tabs);
+    assert_eq!(saved_editor.tab_size, 2);
+    assert_eq!(editor_json["indentStyle"], json!("tabs"));
+    assert_eq!(editor_json["tabSize"], json!(2));
 
     let saved_proofreading = save_proofreading_settings_impl(
         &state,
@@ -962,6 +993,9 @@ fn tauri_command_wrappers_cover_template_signature_and_logging_contracts() {
     let logging_before =
         load_logging_settings(as_tauri_state(&state)).expect("load logging settings");
     assert_eq!(logging_before.retention_days, 14);
+    let editor_before = load_editor_settings(as_tauri_state(&state)).expect("load editor settings");
+    assert_eq!(editor_before.indent_style, EditorIndentStyle::Spaces);
+    assert_eq!(editor_before.tab_size, 2);
     let proofreading_before =
         load_proofreading_settings(as_tauri_state(&state)).expect("load proofreading settings");
     assert!(proofreading_before.disabled_rule_ids.is_empty());
@@ -1062,6 +1096,16 @@ fn tauri_command_wrappers_cover_template_signature_and_logging_contracts() {
     )
     .expect("save logging");
     assert_eq!(saved_logging.retention_days, 14);
+    let saved_editor = save_editor_settings(
+        as_tauri_state(&state),
+        EditorSettingsInput {
+            indent_style: EditorIndentStyle::Tabs,
+            tab_size: 0,
+        },
+    )
+    .expect("save editor");
+    assert_eq!(saved_editor.indent_style, EditorIndentStyle::Tabs);
+    assert_eq!(saved_editor.tab_size, 2);
     let saved_proofreading = save_proofreading_settings(
         as_tauri_state(&state),
         ProofreadingSettingsInput {

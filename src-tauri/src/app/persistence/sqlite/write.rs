@@ -45,6 +45,9 @@ pub(super) fn clear_settings_tables(transaction: &Transaction<'_>) -> Result<(),
         .execute("DELETE FROM settings_logging", [])
         .map_err(|error| error.to_string())?;
     transaction
+        .execute("DELETE FROM settings_editor", [])
+        .map_err(|error| error.to_string())?;
+    transaction
         .execute("DELETE FROM settings_proofreading_disabled_rules", [])
         .map_err(|error| error.to_string())?;
     Ok(())
@@ -60,6 +63,15 @@ pub(super) fn insert_settings(
             params![
                 settings.logging.mode.as_str(),
                 i64::from(settings.logging.retention_days)
+            ],
+        )
+        .map_err(|error| error.to_string())?;
+    transaction
+        .execute(
+            "INSERT INTO settings_editor (id, indent_style, tab_size) VALUES (1, ?1, ?2)",
+            params![
+                settings.editor.indent_style.as_str(),
+                i64::from(settings.editor.tab_size)
             ],
         )
         .map_err(|error| error.to_string())?;

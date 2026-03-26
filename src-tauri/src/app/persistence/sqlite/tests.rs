@@ -41,6 +41,7 @@ fn sqlite_repository_round_trips_store_and_settings() {
             mode: LoggingMode::Standard,
             retention_days: 30,
         },
+        editor: Default::default(),
         proofreading: ProofreadingSettings {
             disabled_rule_ids: vec!["prh".to_string(), "whitespace.trailing".to_string()],
         },
@@ -81,7 +82,7 @@ fn sqlite_repository_initializes_schema_only_once() {
     let version = connection
         .pragma_query_value(None, "user_version", |row| row.get::<_, i32>(0))
         .expect("query user version");
-    assert_eq!(version, 1);
+    assert_eq!(version, 2);
     assert!(!store_initialized(&connection).expect("store initialized"));
     assert!(!settings_initialized(&connection).expect("settings initialized"));
 
@@ -172,6 +173,7 @@ fn sqlite_repository_loads_seed_defaults_when_database_has_no_saved_state() {
     );
     assert_eq!(settings.logging.mode, LoggingMode::ErrorsOnly);
     assert_eq!(settings.logging.retention_days, 14);
+    assert_eq!(settings.editor.tab_size, 2);
     assert!(settings.proofreading.disabled_rule_ids.is_empty());
 }
 
