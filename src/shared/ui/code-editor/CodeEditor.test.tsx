@@ -192,6 +192,251 @@ describe("CodeEditor", () => {
     expect(getEditorView("本文").state.doc.toString()).not.toContain("\t");
   });
 
+  it("moves focus out of multiline editors after Ctrl+M toggle and Tab", async () => {
+    const user = userEvent.setup();
+
+    function ControlledEditor() {
+      const [value, setValue] = useState("alpha");
+
+      return <CodeEditor ariaLabel="本文" value={value} onChange={setValue} />;
+    }
+
+    render(
+      <div>
+        <ControlledEditor />
+        <button type="button">次へ</button>
+      </div>,
+    );
+
+    const textbox = screen.getByRole("textbox", { name: "本文" });
+    await user.click(textbox);
+    fireEvent.keyDown(textbox, { key: "m", ctrlKey: true });
+    await user.tab();
+
+    expect(screen.getByRole("button", { name: "次へ" })).toHaveFocus();
+    expect(getEditorView("本文").state.doc.toString()).toBe("alpha");
+  });
+
+  it("moves focus backward from multiline editors after Ctrl+M toggle and Shift+Tab", async () => {
+    const user = userEvent.setup();
+
+    function ControlledEditor() {
+      const [value, setValue] = useState("alpha");
+
+      return <CodeEditor ariaLabel="本文" value={value} onChange={setValue} />;
+    }
+
+    render(
+      <div>
+        <button type="button">前へ</button>
+        <ControlledEditor />
+      </div>,
+    );
+
+    const textbox = screen.getByRole("textbox", { name: "本文" });
+    await user.click(textbox);
+    fireEvent.keyDown(textbox, { key: "m", ctrlKey: true });
+    await user.tab({ shift: true });
+
+    expect(screen.getByRole("button", { name: "前へ" })).toHaveFocus();
+    expect(getEditorView("本文").state.doc.toString()).toBe("alpha");
+  });
+
+  it("moves focus out of multiline editors when tab focus mode is enabled through view.setTabFocusMode(true)", async () => {
+    const user = userEvent.setup();
+
+    function ControlledEditor() {
+      const [value, setValue] = useState("alpha");
+
+      return <CodeEditor ariaLabel="本文" value={value} onChange={setValue} />;
+    }
+
+    render(
+      <div>
+        <ControlledEditor />
+        <button type="button">次へ</button>
+      </div>,
+    );
+
+    const textbox = screen.getByRole("textbox", { name: "本文" });
+    await user.click(textbox);
+    getEditorView("本文").setTabFocusMode(true);
+    await user.tab();
+
+    expect(screen.getByRole("button", { name: "次へ" })).toHaveFocus();
+    expect(getEditorView("本文").state.doc.toString()).toBe("alpha");
+  });
+
+  it("moves focus backward when tab focus mode is temporarily enabled through view.setTabFocusMode(2000)", async () => {
+    const user = userEvent.setup();
+
+    function ControlledEditor() {
+      const [value, setValue] = useState("alpha");
+
+      return <CodeEditor ariaLabel="本文" value={value} onChange={setValue} />;
+    }
+
+    render(
+      <div>
+        <button type="button">前へ</button>
+        <ControlledEditor />
+      </div>,
+    );
+
+    const textbox = screen.getByRole("textbox", { name: "本文" });
+    await user.click(textbox);
+    getEditorView("本文").setTabFocusMode(2000);
+    await user.tab({ shift: true });
+
+    expect(screen.getByRole("button", { name: "前へ" })).toHaveFocus();
+    expect(getEditorView("本文").state.doc.toString()).toBe("alpha");
+  });
+
+  it("moves focus out of multiline editors after Escape temporarily enables tab focus mode", async () => {
+    const user = userEvent.setup();
+
+    function ControlledEditor() {
+      const [value, setValue] = useState("alpha");
+
+      return <CodeEditor ariaLabel="本文" value={value} onChange={setValue} />;
+    }
+
+    render(
+      <div>
+        <ControlledEditor />
+        <button type="button">次へ</button>
+      </div>,
+    );
+
+    const textbox = screen.getByRole("textbox", { name: "本文" });
+    await user.click(textbox);
+    fireEvent.keyDown(textbox, { key: "Escape" });
+    await user.tab();
+
+    expect(screen.getByRole("button", { name: "次へ" })).toHaveFocus();
+    expect(getEditorView("本文").state.doc.toString()).toBe("alpha");
+  });
+
+  it("does not indent selection while tab focus mode is enabled", () => {
+    render(
+      <div>
+        <CodeEditor ariaLabel="本文" value={"alpha\nbeta"} onChange={vi.fn()} />
+        <button type="button">次へ</button>
+      </div>,
+    );
+
+    const textbox = screen.getByRole("textbox", { name: "本文" });
+    const view = getEditorView("本文");
+    view.focus();
+    view.dispatch({
+      selection: EditorSelection.single(0, view.state.doc.length),
+    });
+
+    fireEvent.keyDown(textbox, { key: "m", ctrlKey: true });
+    fireEvent.keyDown(view.contentDOM, { key: "Tab" });
+
+    expect(view.state.doc.toString()).toBe("alpha\nbeta");
+  });
+
+  it("restores soft tab insertion after view.setTabFocusMode(false)", () => {
+    render(<CodeEditor ariaLabel="本文" value="alpha" onChange={vi.fn()} />);
+
+    const view = getEditorView("本文");
+    view.focus();
+    view.dispatch({
+      selection: EditorSelection.cursor(view.state.doc.length),
+    });
+
+    view.setTabFocusMode(true);
+    view.setTabFocusMode(false);
+    fireEvent.keyDown(view.contentDOM, { key: "Tab" });
+
+    expect(view.state.doc.toString()).toBe("alpha  ");
+  });
+
+  it("cancels temporary tab focus mode after another key is pressed", () => {
+    render(<CodeEditor ariaLabel="本文" value="alpha" onChange={vi.fn()} />);
+
+    const view = getEditorView("本文");
+    view.focus();
+    view.dispatch({
+      selection: EditorSelection.cursor(view.state.doc.length),
+    });
+
+    view.setTabFocusMode(2000);
+    fireEvent.keyDown(view.contentDOM, { key: "a" });
+    fireEvent.keyDown(view.contentDOM, { key: "Tab" });
+
+    expect(view.state.doc.toString()).toBe("alpha  ");
+  });
+
+  it("restores soft tab insertion after temporary tab focus mode expires", () => {
+    vi.useFakeTimers();
+
+    try {
+      render(<CodeEditor ariaLabel="本文" value="alpha" onChange={vi.fn()} />);
+
+      const view = getEditorView("本文");
+      view.focus();
+      view.dispatch({
+        selection: EditorSelection.cursor(view.state.doc.length),
+      });
+
+      view.setTabFocusMode(2000);
+      vi.advanceTimersByTime(2001);
+      fireEvent.keyDown(view.contentDOM, { key: "Tab" });
+
+      expect(view.state.doc.toString()).toBe("alpha  ");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("restores soft tab insertion after toggling tab focus mode off", async () => {
+    const user = userEvent.setup();
+
+    function ControlledEditor() {
+      const [value, setValue] = useState("alpha");
+
+      return <CodeEditor ariaLabel="本文" value={value} onChange={setValue} />;
+    }
+
+    render(
+      <div>
+        <ControlledEditor />
+        <button type="button">次へ</button>
+      </div>,
+    );
+
+    const textbox = screen.getByRole("textbox", { name: "本文" });
+    await user.click(textbox);
+    fireEvent.keyDown(textbox, { key: "m", ctrlKey: true });
+    fireEvent.keyDown(textbox, { key: "m", ctrlKey: true });
+    await user.keyboard("{End}{Tab}");
+
+    await waitFor(() => {
+      expect(getEditorView("本文").state.doc.toString()).toBe("alpha  ");
+    });
+    expect(textbox).toHaveFocus();
+  });
+
+  it("restores shift-tab outdent after toggling tab focus mode off", () => {
+    render(<CodeEditor ariaLabel="本文" value={"  alpha\n  beta"} onChange={vi.fn()} />);
+
+    const textbox = screen.getByRole("textbox", { name: "本文" });
+    const view = getEditorView("本文");
+    view.focus();
+    view.dispatch({
+      selection: EditorSelection.single(0, view.state.doc.length),
+    });
+
+    fireEvent.keyDown(textbox, { key: "m", ctrlKey: true });
+    fireEvent.keyDown(textbox, { key: "m", ctrlKey: true });
+    fireEvent.keyDown(view.contentDOM, { key: "Tab", shiftKey: true });
+
+    expect(view.state.doc.toString()).toBe("alpha\nbeta");
+  });
+
   it("indents and outdents selected lines in multiline editors", async () => {
     render(<CodeEditor ariaLabel="本文" value={"alpha\nbeta"} onChange={vi.fn()} />);
 

@@ -9,7 +9,6 @@ import {
   type Line,
   RangeSetBuilder,
   type SelectionRange,
-  type StateCommand,
 } from "@codemirror/state";
 import {
   Decoration,
@@ -67,6 +66,7 @@ export function createCodeEditorBaseExtensions(
     search({ top: true }),
     highlightSelectionMatches({ minSelectionLength: 1 }),
     keymap.of([...searchKeymap, ...defaultKeymap, ...historyKeymap]),
+    tabFocusModeTrackingExtension,
     EditorView.updateListener.of((update) => {
       if (update.docChanged) {
         onDocumentChange(update.state.doc.toString());
@@ -162,12 +162,56 @@ export interface CodeEditorTabOptions {
 }
 
 const DEFAULT_SOFT_TAB_TEXT = "  ";
+const TAB_FOCUS_MODE_DISABLED = -1;
+const TAB_FOCUS_MODE_ENABLED = 0;
+const TEMPORARY_TAB_FOCUS_MODE_DURATION_MS = 2000;
+const temporaryTabFocusModifierKeys = new Set([
+  "Alt",
+  "AltGraph",
+  "CapsLock",
+  "Control",
+  "Meta",
+  "NumLock",
+  "OS",
+  "Shift",
+]);
+const trackedTabFocusModes = new WeakMap<EditorView, number>();
 
 type CodeEditorTabBehavior = "focus" | "soft-indent";
 
 interface CodeEditorTabStrategyInput {
   softTabText: string;
 }
+
+const tabFocusModeTrackingExtension = ViewPlugin.fromClass(
+  class {
+    private readonly originalSetTabFocusMode: EditorView["setTabFocusMode"];
+
+    constructor(private readonly view: EditorView) {
+      trackedTabFocusModes.set(view, TAB_FOCUS_MODE_DISABLED);
+      this.originalSetTabFocusMode = view.setTabFocusMode.bind(view);
+      view.setTabFocusMode = (to) => {
+        this.originalSetTabFocusMode(to);
+        trackedTabFocusModes.set(
+          view,
+          resolveTrackedTabFocusMode(getTrackedTabFocusMode(view), to),
+        );
+      };
+    }
+
+    destroy() {
+      this.view.setTabFocusMode = this.originalSetTabFocusMode;
+      trackedTabFocusModes.delete(this.view);
+    }
+  },
+  {
+    eventObservers: {
+      keydown(event, view) {
+        updateTrackedTabFocusModeFromKeydown(view, event);
+      },
+    },
+  },
+);
 
 const tabBehaviorStrategies: Record<
   CodeEditorTabBehavior,
@@ -178,12 +222,10 @@ const tabBehaviorStrategies: Record<
     keymap.of([
       {
         key: "Tab",
-        preventDefault: true,
         run: createSoftIndentCommand(softTabText),
       },
       {
         key: "Shift-Tab",
-        preventDefault: true,
         run: createSoftOutdentCommand(softTabText),
       },
     ]),
@@ -197,8 +239,13 @@ export function createCodeEditorTabExtension(options: CodeEditorTabOptions): Ext
   });
 }
 
-function createSoftIndentCommand(softTabText: string): StateCommand {
-  return ({ state, dispatch }) => {
+function createSoftIndentCommand(softTabText: string): (view: EditorView) => boolean {
+  return (view) => {
+    if (isTabFocusModeActive(view)) {
+      return false;
+    }
+
+    const { state, dispatch } = view;
     if (hasIndentedSelection(state)) {
       dispatch(
         state.update({
@@ -222,8 +269,13 @@ function createSoftIndentCommand(softTabText: string): StateCommand {
   };
 }
 
-function createSoftOutdentCommand(softTabText: string): StateCommand {
-  return ({ state, dispatch }) => {
+function createSoftOutdentCommand(softTabText: string): (view: EditorView) => boolean {
+  return (view) => {
+    if (isTabFocusModeActive(view)) {
+      return false;
+    }
+
+    const { state, dispatch } = view;
     const changes = buildLineOutdentChanges(state, softTabText);
 
     if (changes.length > 0) {
@@ -236,6 +288,54 @@ function createSoftOutdentCommand(softTabText: string): StateCommand {
 
     return true;
   };
+}
+
+function isTabFocusModeActive(view: EditorView): boolean {
+  const tabFocusMode = getTrackedTabFocusMode(view);
+
+  return (
+    tabFocusMode > TAB_FOCUS_MODE_DISABLED &&
+    (tabFocusMode === TAB_FOCUS_MODE_ENABLED || Date.now() <= tabFocusMode)
+  );
+}
+
+function getTrackedTabFocusMode(view: EditorView): number {
+  return trackedTabFocusModes.get(view) ?? TAB_FOCUS_MODE_DISABLED;
+}
+
+function resolveTrackedTabFocusMode(currentTabFocusMode: number, to?: boolean | number): number {
+  if (typeof to === "boolean") {
+    return to ? TAB_FOCUS_MODE_ENABLED : TAB_FOCUS_MODE_DISABLED;
+  }
+
+  if (typeof to === "number") {
+    return currentTabFocusMode === TAB_FOCUS_MODE_ENABLED
+      ? TAB_FOCUS_MODE_ENABLED
+      : Date.now() + to;
+  }
+
+  return currentTabFocusMode < TAB_FOCUS_MODE_ENABLED
+    ? TAB_FOCUS_MODE_ENABLED
+    : TAB_FOCUS_MODE_DISABLED;
+}
+
+function updateTrackedTabFocusModeFromKeydown(view: EditorView, event: KeyboardEvent): void {
+  const trackedTabFocusMode = getTrackedTabFocusMode(view);
+
+  if (event.key === "Escape") {
+    if (trackedTabFocusMode !== TAB_FOCUS_MODE_ENABLED) {
+      trackedTabFocusModes.set(view, Date.now() + TEMPORARY_TAB_FOCUS_MODE_DURATION_MS);
+    }
+    return;
+  }
+
+  if (
+    trackedTabFocusMode > TAB_FOCUS_MODE_ENABLED &&
+    (Date.now() > trackedTabFocusMode || event.key !== "Tab") &&
+    !temporaryTabFocusModifierKeys.has(event.key)
+  ) {
+    trackedTabFocusModes.set(view, TAB_FOCUS_MODE_DISABLED);
+  }
 }
 
 function hasIndentedSelection(state: EditorState): boolean {
