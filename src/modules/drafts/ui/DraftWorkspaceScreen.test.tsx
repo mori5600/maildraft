@@ -47,6 +47,7 @@ describe("DraftWorkspaceScreen", () => {
         onClearError={vi.fn()}
         onError={vi.fn()}
         onNotice={vi.fn()}
+        onOpenTemplateInput={vi.fn()}
         onSnapshotChange={vi.fn()}
       />,
     );

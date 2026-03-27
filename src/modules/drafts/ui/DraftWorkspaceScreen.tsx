@@ -2,6 +2,7 @@ import { forwardRef, useImperativeHandle } from "react";
 
 import type { StoreSnapshot } from "../../../shared/types/store";
 import type { EditorSettings } from "../../../shared/ui/code-editor/editor-settings";
+import type { TemplateInput } from "../../templates/model";
 import {
   type DraftWorkspaceHandle,
   useDraftWorkspaceState,
@@ -15,6 +16,7 @@ interface DraftWorkspaceScreenProps {
   onClearError: () => void;
   onError: (message: string) => void;
   onNotice: (message: string) => void;
+  onOpenTemplateInput: (input: TemplateInput) => void;
   onSnapshotChange: (snapshot: StoreSnapshot) => void;
   showWhitespace: boolean;
   snapshot: StoreSnapshot;
@@ -31,6 +33,7 @@ export const DraftWorkspaceScreen = forwardRef<DraftWorkspaceHandle, DraftWorksp
       onDisableProofreadingRule,
       onError,
       onNotice,
+      onOpenTemplateInput,
       onSnapshotChange,
       showWhitespace,
       snapshot,
@@ -43,6 +46,7 @@ export const DraftWorkspaceScreen = forwardRef<DraftWorkspaceHandle, DraftWorksp
       onClearError,
       onError,
       onNotice,
+      onOpenTemplateInput,
       onSnapshotChange,
       snapshot,
     });

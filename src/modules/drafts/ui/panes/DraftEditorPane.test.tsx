@@ -14,6 +14,7 @@ describe("DraftEditorPane", () => {
     const handleSaveDraft = vi.fn(async () => {});
     const handleTogglePinned = vi.fn();
     const handleApplyTemplate = vi.fn();
+    const handleCreateTemplateFromDraft = vi.fn();
 
     render(
       <DraftEditorPane
@@ -21,6 +22,7 @@ describe("DraftEditorPane", () => {
         activeIssue={null}
         activeIssueRequestKey={0}
         autoSaveLabel="自動保存済み"
+        canCreateTemplate
         canDuplicate
         draftForm={createDraftInput({ tags: ["既存"] })}
         selectedDraftId="draft-input-1"
@@ -29,6 +31,7 @@ describe("DraftEditorPane", () => {
         templates={[createTemplate()]}
         onApplyTemplate={handleApplyTemplate}
         onChangeDraft={handleChangeDraft}
+        onCreateTemplateFromDraft={handleCreateTemplateFromDraft}
         onDeleteDraft={handleDeleteDraft}
         onDuplicateDraft={handleDuplicateDraft}
         onSaveDraft={handleSaveDraft}
@@ -63,6 +66,9 @@ describe("DraftEditorPane", () => {
     await user.click(screen.getByRole("button", { name: "固定" }));
     expect(handleTogglePinned).toHaveBeenCalled();
 
+    await user.click(screen.getByRole("button", { name: "テンプレート化" }));
+    expect(handleCreateTemplateFromDraft).toHaveBeenCalled();
+
     await user.click(screen.getByRole("button", { name: "複製" }));
     expect(handleDuplicateDraft).toHaveBeenCalled();
 
@@ -77,6 +83,7 @@ describe("DraftEditorPane", () => {
         activeIssue={null}
         activeIssueRequestKey={0}
         autoSaveLabel="自動保存済み"
+        canCreateTemplate={false}
         canDuplicate
         draftForm={createDraftInput()}
         selectedDraftId="draft-input-1"
@@ -85,6 +92,7 @@ describe("DraftEditorPane", () => {
         templates={[createTemplate()]}
         onApplyTemplate={vi.fn()}
         onChangeDraft={vi.fn()}
+        onCreateTemplateFromDraft={vi.fn()}
         onDeleteDraft={vi.fn(async () => {})}
         onDuplicateDraft={vi.fn(async () => {})}
         onSaveDraft={vi.fn(async () => {})}

@@ -23,6 +23,7 @@ describe("DraftWorkspace", () => {
         autoSaveLabel="自動保存済み"
         availableTags={["社外"]}
         canApplyVariablePreset
+        canCreateTemplate
         canDuplicate
         canSaveVariablePreset
         detailedCheckStatus="ready"
@@ -69,6 +70,7 @@ describe("DraftWorkspace", () => {
         onChangeVariablePresetName={vi.fn()}
         onCopyPreview={vi.fn(async () => {})}
         onCreateDraft={vi.fn()}
+        onCreateTemplateFromDraft={vi.fn()}
         onCreateVariablePreset={vi.fn()}
         onDeleteDraft={vi.fn(async () => {})}
         onDeleteVariablePreset={vi.fn(async () => {})}

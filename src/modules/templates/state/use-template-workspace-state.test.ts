@@ -3,6 +3,7 @@ import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import type { StoreSnapshot } from "../../../shared/types/store";
+import { createTemplateInput } from "../../../test/ui-fixtures";
 import { buildTrashItemKey } from "../../trash/model";
 import {
   buildTemplateEditingState,
@@ -341,6 +342,47 @@ describe("template workspace state", () => {
     expect(result.current.templateWorkspaceProps.selectedTemplateId).toBeNull();
     expect(onViewChange).toHaveBeenCalledWith("templates");
     expect(onNotice).toHaveBeenCalledWith("新しいテンプレートを作成しています。");
+  });
+
+  it("opens an unsaved template input from another workspace", () => {
+    const onNotice = vi.fn();
+    const onViewChange = vi.fn();
+
+    const { result } = renderHook(() =>
+      useTemplateWorkspaceState({
+        onClearError: vi.fn(),
+        onError: vi.fn(),
+        onFlushDraft: vi.fn(),
+        onNotice,
+        onOpenDraftInput: vi.fn(),
+        onSnapshotChange: vi.fn(),
+        onTrashItemSelect: vi.fn(),
+        onViewChange,
+        snapshot,
+      }),
+    );
+
+    act(() => {
+      result.current.openTemplateInput(
+        createTemplateInput({
+          id: "template-from-draft",
+          name: "営業フォロー",
+          subject: "次回提案のご案内",
+          tags: ["社外", "営業"],
+        }),
+      );
+    });
+
+    expect(result.current.templateWorkspaceProps.selectedTemplateId).toBeNull();
+    expect(result.current.templateWorkspaceProps.templateForm).toMatchObject({
+      id: "template-from-draft",
+      name: "営業フォロー",
+      subject: "次回提案のご案内",
+      tags: ["社外", "営業"],
+    });
+    expect(result.current.templateWorkspaceProps.autoSaveLabel).toBe("未保存の変更があります");
+    expect(onViewChange).toHaveBeenCalledWith("templates");
+    expect(onNotice).toHaveBeenCalledWith("下書きから新しいテンプレートを作成しています。");
   });
 
   it("keeps trashed signature ids and falls back only when the signature fully disappears", () => {

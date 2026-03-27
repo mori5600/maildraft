@@ -26,8 +26,10 @@ interface DraftEditorPaneProps {
   editorSettings?: EditorSettings;
   showWhitespace: boolean;
   autoSaveLabel: string;
+  canCreateTemplate: boolean;
   canDuplicate: boolean;
   onChangeDraft: <K extends keyof DraftInput>(field: K, value: DraftInput[K]) => void;
+  onCreateTemplateFromDraft: () => void;
   onDeleteDraft: () => Promise<void>;
   onDuplicateDraft: () => Promise<void>;
   onSaveDraft: () => Promise<void>;
@@ -46,8 +48,10 @@ export function DraftEditorPane({
   editorSettings,
   showWhitespace,
   autoSaveLabel,
+  canCreateTemplate,
   canDuplicate,
   onChangeDraft,
+  onCreateTemplateFromDraft,
   onDeleteDraft,
   onDuplicateDraft,
   onSaveDraft,
@@ -98,6 +102,14 @@ export function DraftEditorPane({
           <div className="flex gap-2">
             <Button size="sm" title="Ctrl/Cmd+Shift+P" variant="ghost" onClick={onTogglePinned}>
               {draftForm.isPinned ? "固定解除" : "固定"}
+            </Button>
+            <Button
+              disabled={!canCreateTemplate}
+              size="sm"
+              variant="ghost"
+              onClick={onCreateTemplateFromDraft}
+            >
+              テンプレート化
             </Button>
             <Button
               disabled={!canDuplicate}

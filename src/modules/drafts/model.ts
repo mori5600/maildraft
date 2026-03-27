@@ -1,8 +1,7 @@
 import { mergeUniqueTags, tagsEqual } from "../../shared/lib/tags";
 import type { Memo, MemoInput, MemoLike } from "../memo/model";
 import { memoLabel } from "../memo/model";
-import type { TemplateInput } from "../templates/model";
-import type { Template } from "../templates/model";
+import { DEFAULT_TEMPLATE_NAME, type Template, type TemplateInput } from "../templates/model";
 
 export interface DraftHistoryEntry {
   id: string;
@@ -120,6 +119,26 @@ export function createDraftFromMemoInput(
     title: memoLabel(memo),
     body: memo.body,
     tags: [...(memo.tags ?? [])],
+  };
+}
+
+export function createTemplateFromDraftInput(
+  draft: Pick<
+    DraftInput,
+    "title" | "subject" | "recipient" | "opening" | "body" | "closing" | "signatureId" | "tags"
+  >,
+): TemplateInput {
+  return {
+    id: crypto.randomUUID(),
+    name: draft.title.trim() || draft.subject.trim() || DEFAULT_TEMPLATE_NAME,
+    isPinned: false,
+    subject: draft.subject,
+    recipient: draft.recipient,
+    opening: draft.opening,
+    body: draft.body,
+    closing: draft.closing,
+    signatureId: draft.signatureId,
+    tags: [...(draft.tags ?? [])],
   };
 }
 

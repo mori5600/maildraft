@@ -136,6 +136,7 @@ function createStateOptions(
     onDisableProofreadingRule: vi.fn(async () => {}),
     onError: vi.fn(),
     onNotice: vi.fn(),
+    onOpenTemplateInput: vi.fn(),
     onSnapshotChange: vi.fn(),
     snapshot: createCleanSnapshot(),
     ...overrides,
@@ -330,6 +331,46 @@ describe("useDraftWorkspaceState general", () => {
     expect(updater(draftForm)).toMatchObject({
       tags: ["社外", "営業"],
     });
+  });
+
+  it("opens a new template from the current draft after flushing pending auto-save work", () => {
+    const draftForm = createDraftInput({
+      body: "提案内容です。",
+      id: "draft-to-template",
+      opening: "いつもお世話になっております。",
+      subject: "次回提案のご案内",
+      tags: ["社外", "営業"],
+      title: "営業フォロー",
+    });
+    configureWorkspaceMocks(draftForm);
+    const onOpenTemplateInput = vi.fn();
+
+    const { result } = renderHook(() =>
+      useDraftWorkspaceState(
+        createStateOptions({
+          onOpenTemplateInput,
+          snapshot: createCleanSnapshot({
+            signatures: [createSignature({ id: "signature-default", isDefault: true })],
+          }),
+        }),
+      ),
+    );
+
+    act(() => {
+      result.current.workspaceProps.onCreateTemplateFromDraft();
+    });
+
+    expect(mockState.persistenceState.flushPendingDraft).toHaveBeenCalledTimes(1);
+    expect(onOpenTemplateInput).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "営業フォロー",
+        subject: "次回提案のご案内",
+        body: "提案内容です。",
+        signatureId: "signature-1",
+        tags: ["社外", "営業"],
+      }),
+    );
+    expect(result.current.workspaceProps.canCreateTemplate).toBe(true);
   });
 
   it("copies the rendered preview and reports both success and failure paths", async () => {

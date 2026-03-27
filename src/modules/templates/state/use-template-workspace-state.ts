@@ -147,6 +147,18 @@ export function useTemplateWorkspaceState({
       templateFormRef,
     });
 
+  const openTemplateInput = useCallback(
+    (input: TemplateInput) => {
+      flushPendingTemplate();
+      setSelectedTemplateId(null);
+      setTemplateForm(input);
+      setTemplateAutoSaveState("idle");
+      onViewChange("templates");
+      onNotice("下書きから新しいテンプレートを作成しています。");
+    },
+    [flushPendingTemplate, onNotice, onViewChange, setTemplateAutoSaveState],
+  );
+
   function hydrateTemplateState(
     nextSnapshot: StoreSnapshot,
     preferredTemplateId: string | null = null,
@@ -273,6 +285,7 @@ export function useTemplateWorkspaceState({
     createTemplate,
     flushPendingTemplate,
     hydrateTemplateState,
+    openTemplateInput,
     saveTemplate,
     syncTemplateSignatureId,
     toggleTemplatePinned,

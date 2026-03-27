@@ -10,6 +10,7 @@ import {
   createSignature,
   createStoreSnapshot,
   createTemplate,
+  createTemplateInput,
 } from "../../test/ui-fixtures";
 
 const mockState = vi.hoisted(() => ({
@@ -21,6 +22,7 @@ const mockState = vi.hoisted(() => ({
   templateCreate: vi.fn(),
   templateFlush: vi.fn(),
   templateHydrate: vi.fn(),
+  templateOpenInput: vi.fn(),
   templateSave: vi.fn(async () => {}),
   templateSyncSignatureId: vi.fn(),
   templateTogglePinned: vi.fn(),
@@ -154,6 +156,7 @@ vi.mock("../../modules/templates/state/use-template-workspace-state", () => ({
       createTemplate: mockState.templateCreate,
       flushPendingTemplate: mockState.templateFlush,
       hydrateTemplateState: mockState.templateHydrate,
+      openTemplateInput: mockState.templateOpenInput,
       saveTemplate: mockState.templateSave,
       syncTemplateSignatureId: mockState.templateSyncSignatureId,
       templateWorkspaceProps: {
@@ -550,6 +553,7 @@ describe("useMaildraftApp", () => {
     const templateOptions = mockState.templateOptions[mockState.templateOptions.length - 1];
     const signatureOptions = mockState.signatureOptions[mockState.signatureOptions.length - 1];
     const draftInput = createDraftInput({ id: "draft-from-callback" });
+    const templateInput = createTemplateInput({ id: "template-from-callback" });
     const nextSnapshot = createStoreSnapshot({
       templates: [createTemplate({ id: "template-callback" })],
       signatures: [createSignature({ id: "signature-callback" })],
@@ -571,10 +575,12 @@ describe("useMaildraftApp", () => {
       templateOptions?.onViewChange("templates");
       signatureOptions?.onFlushDraft();
       signatureOptions?.onViewChange("signatures");
+      result.current.draftWorkspaceProps.onOpenTemplateInput(templateInput);
     });
 
     expect(draftWorkspaceRef.current.openDraftInput).toHaveBeenNthCalledWith(1, draftInput);
     expect(draftWorkspaceRef.current.openDraftInput).toHaveBeenNthCalledWith(2, draftInput);
+    expect(mockState.templateOpenInput).toHaveBeenCalledWith(templateInput);
     expect(draftWorkspaceRef.current.flushPendingDraft).toHaveBeenCalledTimes(2);
     expect(result.current.draftWorkspaceProps.snapshot).toEqual(nextSnapshot);
     expect(result.current.view).toBe("signatures");

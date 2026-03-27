@@ -37,6 +37,7 @@ interface DraftWorkspaceProps {
   autoSaveLabel: string;
   searchQuery: string;
   sort: DraftSortOption;
+  canCreateTemplate: boolean;
   canDuplicate: boolean;
   canSaveVariablePreset: boolean;
   canApplyVariablePreset: boolean;
@@ -55,6 +56,7 @@ interface DraftWorkspaceProps {
   onSaveVariablePreset: () => Promise<void>;
   onDeleteVariablePreset: () => Promise<void>;
   onCopyPreview: () => Promise<void>;
+  onCreateTemplateFromDraft: () => void;
   onSaveDraft: () => Promise<void>;
   onDeleteDraft: () => Promise<void>;
   onDuplicateDraft: () => Promise<void>;
@@ -90,6 +92,7 @@ export function DraftWorkspace({
   autoSaveLabel,
   searchQuery,
   sort,
+  canCreateTemplate,
   canDuplicate,
   canSaveVariablePreset,
   canApplyVariablePreset,
@@ -108,6 +111,7 @@ export function DraftWorkspace({
   onSaveVariablePreset,
   onDeleteVariablePreset,
   onCopyPreview,
+  onCreateTemplateFromDraft,
   onSaveDraft,
   onDeleteDraft,
   onDuplicateDraft,
@@ -151,6 +155,7 @@ export function DraftWorkspace({
           activeIssue={viewModel.activeIssue}
           activeIssueRequestKey={uiState.selectedIssueRequestKey}
           autoSaveLabel={autoSaveLabel}
+          canCreateTemplate={canCreateTemplate}
           canDuplicate={canDuplicate}
           draftForm={draftForm}
           editorSettings={editorSettings}
@@ -160,6 +165,7 @@ export function DraftWorkspace({
           templates={templates}
           onApplyTemplate={onApplyTemplate}
           onChangeDraft={onChangeDraft}
+          onCreateTemplateFromDraft={onCreateTemplateFromDraft}
           onDeleteDraft={onDeleteDraft}
           onDuplicateDraft={onDuplicateDraft}
           onSaveDraft={onSaveDraft}

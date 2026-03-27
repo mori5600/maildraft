@@ -6,7 +6,13 @@ import { pickKnownSignatureId, templateExists } from "../../../shared/lib/store-
 import { collectUniqueTags, resolveActiveTagFilter } from "../../../shared/lib/tags";
 import type { StoreSnapshot } from "../../../shared/types/store";
 import { renderDraftPreview } from "../../renderer/render-draft";
-import { applyTemplateToDraft, type DraftInput } from "../model";
+import type { TemplateInput } from "../../templates/model";
+import {
+  applyTemplateToDraft,
+  createTemplateFromDraftInput,
+  draftHasMeaningfulContent,
+  type DraftInput,
+} from "../model";
 import { formatDraftAutoSaveState, toDraftWorkspaceErrorMessage } from "./draft-workspace-helpers";
 import { useDraftPersistenceState } from "./use-draft-persistence-state";
 import { useDraftProofreadingState } from "./use-draft-proofreading-state";
@@ -47,6 +53,7 @@ interface DraftWorkspaceStateOptions {
   onClearError: () => void;
   onError: (message: string) => void;
   onNotice: (message: string) => void;
+  onOpenTemplateInput: (input: TemplateInput) => void;
   onSnapshotChange: (snapshot: StoreSnapshot) => void;
 }
 
@@ -65,6 +72,7 @@ export function useDraftWorkspaceState({
   onClearError,
   onError,
   onNotice,
+  onOpenTemplateInput,
   onSnapshotChange,
 }: DraftWorkspaceStateOptions) {
   const [draftSearchQuery, setDraftSearchQuery] = useState("");
@@ -154,6 +162,8 @@ export function useDraftWorkspaceState({
     });
   }, [setDraftForm, snapshot]);
 
+  const canCreateTemplate = draftHasMeaningfulContent(draftForm);
+
   function changeDraft<K extends keyof DraftInput>(field: K, value: DraftInput[K]) {
     if (isDetailedProofreadingTriggerField(field)) {
       proofreadingState.markDetailedProofreadingPending();
@@ -226,6 +236,15 @@ export function useDraftWorkspaceState({
     onNotice(`テンプレート「${template.name}」を下書きに反映しました。`);
   }
 
+  function createTemplateFromDraft() {
+    if (!canCreateTemplate) {
+      return;
+    }
+
+    flushPendingDraft();
+    onOpenTemplateInput(createTemplateFromDraftInput(draftForm));
+  }
+
   return {
     handle: {
       copyPreview,
@@ -242,6 +261,7 @@ export function useDraftWorkspaceState({
       autoSaveLabel: formatDraftAutoSaveState(draftAutoSaveState),
       availableTags: availableDraftTags,
       canApplyVariablePreset: variablePresetState.canApplyVariablePreset,
+      canCreateTemplate,
       canDuplicate: selectedDraftId !== null,
       canSaveVariablePreset: variablePresetState.canSaveVariablePreset,
       detailedCheckStatus: proofreadingState.detailedCheckStatus,
@@ -261,6 +281,7 @@ export function useDraftWorkspaceState({
       onChangeVariablePresetName: variablePresetState.changeVariablePresetName,
       onCopyPreview: copyPreview,
       onCreateDraft: createDraftWithReset,
+      onCreateTemplateFromDraft: createTemplateFromDraft,
       onCreateVariablePreset: variablePresetState.createVariablePreset,
       onDeleteDraft: deleteDraft,
       onDeleteVariablePreset: variablePresetState.deleteVariablePreset,

@@ -197,6 +197,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
       onClearError: shell.clearError,
       onError: (message: string) => shell.setError(message),
       onNotice: (message: string) => shell.setNotice(message),
+      onOpenTemplateInput: templateState.openTemplateInput,
       onSnapshotChange: shell.setSnapshot,
       showWhitespace: shell.showWhitespace,
       snapshot: shell.snapshot,

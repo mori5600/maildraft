@@ -131,6 +131,7 @@ function createStateOptions(
     onDisableProofreadingRule: vi.fn(async () => {}),
     onError: vi.fn(),
     onNotice: vi.fn(),
+    onOpenTemplateInput: vi.fn(),
     onSnapshotChange: vi.fn(),
     snapshot: createCleanSnapshot(),
     ...overrides,
