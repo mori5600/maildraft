@@ -1,9 +1,9 @@
-import { useDeferredValue, useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 
 import { copyPlainText } from "../../../shared/lib/clipboard";
 import type { DraftSortOption } from "../../../shared/lib/list-sort";
 import { pickKnownSignatureId, templateExists } from "../../../shared/lib/store-snapshot";
-import { collectUniqueTags } from "../../../shared/lib/tags";
+import { collectUniqueTags, resolveActiveTagFilter } from "../../../shared/lib/tags";
 import type { StoreSnapshot } from "../../../shared/types/store";
 import { renderDraftPreview } from "../../renderer/render-draft";
 import { applyTemplateToDraft, type DraftInput } from "../model";
@@ -71,10 +71,11 @@ export function useDraftWorkspaceState({
   const [draftSort, setDraftSort] = useState<DraftSortOption>("recent");
   const [draftTagFilterState, setDraftTagFilter] = useState<string | null>(null);
   const deferredDraftSearchQuery = useDeferredValue(draftSearchQuery);
-  const availableDraftTags = collectUniqueTags(snapshot.drafts);
-  const activeDraftTagFilter = availableDraftTagsIncludes(availableDraftTags, draftTagFilterState)
-    ? draftTagFilterState
-    : null;
+  const availableDraftTags = useMemo(() => collectUniqueTags(snapshot.drafts), [snapshot.drafts]);
+  const activeDraftTagFilter = useMemo(
+    () => resolveActiveTagFilter(availableDraftTags, draftTagFilterState),
+    [availableDraftTags, draftTagFilterState],
+  );
 
   const persistenceState = useDraftPersistenceState({
     onClearError,
@@ -287,10 +288,6 @@ export function useDraftWorkspaceState({
       variablePresets: snapshot.variablePresets,
     },
   };
-}
-
-function availableDraftTagsIncludes(tags: string[], value: string | null): value is string {
-  return value !== null && tags.includes(value);
 }
 
 function isDetailedProofreadingTriggerField(

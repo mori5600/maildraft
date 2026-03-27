@@ -431,4 +431,59 @@ describe("useDraftWorkspaceState general", () => {
     expect(result.current.workspaceProps.activeTagFilter).toBe("社内");
     expect(result.current.workspaceProps.availableTags).toEqual(["社外", "社内"]);
   });
+
+  it("clears an active tag filter when the next snapshot no longer exposes that tag", () => {
+    configureWorkspaceMocks(
+      createDraftInput({
+        id: "draft-selected",
+        title: "選択中",
+      }),
+    );
+
+    const initialSnapshot = createCleanSnapshot({
+      drafts: [
+        createDraft({
+          id: "draft-a",
+          tags: ["社外"],
+          title: "Alpha",
+        }),
+      ],
+      signatures: [createSignature({ id: "signature-default", isDefault: true })],
+    });
+    const nextSnapshot = createCleanSnapshot({
+      drafts: [
+        createDraft({
+          id: "draft-b",
+          tags: ["社内"],
+          title: "Beta",
+        }),
+      ],
+      signatures: [createSignature({ id: "signature-default", isDefault: true })],
+    });
+
+    const { result, rerender } = renderHook(
+      ({ snapshot }: { snapshot: ReturnType<typeof createCleanSnapshot> }) =>
+        useDraftWorkspaceState(
+          createStateOptions({
+            snapshot,
+          }),
+        ),
+      {
+        initialProps: {
+          snapshot: initialSnapshot,
+        },
+      },
+    );
+
+    act(() => {
+      result.current.workspaceProps.onChangeTagFilter("社外");
+    });
+
+    expect(result.current.workspaceProps.activeTagFilter).toBe("社外");
+
+    rerender({ snapshot: nextSnapshot });
+
+    expect(result.current.workspaceProps.activeTagFilter).toBeNull();
+    expect(result.current.workspaceProps.availableTags).toEqual(["社内"]);
+  });
 });

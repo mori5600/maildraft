@@ -1,9 +1,8 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useRef, useState } from "react";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import { MEMO_SORT_OPTIONS, type MemoSortOption } from "../../../shared/lib/list-sort";
 import { applyDeletedMemoResult, getDefaultSignatureId } from "../../../shared/lib/store-snapshot";
-import { collectUniqueTags } from "../../../shared/lib/tags";
 import type { StoreSnapshot, WorkspaceView } from "../../../shared/types/store";
 import { createDraftFromMemoInput, type DraftInput } from "../../drafts/model";
 import { buildTrashItemKey } from "../../trash/model";
@@ -11,12 +10,11 @@ import { createEmptyMemo, memoHasDraftContent, type MemoInput, toMemoInput } fro
 import {
   buildMemoEditingState,
   createInitialMemoState,
-  filterMemos,
   findMemo,
-  getMemoUpdatedAt,
   toMemoWorkspaceErrorMessage,
 } from "./memo-workspace-helpers";
 import { useMemoAutoSave } from "./use-memo-auto-save";
+import { useMemoWorkspaceDerivations } from "./use-memo-workspace-derivations";
 
 export interface MemoWorkspaceStateOptions {
   onClearError: () => void;
@@ -63,15 +61,20 @@ export function useMemoWorkspaceState({
   useEffect(() => {
     snapshotRef.current = snapshot;
   }, [snapshot]);
-
-  const availableMemoTags = useMemo(() => collectUniqueTags(snapshot.memos), [snapshot.memos]);
-  const activeMemoTagFilter = availableMemoTagsIncludes(availableMemoTags, memoTagFilterState)
-    ? memoTagFilterState
-    : null;
-  const filteredMemos = useMemo(
-    () => filterMemos(snapshot.memos, deferredMemoSearchQuery, memoSort, activeMemoTagFilter),
-    [activeMemoTagFilter, deferredMemoSearchQuery, memoSort, snapshot.memos],
-  );
+  const {
+    activeMemoTagFilter,
+    availableMemoTags,
+    canStartDraftFromMemo,
+    filteredMemos,
+    selectedMemoUpdatedAt,
+  } = useMemoWorkspaceDerivations({
+    deferredMemoSearchQuery,
+    memoForm,
+    memoSort,
+    requestedTagFilter: memoTagFilterState,
+    selectedMemoId,
+    snapshot,
+  });
 
   const { autoSaveLabel, flushPendingMemo, saveMemo } = useMemoAutoSave({
     initialAutoSaveState: initialMemoState.autoSaveState,
@@ -172,8 +175,6 @@ export function useMemoWorkspaceState({
     }
   }
 
-  const selectedMemoUpdatedAt = getMemoUpdatedAt(snapshot.memos, selectedMemoId);
-
   return {
     createMemo,
     flushPendingMemo,
@@ -186,7 +187,7 @@ export function useMemoWorkspaceState({
       autoSaveLabel,
       availableTags: availableMemoTags,
       availableSortOptions: MEMO_SORT_OPTIONS,
-      canStartDraftFromMemo: memoHasDraftContent(memoForm),
+      canStartDraftFromMemo,
       memos: filteredMemos,
       memoForm,
       onChangeMemo: changeMemo,
@@ -206,8 +207,4 @@ export function useMemoWorkspaceState({
       totalMemoCount: snapshot.memos.length,
     },
   };
-}
-
-function availableMemoTagsIncludes(tags: string[], value: string | null): value is string {
-  return value !== null && tags.includes(value);
 }

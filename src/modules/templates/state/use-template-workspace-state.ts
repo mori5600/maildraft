@@ -1,27 +1,20 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useRef, useState } from "react";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
-import { sortTemplates, type TemplateSortOption } from "../../../shared/lib/list-sort";
-import {
-  buildSearchHaystack,
-  createSearchTokens,
-  matchesSearchTokens,
-} from "../../../shared/lib/search";
+import type { TemplateSortOption } from "../../../shared/lib/list-sort";
 import {
   applyDeletedTemplateResult,
   applySavedTemplateResult,
   getDefaultSignatureId,
   pickKnownSignatureId,
 } from "../../../shared/lib/store-snapshot";
-import { collectUniqueTags, matchesTagFilter } from "../../../shared/lib/tags";
 import type { StoreSnapshot, WorkspaceView } from "../../../shared/types/store";
 import {
   createDraftFromTemplate,
   createDraftFromTemplateInput,
   type DraftInput,
 } from "../../drafts/model";
-import { renderTemplatePreview } from "../../renderer/render-draft";
-import { buildTrashItemKey, findTrashSignature } from "../../trash/model";
+import { buildTrashItemKey } from "../../trash/model";
 import {
   createEmptyTemplate,
   duplicateTemplateInput,
@@ -35,6 +28,7 @@ import {
   toTemplateWorkspaceErrorMessage,
 } from "./template-workspace-helpers";
 import { useTemplateAutoSave } from "./use-template-auto-save";
+import { useTemplateWorkspaceDerivations } from "./use-template-workspace-derivations";
 
 export interface TemplateWorkspaceStateOptions {
   onClearError: () => void;
@@ -128,62 +122,14 @@ export function useTemplateWorkspaceState({
   useEffect(() => {
     snapshotRef.current = snapshot;
   }, [snapshot]);
-
-  const selectedTemplateSignature = useMemo(
-    () =>
-      findTrashSignature(snapshot.signatures, snapshot.trash.signatures, templateForm.signatureId),
-    [snapshot.signatures, snapshot.trash.signatures, templateForm.signatureId],
-  );
-  const templatePreviewText = useMemo(
-    () => renderTemplatePreview(templateForm, selectedTemplateSignature),
-    [selectedTemplateSignature, templateForm],
-  );
-  const templateSearchTokens = useMemo(
-    () => createSearchTokens(deferredTemplateSearchQuery),
-    [deferredTemplateSearchQuery],
-  );
-  const templateSearchIndex = useMemo(
-    () =>
-      snapshot.templates.map((template) => ({
-        haystack: buildSearchHaystack([
-          template.name,
-          template.subject,
-          template.recipient,
-          template.opening,
-          template.body,
-          template.closing,
-          ...template.tags,
-        ]),
-        template,
-      })),
-    [snapshot.templates],
-  );
-  const availableTemplateTags = useMemo(
-    () => collectUniqueTags(snapshot.templates),
-    [snapshot.templates],
-  );
-  const activeTemplateTagFilter = availableTemplateTagsIncludes(
-    availableTemplateTags,
-    templateTagFilterState,
-  )
-    ? templateTagFilterState
-    : null;
-  const filteredTemplates = useMemo(
-    () =>
-      sortTemplates(
-        templateSearchIndex
-          .filter(({ haystack, template }) => {
-            const matchesSearch =
-              templateSearchTokens.length === 0 ||
-              matchesSearchTokens(templateSearchTokens, haystack);
-
-            return matchesSearch && matchesTagFilter(template.tags, activeTemplateTagFilter);
-          })
-          .map(({ template }) => template),
-        templateSort,
-      ),
-    [activeTemplateTagFilter, templateSearchIndex, templateSearchTokens, templateSort],
-  );
+  const { activeTemplateTagFilter, availableTemplateTags, filteredTemplates, templatePreviewText } =
+    useTemplateWorkspaceDerivations({
+      deferredTemplateSearchQuery,
+      requestedTagFilter: templateTagFilterState,
+      snapshot,
+      templateForm,
+      templateSort,
+    });
 
   const { flushPendingTemplate, saveTemplate, setTemplateAutoSaveState, templateAutoSaveState } =
     useTemplateAutoSave({
@@ -357,8 +303,4 @@ export function useTemplateWorkspaceState({
       totalTemplateCount: snapshot.templates.length,
     },
   };
-}
-
-function availableTemplateTagsIncludes(tags: string[], value: string | null): value is string {
-  return value !== null && tags.includes(value);
 }

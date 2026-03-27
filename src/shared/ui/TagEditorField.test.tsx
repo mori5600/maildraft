@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -42,5 +42,41 @@ describe("TagEditorField", () => {
     await user.clear(input);
     await user.keyboard("{Backspace}");
     expect(handleChangeTags).toHaveBeenCalledWith([]);
+  });
+
+  it("navigates suggestions with arrow keys and closes the picker with Escape", async () => {
+    const user = userEvent.setup();
+    const handleChangeTags = vi.fn();
+
+    render(
+      <TagEditorField
+        availableTags={["社外", "営業", "会議"]}
+        tags={[]}
+        onChangeTags={handleChangeTags}
+      />,
+    );
+
+    const input = screen.getByRole("combobox", { name: "タグ" });
+    await user.click(input);
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+
+    await user.keyboard("{ArrowDown}{Enter}");
+    expect(handleChangeTags).toHaveBeenCalledWith(["営業"]);
+
+    await user.click(input);
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  it("does not commit a tag while IME composition is active", () => {
+    const handleChangeTags = vi.fn();
+
+    render(<TagEditorField availableTags={["社外"]} tags={[]} onChangeTags={handleChangeTags} />);
+
+    const input = screen.getByRole("combobox", { name: "タグ" });
+    fireEvent.change(input, { target: { value: "採用" } });
+    fireEvent.keyDown(input, { isComposing: true, key: "Enter" });
+
+    expect(handleChangeTags).not.toHaveBeenCalled();
   });
 });

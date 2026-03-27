@@ -507,6 +507,60 @@ describe("template workspace state", () => {
       "template-2",
     ]);
   });
+
+  it("clears an active tag filter when the latest snapshot removes that tag", () => {
+    const initialSnapshot: StoreSnapshot = {
+      ...snapshot,
+      templates: [
+        {
+          ...snapshot.templates[0],
+          id: "template-1",
+          tags: ["社外"],
+        },
+      ],
+    };
+    const nextSnapshot: StoreSnapshot = {
+      ...snapshot,
+      templates: [
+        {
+          ...snapshot.templates[0],
+          id: "template-2",
+          tags: ["社内"],
+        },
+      ],
+    };
+
+    const { result, rerender } = renderHook(
+      ({ snapshot }: { snapshot: StoreSnapshot }) =>
+        useTemplateWorkspaceState({
+          onClearError: vi.fn(),
+          onError: vi.fn(),
+          onFlushDraft: vi.fn(),
+          onNotice: vi.fn(),
+          onOpenDraftInput: vi.fn(),
+          onSnapshotChange: vi.fn(),
+          onTrashItemSelect: vi.fn(),
+          onViewChange: vi.fn(),
+          snapshot,
+        }),
+      {
+        initialProps: {
+          snapshot: initialSnapshot,
+        },
+      },
+    );
+
+    act(() => {
+      result.current.templateWorkspaceProps.onChangeTagFilter("社外");
+    });
+
+    expect(result.current.templateWorkspaceProps.activeTagFilter).toBe("社外");
+
+    rerender({ snapshot: nextSnapshot });
+
+    expect(result.current.templateWorkspaceProps.activeTagFilter).toBeNull();
+    expect(result.current.templateWorkspaceProps.availableTags).toEqual(["社内"]);
+  });
 });
 
 afterAll(() => {

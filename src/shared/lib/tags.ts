@@ -44,6 +44,13 @@ export function matchesTagFilter(tags: TagList, activeTag: string | null): boole
   return toTagArray(tags).includes(activeTag);
 }
 
+export function resolveActiveTagFilter(
+  availableTags: readonly string[],
+  activeTag: string | null,
+): string | null {
+  return activeTag !== null && availableTags.includes(activeTag) ? activeTag : null;
+}
+
 export function collectUniqueTags(items: TaggedItem[]): string[] {
   const seen = new Set<string>();
   const uniqueTags: string[] = [];

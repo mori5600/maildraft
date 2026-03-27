@@ -445,6 +445,69 @@ describe("memo workspace state", () => {
     expect(result.current.memoWorkspaceProps.memos.map((memo) => memo.id)).toEqual(["memo-1"]);
   });
 
+  it("clears an active tag filter when the latest snapshot removes that tag", () => {
+    const initialSnapshot = createStoreSnapshot({
+      memos: [
+        createMemo({
+          id: "memo-1",
+          tags: ["会議"],
+          title: "議事録",
+        }),
+      ],
+      trash: {
+        drafts: [],
+        templates: [],
+        signatures: [],
+        memos: [],
+      },
+    });
+    const nextSnapshot = createStoreSnapshot({
+      memos: [
+        createMemo({
+          id: "memo-2",
+          tags: ["採用"],
+          title: "候補者",
+        }),
+      ],
+      trash: {
+        drafts: [],
+        templates: [],
+        signatures: [],
+        memos: [],
+      },
+    });
+
+    const { result, rerender } = renderHook(
+      ({ snapshot }: { snapshot: ReturnType<typeof createStoreSnapshot> }) =>
+        useMemoWorkspaceState({
+          onClearError: vi.fn(),
+          onError: vi.fn(),
+          onNotice: vi.fn(),
+          onOpenDraftInput: vi.fn(),
+          onSnapshotChange: vi.fn(),
+          onTrashItemSelect: vi.fn(),
+          onViewChange: vi.fn(),
+          snapshot,
+        }),
+      {
+        initialProps: {
+          snapshot: initialSnapshot,
+        },
+      },
+    );
+
+    act(() => {
+      result.current.memoWorkspaceProps.onChangeTagFilter("会議");
+    });
+
+    expect(result.current.memoWorkspaceProps.activeTagFilter).toBe("会議");
+
+    rerender({ snapshot: nextSnapshot });
+
+    expect(result.current.memoWorkspaceProps.activeTagFilter).toBeNull();
+    expect(result.current.memoWorkspaceProps.availableTags).toEqual(["採用"]);
+  });
+
   it("deletes the selected memo through a compact payload", async () => {
     const snapshot = createStoreSnapshot({
       memos: [
