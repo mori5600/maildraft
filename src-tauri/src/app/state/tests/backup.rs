@@ -15,6 +15,7 @@ fn logging_settings_and_backup_methods_round_trip_state() {
             body: "本文".to_string(),
             closing: "末尾".to_string(),
             signature_id: Some("signature-default".to_string()),
+            tags: Vec::new(),
         })
         .expect("save template");
 
@@ -47,7 +48,10 @@ fn logging_settings_and_backup_methods_round_trip_state() {
     let persisted_settings = read_settings_file(&settings_file_path(&state));
     assert_eq!(persisted_settings.logging.mode, LoggingMode::Standard);
     assert_eq!(persisted_settings.logging.retention_days, 30);
-    assert_eq!(persisted_settings.editor.indent_style, EditorIndentStyle::Tabs);
+    assert_eq!(
+        persisted_settings.editor.indent_style,
+        EditorIndentStyle::Tabs
+    );
     assert_eq!(persisted_settings.editor.tab_size, 4);
     assert_eq!(
         persisted_settings.proofreading.disabled_rule_ids,
@@ -87,7 +91,10 @@ fn logging_settings_and_backup_methods_round_trip_state() {
         .import_backup(backup_path.to_str().expect("backup path"))
         .expect("import backup");
     assert_eq!(imported.snapshot.templates.len(), 2);
-    assert_eq!(imported.editor_settings.indent_style, EditorIndentStyle::Tabs);
+    assert_eq!(
+        imported.editor_settings.indent_style,
+        EditorIndentStyle::Tabs
+    );
     assert_eq!(imported.editor_settings.tab_size, 4);
     assert_eq!(imported.logging_settings.mode, LoggingMode::Standard);
     assert_eq!(imported.logging_settings.retention_days, 30);
@@ -112,6 +119,7 @@ fn runtime_backup_methods_round_trip_with_sqlite_repository() {
             body: "本文".to_string(),
             closing: "末尾".to_string(),
             signature_id: Some("signature-default".to_string()),
+            tags: vec!["SQLite".to_string()],
         })
         .expect("save template");
     state
@@ -120,6 +128,7 @@ fn runtime_backup_methods_round_trip_with_sqlite_repository() {
             title: "SQLite メモ".to_string(),
             is_pinned: false,
             body: "本文".to_string(),
+            tags: vec!["控え".to_string()],
         })
         .expect("save memo");
     state
@@ -157,7 +166,10 @@ fn runtime_backup_methods_round_trip_with_sqlite_repository() {
         .memos
         .iter()
         .any(|memo| memo.id == "memo-runtime-exported"));
-    assert_eq!(document.settings.editor.indent_style, EditorIndentStyle::Tabs);
+    assert_eq!(
+        document.settings.editor.indent_style,
+        EditorIndentStyle::Tabs
+    );
     assert_eq!(document.settings.editor.tab_size, 4);
     assert_eq!(document.settings.logging.mode, LoggingMode::Standard);
     assert_eq!(document.settings.logging.retention_days, 30);
@@ -182,7 +194,10 @@ fn runtime_backup_methods_round_trip_with_sqlite_repository() {
         .memos
         .iter()
         .any(|memo| memo.id == "memo-runtime-exported"));
-    assert_eq!(imported.editor_settings.indent_style, EditorIndentStyle::Tabs);
+    assert_eq!(
+        imported.editor_settings.indent_style,
+        EditorIndentStyle::Tabs
+    );
     assert_eq!(imported.editor_settings.tab_size, 4);
     assert_eq!(imported.logging_settings.mode, LoggingMode::Standard);
     assert_eq!(imported.logging_settings.retention_days, 30);
@@ -201,7 +216,10 @@ fn runtime_backup_methods_round_trip_with_sqlite_repository() {
         .memos
         .iter()
         .any(|memo| memo.id == "memo-runtime-exported"));
-    assert_eq!(persisted_settings.editor.indent_style, EditorIndentStyle::Tabs);
+    assert_eq!(
+        persisted_settings.editor.indent_style,
+        EditorIndentStyle::Tabs
+    );
     assert_eq!(persisted_settings.editor.tab_size, 4);
     assert_eq!(persisted_settings.logging.mode, LoggingMode::Standard);
     assert_eq!(persisted_settings.logging.retention_days, 30);
@@ -262,6 +280,7 @@ fn import_backup_normalizes_snapshot_and_logging_settings_before_persisting() {
             title: "older".to_string(),
             is_pinned: false,
             body: "older body".to_string(),
+            tags: Vec::new(),
             created_at: "0".to_string(),
             updated_at: "10".to_string(),
         },
@@ -270,6 +289,7 @@ fn import_backup_normalizes_snapshot_and_logging_settings_before_persisting() {
             title: "newer".to_string(),
             is_pinned: false,
             body: "newer body".to_string(),
+            tags: vec!["重要".to_string(), " 重要 ".to_string()],
             created_at: "0".to_string(),
             updated_at: "20".to_string(),
         },
@@ -301,7 +321,10 @@ fn import_backup_normalizes_snapshot_and_logging_settings_before_persisting() {
         .import_backup(backup_path.to_str().expect("backup path"))
         .expect("import backup");
 
-    assert_eq!(imported.editor_settings.indent_style, EditorIndentStyle::Tabs);
+    assert_eq!(
+        imported.editor_settings.indent_style,
+        EditorIndentStyle::Tabs
+    );
     assert_eq!(imported.editor_settings.tab_size, 2);
     assert_eq!(imported.logging_settings.mode, LoggingMode::Standard);
     assert_eq!(imported.logging_settings.retention_days, 14);
@@ -330,6 +353,7 @@ fn import_backup_normalizes_snapshot_and_logging_settings_before_persisting() {
             .collect::<Vec<_>>(),
         vec!["newer", "older"]
     );
+    assert_eq!(imported.snapshot.memos[0].tags, vec!["重要".to_string()]);
     assert_eq!(
         imported
             .snapshot
@@ -354,7 +378,10 @@ fn import_backup_normalizes_snapshot_and_logging_settings_before_persisting() {
     assert_eq!(persisted_store.drafts[0].template_id, None);
     assert_eq!(persisted_store.drafts[0].signature_id, None);
     assert_eq!(persisted_store.templates[0].signature_id, None);
-    assert_eq!(persisted_settings.editor.indent_style, EditorIndentStyle::Tabs);
+    assert_eq!(
+        persisted_settings.editor.indent_style,
+        EditorIndentStyle::Tabs
+    );
     assert_eq!(persisted_settings.editor.tab_size, 2);
     assert_eq!(persisted_settings.logging.retention_days, 14);
     assert_eq!(
@@ -408,6 +435,7 @@ fn failed_import_does_not_mutate_existing_store_or_settings() {
             title: "既存メモ".to_string(),
             is_pinned: true,
             body: "既存本文".to_string(),
+            tags: Vec::new(),
         })
         .expect("save memo");
     state

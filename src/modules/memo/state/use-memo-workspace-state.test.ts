@@ -393,12 +393,14 @@ describe("memo workspace state", () => {
           id: "memo-1",
           title: "議事録",
           body: "Alpha",
+          tags: ["会議"],
           updatedAt: "10",
         }),
         createMemo({
           id: "memo-2",
           title: "候補",
           body: "Bravo",
+          tags: ["議事録"],
           updatedAt: "20",
         }),
       ],
@@ -432,6 +434,15 @@ describe("memo workspace state", () => {
     expect(result.current.memoWorkspaceProps.sort).toBe("label");
     expect(result.current.memoWorkspaceProps.memos.map((memo) => memo.id)).toEqual(["memo-2"]);
     expect(result.current.memoWorkspaceProps.totalMemoCount).toBe(2);
+
+    act(() => {
+      result.current.memoWorkspaceProps.onChangeSearchQuery("");
+      result.current.memoWorkspaceProps.onChangeTagFilter("会議");
+    });
+
+    expect(result.current.memoWorkspaceProps.activeTagFilter).toBe("会議");
+    expect(result.current.memoWorkspaceProps.availableTags).toEqual(["会議", "議事録"]);
+    expect(result.current.memoWorkspaceProps.memos.map((memo) => memo.id)).toEqual(["memo-1"]);
   });
 
   it("deletes the selected memo through a compact payload", async () => {

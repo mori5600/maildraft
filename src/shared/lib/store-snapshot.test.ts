@@ -39,6 +39,7 @@ const snapshot: StoreSnapshot = {
       templateId: "template-1",
       signatureId: "signature-default",
       variableValues: {},
+      tags: [],
       createdAt: "1",
       updatedAt: "2",
     },
@@ -56,6 +57,7 @@ const snapshot: StoreSnapshot = {
       body: "",
       closing: "",
       signatureId: "signature-default",
+      tags: [],
       createdAt: "1",
       updatedAt: "2",
     },
@@ -86,6 +88,7 @@ const snapshot: StoreSnapshot = {
       title: "営業メモ",
       isPinned: false,
       body: "論点整理",
+      tags: [],
       createdAt: "1",
       updatedAt: "2",
     },
@@ -104,6 +107,7 @@ const snapshot: StoreSnapshot = {
           body: "",
           closing: "",
           signatureId: null,
+          tags: [],
           createdAt: "1",
           updatedAt: "1",
         },
@@ -163,6 +167,7 @@ describe("store-snapshot helpers", () => {
       title: "営業メモ",
       isPinned: false,
       body: "論点整理",
+      tags: [],
     });
     expect(pickMemoInput(emptySnapshot, null).title).toBe("");
     expect(pickTemplateInput(emptySnapshot, null).signatureId).toBeNull();
@@ -200,6 +205,7 @@ describe("store-snapshot helpers", () => {
       draft: {
         ...snapshot.drafts[0],
         subject: "更新件名",
+        tags: ["社外"],
         updatedAt: "5",
       },
       draftHistory: [
@@ -215,6 +221,7 @@ describe("store-snapshot helpers", () => {
           templateId: "template-1",
           signatureId: "signature-default",
           variableValues: {},
+          tags: ["社外"],
           recordedAt: "4",
         },
       ],
@@ -226,6 +233,7 @@ describe("store-snapshot helpers", () => {
       template: {
         ...snapshot.templates[0],
         name: "更新テンプレート",
+        tags: ["お礼"],
         updatedAt: "5",
       },
     });
@@ -251,10 +259,12 @@ describe("store-snapshot helpers", () => {
     const nextMemoSnapshot = applySavedMemoResult(snapshot, {
       ...snapshot.memos[0],
       body: "更新済みメモ",
+      tags: ["議事録"],
       updatedAt: "5",
     });
     expect(nextMemoSnapshot.memos[0].body).toBe("更新済みメモ");
     expect(nextMemoSnapshot.memos[0].id).toBe("memo-1");
+    expect(nextMemoSnapshot.memos[0].tags).toEqual(["議事録"]);
   });
 
   it("applies compact delete and restore payloads without replacing the full snapshot", () => {
@@ -270,6 +280,7 @@ describe("store-snapshot helpers", () => {
       templateId: "template-1",
       signatureId: "signature-default",
       variableValues: {},
+      tags: [],
       recordedAt: "3",
     };
     const snapshotWithHistory: StoreSnapshot = {
@@ -358,6 +369,7 @@ describe("store-snapshot helpers", () => {
       id: "draft-2",
       title: "別の下書き",
       updatedAt: "1",
+      tags: ["別件"],
     };
     const draftHistoryEntry = {
       id: "draft-1-history",
@@ -371,6 +383,7 @@ describe("store-snapshot helpers", () => {
       templateId: "template-1",
       signatureId: "signature-default",
       variableValues: {},
+      tags: [],
       recordedAt: "3",
     };
     const otherDraftHistoryEntry = {
@@ -463,6 +476,7 @@ describe("store-snapshot helpers", () => {
           templateId: null,
           signatureId: "signature-default",
           variableValues: {},
+          tags: [],
           recordedAt: "3",
         },
       ],

@@ -29,6 +29,7 @@ impl StoreSnapshot {
             body: "先日は {{案件名}} のお打ち合わせのお時間をいただき、ありがとうございました。\nお話しした内容を踏まえて、次のご提案を整理してご連絡します。".to_string(),
             closing: "引き続きよろしくお願いいたします。".to_string(),
             signature_id: Some(signature.id.clone()),
+            tags: Vec::new(),
             created_at: timestamp.to_string(),
             updated_at: timestamp.to_string(),
         };
@@ -48,6 +49,7 @@ impl StoreSnapshot {
                 "案件名".to_string(),
                 "メール下書きエディタ".to_string(),
             )]),
+            tags: Vec::new(),
             created_at: timestamp.to_string(),
             updated_at: timestamp.to_string(),
         };

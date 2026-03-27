@@ -87,6 +87,7 @@ fn draft_commands_round_trip_snapshot_history_and_trash() {
             template_id: Some("template-thanks".to_string()),
             signature_id: Some("signature-default".to_string()),
             variable_values: BTreeMap::from([("担当者名".to_string(), "山田様".to_string())]),
+            tags: Vec::new(),
         },
     )
     .expect("save draft");
@@ -113,6 +114,7 @@ fn draft_commands_round_trip_snapshot_history_and_trash() {
             template_id: Some("template-thanks".to_string()),
             signature_id: Some("signature-default".to_string()),
             variable_values: BTreeMap::new(),
+            tags: Vec::new(),
         },
     )
     .expect("update draft");
@@ -159,6 +161,7 @@ fn template_signature_and_variable_preset_commands_round_trip() {
             body: "ご確認ください。".to_string(),
             closing: "よろしくお願いいたします。".to_string(),
             signature_id: Some("signature-default".to_string()),
+            tags: Vec::new(),
         },
     )
     .expect("save template");
@@ -247,6 +250,7 @@ fn memo_commands_round_trip() {
             title: "打ち合わせ".to_string(),
             is_pinned: true,
             body: "確認事項".to_string(),
+            tags: Vec::new(),
         },
     )
     .expect("save memo");
@@ -345,6 +349,7 @@ fn backup_commands_export_and_import_state() {
             body: "本文です。".to_string(),
             closing: "よろしくお願いいたします。".to_string(),
             signature_id: Some("signature-default".to_string()),
+            tags: Vec::new(),
         },
     )
     .expect("save template");
@@ -384,6 +389,7 @@ fn empty_trash_command_clears_all_trash_kinds() {
             title: "削除予定".to_string(),
             is_pinned: false,
             body: "本文".to_string(),
+            tags: Vec::new(),
         },
     )
     .expect("save memo");
@@ -407,6 +413,7 @@ fn empty_trash_command_reports_only_the_collections_affected_by_cleanup() {
             title: "メモ".to_string(),
             is_pinned: false,
             body: "本文".to_string(),
+            tags: Vec::new(),
         },
     )
     .expect("save memo");
@@ -625,6 +632,7 @@ fn command_impls_report_missing_entities_and_boundary_inputs() {
                 title: format!("ログ {index}"),
                 is_pinned: false,
                 body: "本文".to_string(),
+                tags: Vec::new(),
             },
         )
         .expect("save memo");
@@ -670,6 +678,7 @@ fn command_impl_results_serialize_as_compact_payloads() {
             body: "本文".to_string(),
             closing: String::new(),
             signature_id: Some("signature-default".to_string()),
+            tags: Vec::new(),
         },
     )
     .expect("save template");
@@ -716,6 +725,7 @@ fn trash_mutation_commands_omit_unaffected_fields_from_json_payloads() {
             title: "メモ".to_string(),
             is_pinned: false,
             body: "本文".to_string(),
+            tags: Vec::new(),
         },
     )
     .expect("save memo");
@@ -820,6 +830,7 @@ fn restore_draft_command_impl_returns_history_only_for_the_restored_draft() {
             template_id: Some("template-thanks".to_string()),
             signature_id: Some("signature-default".to_string()),
             variable_values: BTreeMap::new(),
+            tags: Vec::new(),
         },
     )
     .expect("save draft");
@@ -837,6 +848,7 @@ fn restore_draft_command_impl_returns_history_only_for_the_restored_draft() {
             template_id: Some("template-thanks".to_string()),
             signature_id: Some("signature-default".to_string()),
             variable_values: BTreeMap::new(),
+            tags: Vec::new(),
         },
     )
     .expect("update draft");
@@ -873,6 +885,7 @@ fn tauri_command_wrappers_round_trip_mutations_without_leaking_other_collections
             title: "wrapper".to_string(),
             is_pinned: false,
             body: "本文".to_string(),
+            tags: Vec::new(),
         },
     )
     .expect("save memo");
@@ -928,6 +941,7 @@ fn tauri_command_wrappers_round_trip_mutations_without_leaking_other_collections
             template_id: Some("template-thanks".to_string()),
             signature_id: Some("signature-default".to_string()),
             variable_values: BTreeMap::new(),
+            tags: Vec::new(),
         },
     )
     .expect("save draft");
@@ -956,6 +970,7 @@ fn tauri_command_wrappers_round_trip_mutations_without_leaking_other_collections
             template_id: Some("template-thanks".to_string()),
             signature_id: Some("signature-default".to_string()),
             variable_values: BTreeMap::new(),
+            tags: Vec::new(),
         },
     )
     .expect("update draft");
@@ -1012,6 +1027,7 @@ fn tauri_command_wrappers_cover_template_signature_and_logging_contracts() {
             body: "本文".to_string(),
             closing: String::new(),
             signature_id: Some("signature-default".to_string()),
+            tags: Vec::new(),
         },
     )
     .expect("save template");

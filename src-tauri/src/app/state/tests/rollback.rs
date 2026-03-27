@@ -20,6 +20,7 @@ fn save_draft_rolls_back_when_store_persistence_fails() {
                 template_id: Some("template-thanks".to_string()),
                 signature_id: Some("signature-default".to_string()),
                 variable_values: BTreeMap::new(),
+                tags: Vec::new(),
             })
         },
     );
@@ -43,6 +44,7 @@ fn save_template_rolls_back_when_store_persistence_fails() {
                 body: "ロールバックされる本文".to_string(),
                 closing: "よろしくお願いいたします。".to_string(),
                 signature_id: Some("signature-default".to_string()),
+                tags: Vec::new(),
             })
         },
     );
@@ -80,6 +82,7 @@ fn save_memo_rolls_back_when_store_persistence_fails() {
                 title: "新規メモ".to_string(),
                 is_pinned: true,
                 body: "保存失敗で残ってはいけない".to_string(),
+                tags: Vec::new(),
             })
         },
     );
@@ -122,6 +125,7 @@ fn delete_memo_rolls_back_when_store_persistence_fails() {
             title: "削除対象".to_string(),
             is_pinned: false,
             body: "削除失敗で残るべき".to_string(),
+            tags: Vec::new(),
         })
         .expect("save memo");
     assert_store_operation_rolls_back_on_persist_failure(
@@ -148,6 +152,7 @@ fn restore_draft_history_rolls_back_when_store_persistence_fails() {
             template_id: Some("template-thanks".to_string()),
             signature_id: Some("signature-default".to_string()),
             variable_values: BTreeMap::new(),
+            tags: Vec::new(),
         })
         .expect("save draft");
     let history_id = state
@@ -189,6 +194,7 @@ fn restore_memo_from_trash_rolls_back_when_store_persistence_fails() {
             title: "復元対象".to_string(),
             is_pinned: false,
             body: "復元失敗で残るべき".to_string(),
+            tags: Vec::new(),
         })
         .expect("save memo");
     state.delete_memo("memo-restore").expect("trash memo");
@@ -322,6 +328,7 @@ fn import_backup_rolls_back_store_and_settings_when_settings_persistence_fails()
         title: "復元メモ".to_string(),
         is_pinned: true,
         body: "この内容は失敗時に残ってはいけません。".to_string(),
+        tags: Vec::new(),
         created_at: "1".to_string(),
         updated_at: "2".to_string(),
     });
@@ -394,6 +401,7 @@ fn import_backup_rolls_back_store_and_settings_when_log_pruning_fails() {
         title: "復元メモ".to_string(),
         is_pinned: true,
         body: "この内容は log prune failure で残ってはいけません。".to_string(),
+        tags: Vec::new(),
         created_at: "1".to_string(),
         updated_at: "2".to_string(),
     });
@@ -453,6 +461,7 @@ fn runtime_import_backup_rolls_back_sqlite_state_when_log_pruning_fails() {
         title: "復元メモ".to_string(),
         is_pinned: true,
         body: "この内容は log prune failure で残ってはいけません。".to_string(),
+        tags: Vec::new(),
         created_at: "1".to_string(),
         updated_at: "2".to_string(),
     });

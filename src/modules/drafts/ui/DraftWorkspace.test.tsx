@@ -19,7 +19,9 @@ describe("DraftWorkspace", () => {
 
     render(
       <DraftWorkspace
+        activeTagFilter={null}
         autoSaveLabel="自動保存済み"
+        availableTags={["社外"]}
         canApplyVariablePreset
         canDuplicate
         canSaveVariablePreset
@@ -63,6 +65,7 @@ describe("DraftWorkspace", () => {
         onChangeDraftVariable={vi.fn()}
         onChangeSearchQuery={vi.fn()}
         onChangeSort={vi.fn()}
+        onChangeTagFilter={vi.fn()}
         onChangeVariablePresetName={vi.fn()}
         onCopyPreview={vi.fn(async () => {})}
         onCreateDraft={vi.fn()}

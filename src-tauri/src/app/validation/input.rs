@@ -7,10 +7,10 @@ use crate::{
 };
 
 use super::{
-    validate_id_like, validate_text_length, validate_variables, HashSet, MAX_DISABLED_RULE_IDS,
-    MAX_ID_LENGTH, MAX_MEMO_BODY_LENGTH, MAX_NAME_LENGTH, MAX_OPENING_LENGTH, MAX_RECIPIENT_LENGTH,
-    MAX_RULE_ID_LENGTH, MAX_SIGNATURE_BODY_LENGTH, MAX_SUBJECT_LENGTH, MAX_TEXT_FIELD_LENGTH,
-    MAX_TITLE_LENGTH,
+    validate_id_like, validate_tags, validate_text_length, validate_variables, HashSet,
+    MAX_DISABLED_RULE_IDS, MAX_ID_LENGTH, MAX_MEMO_BODY_LENGTH, MAX_NAME_LENGTH,
+    MAX_OPENING_LENGTH, MAX_RECIPIENT_LENGTH, MAX_RULE_ID_LENGTH, MAX_SIGNATURE_BODY_LENGTH,
+    MAX_SUBJECT_LENGTH, MAX_TEXT_FIELD_LENGTH, MAX_TITLE_LENGTH,
 };
 
 pub fn validate_app_settings(settings: &AppSettings) -> Result<(), String> {
@@ -55,6 +55,7 @@ pub fn validate_draft_input(input: &DraftInput, store: &StoreSnapshot) -> Result
     validate_text_length(&input.body, "本文", MAX_TEXT_FIELD_LENGTH)?;
     validate_text_length(&input.closing, "結び", MAX_OPENING_LENGTH)?;
     validate_variables(&input.variable_values)?;
+    validate_tags(&input.tags, "タグ")?;
 
     validate_known_template_id(input.template_id.as_deref(), store)?;
     validate_known_signature_id(input.signature_id.as_deref(), store)?;
@@ -66,6 +67,7 @@ pub fn validate_memo_input(input: &MemoInput) -> Result<(), String> {
     validate_id_like(&input.id, "メモID", MAX_ID_LENGTH)?;
     validate_text_length(&input.title, "メモタイトル", MAX_TITLE_LENGTH)?;
     validate_text_length(&input.body, "メモ本文", MAX_MEMO_BODY_LENGTH)?;
+    validate_tags(&input.tags, "タグ")?;
     Ok(())
 }
 
@@ -84,6 +86,7 @@ pub fn validate_template_input(input: &TemplateInput, store: &StoreSnapshot) -> 
     validate_text_length(&input.opening, "書き出し", MAX_OPENING_LENGTH)?;
     validate_text_length(&input.body, "本文", MAX_TEXT_FIELD_LENGTH)?;
     validate_text_length(&input.closing, "結び", MAX_OPENING_LENGTH)?;
+    validate_tags(&input.tags, "タグ")?;
 
     validate_known_signature_id(input.signature_id.as_deref(), store)?;
 

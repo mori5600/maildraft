@@ -23,6 +23,7 @@ describe("memo model", () => {
       title: "",
       isPinned: false,
       body: "",
+      tags: [],
     });
 
     expect(
@@ -31,6 +32,7 @@ describe("memo model", () => {
         title: "商談メモ",
         isPinned: true,
         body: "確認事項",
+        tags: ["会議"],
         createdAt: "1",
         updatedAt: "2",
       }),
@@ -39,6 +41,7 @@ describe("memo model", () => {
       title: "商談メモ",
       isPinned: true,
       body: "確認事項",
+      tags: ["会議"],
     });
   });
 
@@ -47,11 +50,13 @@ describe("memo model", () => {
       title: "商談メモ",
       isPinned: false,
       body: "1行目\n2行目",
+      tags: [],
     };
     const untitledMemo = {
       title: "",
       isPinned: false,
       body: "\n 会話ログ \n次の行",
+      tags: [],
     };
 
     expect(memoLabel(titledMemo)).toBe("商談メモ");
@@ -59,7 +64,7 @@ describe("memo model", () => {
     expect(memoExcerpt(titledMemo)).toBe("1行目");
     expect(memoExcerpt(untitledMemo)).toBe("空のメモ");
     expect(memoLineCount(titledMemo)).toBe(2);
-    expect(memoLineCount({ title: "", body: "" })).toBe(1);
+    expect(memoLineCount({ title: "", body: "", tags: [] })).toBe(1);
     expect(memoCharacterCount(titledMemo)).toBe("商談メモ1行目\n2行目".length);
   });
 
@@ -69,6 +74,7 @@ describe("memo model", () => {
       title: "",
       isPinned: false,
       body: "",
+      tags: [],
     };
 
     expect(memoHasMeaningfulContent(emptyMemo)).toBe(false);
@@ -79,17 +85,19 @@ describe("memo model", () => {
     expect(memoHasDraftContent({ ...emptyMemo, body: "本文" })).toBe(true);
     expect(
       memoMatchesPersistedMemo(
-        { ...emptyMemo, title: "商談メモ", isPinned: true, body: "本文" },
+        { ...emptyMemo, title: "商談メモ", isPinned: true, body: "本文", tags: ["議事録"] },
         {
           id: "memo-1",
           title: "商談メモ",
           isPinned: true,
           body: "本文",
+          tags: ["議事録"],
           createdAt: "1",
           updatedAt: "2",
         },
       ),
     ).toBe(true);
+    expect(memoHasMeaningfulContent({ ...emptyMemo, tags: ["議事録"] })).toBe(true);
   });
 });
 

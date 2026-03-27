@@ -4,6 +4,7 @@ import {
   createSearchTokens,
   matchesSearchTokens,
 } from "../../../shared/lib/search";
+import { matchesTagFilter } from "../../../shared/lib/tags";
 import type { StoreSnapshot } from "../../../shared/types/store";
 import {
   createEmptyMemo,
@@ -54,15 +55,25 @@ export function createInitialMemoState(snapshot: StoreSnapshot): InitialMemoStat
   };
 }
 
-export function filterMemos(memos: Memo[], searchQuery: string, sort: MemoSortOption): Memo[] {
+export function filterMemos(
+  memos: Memo[],
+  searchQuery: string,
+  sort: MemoSortOption,
+  activeTag: string | null = null,
+): Memo[] {
   const searchTokens = createSearchTokens(searchQuery);
 
   return sortMemos(
-    searchTokens.length === 0
-      ? memos
-      : memos.filter((memo) =>
-          matchesSearchTokens(searchTokens, buildSearchHaystack([memo.title, memo.body])),
-        ),
+    memos.filter((memo) => {
+      const matchesSearch =
+        searchTokens.length === 0 ||
+        matchesSearchTokens(
+          searchTokens,
+          buildSearchHaystack([memo.title, memo.body, ...memo.tags]),
+        );
+
+      return matchesSearch && matchesTagFilter(memo.tags, activeTag);
+    }),
     sort,
   );
 }

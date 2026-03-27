@@ -23,7 +23,9 @@ pub(crate) fn load_proofreading_settings_impl(
     state.load_proofreading_settings()
 }
 
-pub(crate) fn load_editor_settings_impl(state: &AppState) -> Result<EditorSettingsSnapshot, String> {
+pub(crate) fn load_editor_settings_impl(
+    state: &AppState,
+) -> Result<EditorSettingsSnapshot, String> {
     state.load_editor_settings()
 }
 

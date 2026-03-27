@@ -6,13 +6,18 @@ import { truncate } from "../../../../shared/lib/text";
 import { formatStoredTime } from "../../../../shared/lib/time";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Input, Panel, Select } from "../../../../shared/ui/primitives";
+import { TagBadgeList } from "../../../../shared/ui/TagBadgeList";
+import { TagFilterBar } from "../../../../shared/ui/TagFilterBar";
 import { type Memo, memoExcerpt, memoLabel } from "../../model";
 
 interface MemoListPaneProps {
+  activeTagFilter: string | null;
+  availableTags: string[];
   availableSortOptions: Array<{ value: MemoSortOption; label: string }>;
   memos: Memo[];
   onChangeSearchQuery: (value: string) => void;
   onChangeSort: (value: MemoSortOption) => void;
+  onChangeTagFilter: (tag: string | null) => void;
   onCreateMemo: () => void;
   onSelectMemo: (id: string) => void;
   searchQuery: string;
@@ -22,10 +27,13 @@ interface MemoListPaneProps {
 }
 
 export function MemoListPane({
+  activeTagFilter,
+  availableTags,
   availableSortOptions,
   memos,
   onChangeSearchQuery,
   onChangeSort,
+  onChangeTagFilter,
   onCreateMemo,
   onSelectMemo,
   searchQuery,
@@ -33,7 +41,8 @@ export function MemoListPane({
   sort,
   totalMemoCount,
 }: MemoListPaneProps) {
-  const memoCountLabel = searchQuery.trim()
+  const hasActiveFilter = Boolean(searchQuery.trim() || activeTagFilter);
+  const memoCountLabel = hasActiveFilter
     ? `${memos.length} / ${totalMemoCount}件`
     : `${totalMemoCount}件`;
 
@@ -94,13 +103,19 @@ export function MemoListPane({
               ))}
             </Select>
           </div>
+
+          <TagFilterBar
+            activeTag={activeTagFilter}
+            availableTags={availableTags}
+            onChangeTag={onChangeTagFilter}
+          />
         </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
         {memos.length === 0 ? (
           <div className="rounded-[7px] border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3 py-2.5 text-[13px] leading-6 text-(--color-text-muted)">
-            {searchQuery.trim() ? "検索に一致するメモはありません。" : "まだメモはありません。"}
+            {hasActiveFilter ? "条件に一致するメモはありません。" : "まだメモはありません。"}
           </div>
         ) : (
           <div className="space-y-1">
@@ -143,6 +158,7 @@ export function MemoListPane({
                   <div className="mt-1 truncate text-[11px] text-(--color-text-muted)">
                     {truncate(memoExcerpt(memo), 42)}
                   </div>
+                  <TagBadgeList className="mt-1.5" tags={memo.tags} />
                   <div className="mt-1.5 text-[10px] text-(--color-text-subtle)">
                     {formatStoredTime(memo.updatedAt)}
                   </div>

@@ -28,6 +28,7 @@ const baseDraft: DraftInput = {
     担当者名: "佐藤",
     案件名: "導入相談",
   },
+  tags: [],
 };
 
 const signature: Signature = {
@@ -82,6 +83,7 @@ describe("render-draft", () => {
           body: "ありがとうございます。",
           closing: "",
           signatureId: signature.id,
+          tags: [],
         },
         signature,
       ),

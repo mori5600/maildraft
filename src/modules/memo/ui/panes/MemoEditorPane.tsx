@@ -7,11 +7,13 @@ import { CodeEditor } from "../../../../shared/ui/code-editor/CodeEditor";
 import type { EditorSettings } from "../../../../shared/ui/code-editor/editor-settings";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Input, Panel } from "../../../../shared/ui/primitives";
+import { TagEditorField } from "../../../../shared/ui/TagEditorField";
 import { memoCharacterCount, type MemoInput, memoLabel, memoLineCount } from "../../model";
 
 interface MemoEditorPaneProps {
   activeMemoUpdatedAt: string | null;
   autoSaveLabel: string;
+  availableTags: string[];
   canStartDraftFromMemo: boolean;
   editorSettings?: EditorSettings;
   memoForm: MemoInput;
@@ -28,6 +30,7 @@ interface MemoEditorPaneProps {
 export function MemoEditorPane({
   activeMemoUpdatedAt,
   autoSaveLabel,
+  availableTags,
   canStartDraftFromMemo,
   editorSettings,
   memoForm,
@@ -90,6 +93,15 @@ export function MemoEditorPane({
             placeholder="タイトル"
             value={memoForm.title}
             onChange={(event) => onChangeMemo("title", event.currentTarget.value)}
+          />
+        </div>
+
+        <div className="border-b border-(--color-panel-border) px-4 py-3">
+          <TagEditorField
+            availableTags={availableTags}
+            key={memoForm.id}
+            tags={memoForm.tags}
+            onChangeTags={(tags) => onChangeMemo("tags", tags)}
           />
         </div>
 

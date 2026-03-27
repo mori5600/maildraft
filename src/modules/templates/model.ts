@@ -1,3 +1,5 @@
+import { tagsEqual } from "../../shared/lib/tags";
+
 export interface Template {
   id: string;
   name: string;
@@ -8,6 +10,7 @@ export interface Template {
   body: string;
   closing: string;
   signatureId: string | null;
+  tags: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -22,6 +25,7 @@ export interface TemplateInput {
   body: string;
   closing: string;
   signatureId: string | null;
+  tags: string[];
 }
 
 export const DEFAULT_TEMPLATE_NAME = "新しいテンプレート";
@@ -37,6 +41,7 @@ export function createEmptyTemplate(defaultSignatureId: string | null): Template
     body: "",
     closing: "",
     signatureId: defaultSignatureId,
+    tags: [],
   };
 }
 
@@ -51,6 +56,7 @@ export function toTemplateInput(template: Template): TemplateInput {
     body: template.body,
     closing: template.closing,
     signatureId: template.signatureId,
+    tags: template.tags ?? [],
   };
 }
 
@@ -60,6 +66,7 @@ export function duplicateTemplateInput(template: TemplateInput): TemplateInput {
     id: crypto.randomUUID(),
     isPinned: false,
     name: withCopySuffix(template.name),
+    tags: [...(template.tags ?? [])],
   };
 }
 
@@ -71,7 +78,8 @@ export function templateHasMeaningfulContent(template: TemplateInput): boolean {
     template.recipient.trim() ||
     template.opening.trim() ||
     template.body.trim() ||
-    template.closing.trim(),
+    template.closing.trim() ||
+    (template.tags?.length ?? 0) > 0,
   );
 }
 
@@ -89,7 +97,8 @@ export function templateInputsEqual(left: TemplateInput, right: TemplateInput | 
     left.opening === right.opening &&
     left.body === right.body &&
     left.closing === right.closing &&
-    left.signatureId === right.signatureId
+    left.signatureId === right.signatureId &&
+    tagsEqual(left.tags, right.tags)
   );
 }
 
@@ -110,7 +119,8 @@ export function templateMatchesPersistedTemplate(
     left.opening === right.opening &&
     left.body === right.body &&
     left.closing === right.closing &&
-    left.signatureId === right.signatureId
+    left.signatureId === right.signatureId &&
+    tagsEqual(left.tags, right.tags)
   );
 }
 

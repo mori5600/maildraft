@@ -33,16 +33,20 @@ describe("template UI", () => {
     const handleCreateTemplate = vi.fn();
     const handleChangeSearchQuery = vi.fn();
     const handleChangeSort = vi.fn();
+    const handleChangeTagFilter = vi.fn();
 
     render(
       <TemplateListPane
+        activeTagFilter={null}
+        availableTags={["社外", "お礼"]}
         searchQuery="礼"
         selectedTemplateId="template-1"
         sort="recent"
-        templates={[createTemplate({ isPinned: true })]}
+        templates={[createTemplate({ isPinned: true, tags: ["社外", "お礼"] })]}
         totalTemplateCount={4}
         onChangeSearchQuery={handleChangeSearchQuery}
         onChangeSort={handleChangeSort}
+        onChangeTagFilter={handleChangeTagFilter}
         onCreateTemplate={handleCreateTemplate}
         onSelectTemplate={handleSelectTemplate}
       />,
@@ -57,6 +61,10 @@ describe("template UI", () => {
     expect(handleChangeSearchQuery).toHaveBeenCalledWith("");
     await user.selectOptions(screen.getByRole("combobox"), "name");
     expect(handleChangeSort).toHaveBeenCalledWith("name");
+    await user.click(screen.getByRole("button", { name: "社外" }));
+    expect(handleChangeTagFilter).toHaveBeenCalledWith("社外");
+    expect(screen.getAllByText("社外")).toHaveLength(2);
+    expect(screen.getAllByText("お礼")).toHaveLength(2);
     await user.click(screen.getByText("打ち合わせお礼").closest("button") ?? document.body);
     expect(handleSelectTemplate).toHaveBeenCalledWith("template-1");
   });
@@ -73,12 +81,13 @@ describe("template UI", () => {
     render(
       <>
         <TemplateEditorPane
+          availableTags={["定型", "社外", "お礼"]}
           autoSaveLabel="自動保存済み"
           canDuplicate
           selectedTemplateId="template-input-1"
           showWhitespace={false}
           signatures={[createSignature()]}
-          templateForm={createTemplateInput()}
+          templateForm={createTemplateInput({ tags: ["定型"] })}
           onChangeTemplate={handleChangeTemplate}
           onDeleteTemplate={handleDeleteTemplate}
           onDuplicateTemplate={handleDuplicateTemplate}
@@ -112,6 +121,10 @@ describe("template UI", () => {
     await user.keyboard("{Enter}追記");
     expect(bodyEditor).toHaveFocus();
     expect(handleChangeTemplate).toHaveBeenCalledWith("body", expect.stringContaining("追記"));
+    await user.type(screen.getByRole("combobox", { name: "タグ" }), "社外{Enter}");
+    expect(handleChangeTemplate).toHaveBeenCalledWith("tags", ["定型", "社外"]);
+    await user.click(screen.getByRole("button", { name: "タグ「定型」を削除" }));
+    expect(handleChangeTemplate).toHaveBeenCalledWith("tags", []);
     await user.click(screen.getByRole("button", { name: "固定" }));
     expect(handleTogglePinned).toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "複製" }));
@@ -126,6 +139,7 @@ describe("template UI", () => {
   it("keeps multiline template fields in CodeMirror when whitespace is visible", () => {
     render(
       <TemplateEditorPane
+        availableTags={["社外"]}
         autoSaveLabel="自動保存済み"
         canDuplicate
         selectedTemplateId="template-input-1"
@@ -142,6 +156,7 @@ describe("template UI", () => {
 
     expect(screen.getByRole("textbox", { name: "名前" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "件名" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "タグ" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "宛名メモ" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "書き出し" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "本文" })).toBeInTheDocument();
@@ -153,7 +168,9 @@ describe("template UI", () => {
 
     render(
       <TemplateWorkspace
+        activeTagFilter={null}
         autoSaveLabel="自動保存済み"
+        availableTags={["社外"]}
         canDuplicate
         previewText="テンプレート本文"
         searchQuery=""
@@ -166,6 +183,7 @@ describe("template UI", () => {
         totalTemplateCount={1}
         onChangeSearchQuery={vi.fn()}
         onChangeSort={vi.fn()}
+        onChangeTagFilter={vi.fn()}
         onChangeTemplate={vi.fn()}
         onCreateTemplate={vi.fn()}
         onDeleteTemplate={vi.fn(async () => {})}

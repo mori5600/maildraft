@@ -3,7 +3,9 @@ use std::collections::BTreeMap;
 use rusqlite::{Connection, OptionalExtension};
 
 use crate::{
-    app::settings::{AppSettings, EditorIndentStyle, EditorSettings, LoggingSettings, ProofreadingSettings},
+    app::settings::{
+        AppSettings, EditorIndentStyle, EditorSettings, LoggingSettings, ProofreadingSettings,
+    },
     modules::{
         drafts::{Draft, DraftHistoryEntry},
         memo::Memo,
@@ -190,6 +192,7 @@ fn load_templates(connection: &Connection, in_trash: bool) -> Result<Vec<Templat
                 body: row.get(6)?,
                 closing: row.get(7)?,
                 signature_id: row.get(8)?,
+                tags: Vec::new(),
                 created_at: row.get(9)?,
                 updated_at: row.get(10)?,
             })
@@ -198,7 +201,9 @@ fn load_templates(connection: &Connection, in_trash: bool) -> Result<Vec<Templat
 
     let mut templates = Vec::new();
     for row in rows {
-        templates.push(row.map_err(|error| error.to_string())?);
+        let mut template = row.map_err(|error| error.to_string())?;
+        template.tags = load_tags(connection, "template_tags", "template_id", &template.id)?;
+        templates.push(template);
     }
 
     Ok(templates)
@@ -229,6 +234,7 @@ fn load_trashed_templates(connection: &Connection) -> Result<Vec<TrashedTemplate
                     body: row.get(6)?,
                     closing: row.get(7)?,
                     signature_id: row.get(8)?,
+                    tags: Vec::new(),
                     created_at: row.get(9)?,
                     updated_at: row.get(10)?,
                 },
@@ -239,7 +245,14 @@ fn load_trashed_templates(connection: &Connection) -> Result<Vec<TrashedTemplate
 
     let mut templates = Vec::new();
     for row in rows {
-        templates.push(row.map_err(|error| error.to_string())?);
+        let mut entry = row.map_err(|error| error.to_string())?;
+        entry.template.tags = load_tags(
+            connection,
+            "template_tags",
+            "template_id",
+            &entry.template.id,
+        )?;
+        templates.push(entry);
     }
 
     Ok(templates)
@@ -263,6 +276,7 @@ fn load_memos(connection: &Connection, in_trash: bool) -> Result<Vec<Memo>, Stri
                 title: row.get(1)?,
                 is_pinned: super::decode_bool(row.get::<_, i64>(2)?),
                 body: row.get(3)?,
+                tags: Vec::new(),
                 created_at: row.get(4)?,
                 updated_at: row.get(5)?,
             })
@@ -271,7 +285,9 @@ fn load_memos(connection: &Connection, in_trash: bool) -> Result<Vec<Memo>, Stri
 
     let mut memos = Vec::new();
     for row in rows {
-        memos.push(row.map_err(|error| error.to_string())?);
+        let mut memo = row.map_err(|error| error.to_string())?;
+        memo.tags = load_tags(connection, "memo_tags", "memo_id", &memo.id)?;
+        memos.push(memo);
     }
 
     Ok(memos)
@@ -296,6 +312,7 @@ fn load_trashed_memos(connection: &Connection) -> Result<Vec<TrashedMemo>, Strin
                     title: row.get(1)?,
                     is_pinned: super::decode_bool(row.get::<_, i64>(2)?),
                     body: row.get(3)?,
+                    tags: Vec::new(),
                     created_at: row.get(4)?,
                     updated_at: row.get(5)?,
                 },
@@ -306,7 +323,9 @@ fn load_trashed_memos(connection: &Connection) -> Result<Vec<TrashedMemo>, Strin
 
     let mut memos = Vec::new();
     for row in rows {
-        memos.push(row.map_err(|error| error.to_string())?);
+        let mut entry = row.map_err(|error| error.to_string())?;
+        entry.memo.tags = load_tags(connection, "memo_tags", "memo_id", &entry.memo.id)?;
+        memos.push(entry);
     }
 
     Ok(memos)
@@ -375,6 +394,7 @@ fn load_drafts(connection: &Connection, in_trash: bool) -> Result<Vec<Draft>, St
                 template_id: row.get(8)?,
                 signature_id: row.get(9)?,
                 variable_values: BTreeMap::new(),
+                tags: Vec::new(),
                 created_at: row.get(10)?,
                 updated_at: row.get(11)?,
             })
@@ -386,6 +406,7 @@ fn load_drafts(connection: &Connection, in_trash: bool) -> Result<Vec<Draft>, St
         let mut draft = row.map_err(|error| error.to_string())?;
         draft.variable_values =
             load_variable_pairs(connection, "draft_variable_values", "draft_id", &draft.id)?;
+        draft.tags = load_tags(connection, "draft_tags", "draft_id", &draft.id)?;
         drafts.push(draft);
     }
 
@@ -419,6 +440,7 @@ fn load_trashed_drafts(connection: &Connection) -> Result<Vec<TrashedDraft>, Str
                     template_id: row.get(8)?,
                     signature_id: row.get(9)?,
                     variable_values: BTreeMap::new(),
+                    tags: Vec::new(),
                     created_at: row.get(10)?,
                     updated_at: row.get(11)?,
                 },
@@ -433,6 +455,7 @@ fn load_trashed_drafts(connection: &Connection) -> Result<Vec<TrashedDraft>, Str
         let draft_id = draft.id.clone();
         draft.variable_values =
             load_variable_pairs(connection, "draft_variable_values", "draft_id", &draft_id)?;
+        draft.tags = load_tags(connection, "draft_tags", "draft_id", &draft_id)?;
         drafts.push(TrashedDraft {
             history: load_draft_history_trashed(connection, &draft_id)?,
             draft,
@@ -468,6 +491,7 @@ fn load_draft_history_active(connection: &Connection) -> Result<Vec<DraftHistory
                 template_id: row.get(8)?,
                 signature_id: row.get(9)?,
                 variable_values: BTreeMap::new(),
+                tags: Vec::new(),
                 recorded_at: row.get(10)?,
             })
         })
@@ -479,6 +503,12 @@ fn load_draft_history_active(connection: &Connection) -> Result<Vec<DraftHistory
         entry.variable_values = load_variable_pairs(
             connection,
             "draft_history_active_values",
+            "history_id",
+            &entry.id,
+        )?;
+        entry.tags = load_tags(
+            connection,
+            "draft_history_active_tags",
             "history_id",
             &entry.id,
         )?;
@@ -517,6 +547,7 @@ fn load_draft_history_trashed(
                 template_id: row.get(8)?,
                 signature_id: row.get(9)?,
                 variable_values: BTreeMap::new(),
+                tags: Vec::new(),
                 recorded_at: row.get(10)?,
             })
         })
@@ -528,6 +559,12 @@ fn load_draft_history_trashed(
         entry.variable_values = load_variable_pairs(
             connection,
             "draft_history_trashed_values",
+            "history_id",
+            &entry.id,
+        )?;
+        entry.tags = load_tags(
+            connection,
+            "draft_history_trashed_tags",
             "history_id",
             &entry.id,
         )?;
@@ -562,4 +599,26 @@ fn load_variable_pairs(
     }
 
     Ok(values)
+}
+
+fn load_tags(
+    connection: &Connection,
+    table: &str,
+    owner_column: &str,
+    owner_id: &str,
+) -> Result<Vec<String>, String> {
+    let sql = format!("SELECT tag FROM {table} WHERE {owner_column} = ?1 ORDER BY sort_order ASC");
+    let mut statement = connection
+        .prepare(&sql)
+        .map_err(|error| error.to_string())?;
+    let rows = statement
+        .query_map([owner_id], |row| row.get::<_, String>(0))
+        .map_err(|error| error.to_string())?;
+
+    let mut tags = Vec::new();
+    for row in rows {
+        tags.push(row.map_err(|error| error.to_string())?);
+    }
+
+    Ok(tags)
 }

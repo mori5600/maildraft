@@ -15,9 +15,9 @@ use serde::Serialize;
 
 type AppResult<T> = Result<T, String>;
 
-pub use load::{load_app_settings_with_status, load_store_snapshot_with_status};
 #[cfg(test)]
 pub use load::{load_app_settings, load_store_snapshot};
+pub use load::{load_app_settings_with_status, load_store_snapshot_with_status};
 pub use write::{write_app_settings, write_store_snapshot};
 
 pub const STORAGE_DOCUMENT_APP: &str = "maildraft";

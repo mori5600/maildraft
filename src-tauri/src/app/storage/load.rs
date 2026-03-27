@@ -1,9 +1,6 @@
 use std::path::Path;
 
-use crate::{
-    app::settings::AppSettings,
-    modules::store::StoreSnapshot,
-};
+use crate::{app::settings::AppSettings, modules::store::StoreSnapshot};
 
 use super::{
     paths::{backup_path, quarantine_file},

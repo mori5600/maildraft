@@ -212,5 +212,6 @@ function serializeTemplateRevision(input: TemplateInput): string {
     recipient: input.recipient,
     signatureId: input.signatureId,
     subject: input.subject,
+    tags: input.tags,
   });
 }

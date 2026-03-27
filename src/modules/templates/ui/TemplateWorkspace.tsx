@@ -13,6 +13,8 @@ import { TemplatePreviewDialogContent } from "./panes/TemplatePreviewDialogConte
 import { TemplatePreviewPane } from "./panes/TemplatePreviewPane";
 
 interface TemplateWorkspaceProps {
+  activeTagFilter: string | null;
+  availableTags: string[];
   templates: Template[];
   totalTemplateCount: number;
   signatures: Signature[];
@@ -29,6 +31,7 @@ interface TemplateWorkspaceProps {
   onCreateTemplate: () => void;
   onChangeSearchQuery: (value: string) => void;
   onChangeSort: (value: TemplateSortOption) => void;
+  onChangeTagFilter: (tag: string | null) => void;
   onChangeTemplate: <K extends keyof TemplateInput>(field: K, value: TemplateInput[K]) => void;
   onSaveTemplate: () => Promise<void>;
   onDeleteTemplate: () => Promise<void>;
@@ -38,6 +41,8 @@ interface TemplateWorkspaceProps {
 }
 
 export function TemplateWorkspace({
+  activeTagFilter,
+  availableTags,
   templates,
   totalTemplateCount,
   signatures,
@@ -54,6 +59,7 @@ export function TemplateWorkspace({
   onCreateTemplate,
   onChangeSearchQuery,
   onChangeSort,
+  onChangeTagFilter,
   onChangeTemplate,
   onSaveTemplate,
   onDeleteTemplate,
@@ -71,6 +77,8 @@ export function TemplateWorkspace({
     <>
       <div className="grid h-full min-h-0 gap-3 xl:grid-cols-[248px_minmax(0,1fr)_300px]">
         <TemplateListPane
+          activeTagFilter={activeTagFilter}
+          availableTags={availableTags}
           searchQuery={searchQuery}
           selectedTemplateId={selectedTemplateId}
           sort={sort}
@@ -78,11 +86,13 @@ export function TemplateWorkspace({
           totalTemplateCount={totalTemplateCount}
           onChangeSearchQuery={onChangeSearchQuery}
           onChangeSort={onChangeSort}
+          onChangeTagFilter={onChangeTagFilter}
           onCreateTemplate={onCreateTemplate}
           onSelectTemplate={onSelectTemplate}
         />
 
         <TemplateEditorPane
+          availableTags={availableTags}
           autoSaveLabel={autoSaveLabel}
           canDuplicate={canDuplicate}
           editorSettings={editorSettings}

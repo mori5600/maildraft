@@ -32,6 +32,8 @@ const MAX_RECIPIENT_LENGTH: usize = 2_000;
 const MAX_RULE_ID_LENGTH: usize = 100;
 const MAX_SIGNATURE_BODY_LENGTH: usize = 10_000;
 const MAX_SUBJECT_LENGTH: usize = 500;
+const MAX_TAGS_PER_ITEM: usize = 20;
+const MAX_TAG_LENGTH: usize = 40;
 const MAX_TEXT_FIELD_LENGTH: usize = 20_000;
 const MAX_TITLE_LENGTH: usize = 200;
 const MAX_VARIABLE_KEY_LENGTH: usize = 100;
@@ -91,6 +93,33 @@ fn validate_variables(values: &std::collections::BTreeMap<String, String>) -> Re
     for (key, value) in values {
         validate_text_length(key, "変数名", MAX_VARIABLE_KEY_LENGTH)?;
         validate_text_length(value, "変数値", MAX_VARIABLE_VALUE_LENGTH)?;
+    }
+
+    Ok(())
+}
+
+fn validate_tags(tags: &[String], label: &str) -> Result<(), String> {
+    if tags.len() > MAX_TAGS_PER_ITEM {
+        return Err(format!(
+            "{label}は {MAX_TAGS_PER_ITEM} 件以内で入力してください。"
+        ));
+    }
+
+    let mut seen = HashSet::new();
+    for tag in tags {
+        if tag.trim().is_empty() {
+            return Err(format!("{label}に空のタグは使えません。"));
+        }
+
+        if tag != tag.trim() {
+            return Err(format!("{label}の前後に空白は使えません。"));
+        }
+
+        validate_text_length(tag, label, MAX_TAG_LENGTH)?;
+
+        if !seen.insert(tag.to_string()) {
+            return Err(format!("{label}が重複しています。"));
+        }
     }
 
     Ok(())

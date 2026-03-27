@@ -118,6 +118,7 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
           title: input.title,
           isPinned: input.isPinned,
           body: input.body,
+          tags: input.tags,
           createdAt: previous?.createdAt ?? String(Date.now()),
           updatedAt: String(Date.now()),
         };
@@ -260,6 +261,7 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
             templateId: currentDraft.templateId,
             signatureId: currentDraft.signatureId,
             variableValues: currentDraft.variableValues,
+            tags: currentDraft.tags,
             recordedAt: String(Date.now()),
           },
           ...snapshot.draftHistory.filter((entry) => entry.draftId !== draftId),
@@ -276,6 +278,7 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
           templateId: historyEntry.templateId,
           signatureId: historyEntry.signatureId,
           variableValues: historyEntry.variableValues,
+          tags: historyEntry.tags,
           updatedAt: String(Date.now()),
         };
         return cloneData({

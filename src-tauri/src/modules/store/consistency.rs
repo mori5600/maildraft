@@ -1,15 +1,53 @@
 use std::collections::HashSet;
 
-use crate::modules::trash::TrashSnapshot;
+use crate::modules::{tags::normalize_tags_in_place, trash::TrashSnapshot};
 
 use super::StoreSnapshot;
 
 impl StoreSnapshot {
     pub fn ensure_consistency(&mut self) {
+        self.ensure_tags();
         self.ensure_memos();
         self.ensure_default_signature();
         self.clean_broken_references();
         self.sort_by_recent();
+    }
+
+    fn ensure_tags(&mut self) {
+        for draft in &mut self.drafts {
+            normalize_tags_in_place(&mut draft.tags);
+        }
+
+        for entry in &mut self.draft_history {
+            normalize_tags_in_place(&mut entry.tags);
+        }
+
+        for template in &mut self.templates {
+            normalize_tags_in_place(&mut template.tags);
+        }
+
+        for memo in &mut self.memos {
+            normalize_tags_in_place(&mut memo.tags);
+        }
+
+        if let Some(legacy_memo) = &mut self.legacy_memo {
+            normalize_tags_in_place(&mut legacy_memo.tags);
+        }
+
+        for entry in &mut self.trash.drafts {
+            normalize_tags_in_place(&mut entry.draft.tags);
+            for history in &mut entry.history {
+                normalize_tags_in_place(&mut history.tags);
+            }
+        }
+
+        for entry in &mut self.trash.templates {
+            normalize_tags_in_place(&mut entry.template.tags);
+        }
+
+        for entry in &mut self.trash.memos {
+            normalize_tags_in_place(&mut entry.memo.tags);
+        }
     }
 
     fn ensure_memos(&mut self) {
@@ -201,6 +239,7 @@ mod tests {
             template_id: None,
             signature_id: None,
             variable_values: BTreeMap::new(),
+            tags: Vec::new(),
             created_at: "0".to_string(),
             updated_at: updated_at.to_string(),
         }
@@ -233,6 +272,7 @@ mod tests {
             body: String::new(),
             closing: String::new(),
             signature_id: Some(trashed_signature.id.clone()),
+            tags: Vec::new(),
             created_at: "12".to_string(),
             updated_at: "12".to_string(),
         });
@@ -275,6 +315,7 @@ mod tests {
                 title: "first".to_string(),
                 is_pinned: false,
                 body: String::new(),
+                tags: Vec::new(),
                 created_at: "0".to_string(),
                 updated_at: "10".to_string(),
             },
@@ -283,6 +324,7 @@ mod tests {
                 title: "second".to_string(),
                 is_pinned: false,
                 body: String::new(),
+                tags: Vec::new(),
                 created_at: "0".to_string(),
                 updated_at: "30".to_string(),
             },
@@ -291,6 +333,7 @@ mod tests {
                 title: "third".to_string(),
                 is_pinned: false,
                 body: String::new(),
+                tags: Vec::new(),
                 created_at: "0".to_string(),
                 updated_at: "20".to_string(),
             },
@@ -345,6 +388,55 @@ mod tests {
         assert_eq!(
             store.memos.iter().all(|memo| !memo.id.trim().is_empty()),
             true
+        );
+    }
+
+    #[test]
+    fn ensure_consistency_normalizes_tags_across_active_and_trashed_items() {
+        let mut store = StoreSnapshot::seeded();
+        store.drafts[0].tags = vec![
+            " 社外 ".to_string(),
+            "".to_string(),
+            "社外".to_string(),
+            "営業".to_string(),
+        ];
+        store
+            .draft_history
+            .push(DraftHistoryEntry::from_draft(&store.drafts[0], "5"));
+        store.draft_history[0].tags =
+            vec![" 履歴 ".to_string(), "履歴".to_string(), "重要".to_string()];
+        store.templates[0].tags = vec![" お礼 ".to_string(), "お礼".to_string()];
+        store.legacy_memo = Some(Memo {
+            id: String::new(),
+            title: String::new(),
+            is_pinned: false,
+            body: String::new(),
+            tags: vec![" 議事録 ".to_string(), "議事録".to_string()],
+            created_at: "0".to_string(),
+            updated_at: "1".to_string(),
+        });
+
+        let trashed_template = store.templates[0].clone();
+        store.trash.templates.push(TrashedTemplate {
+            template: trashed_template,
+            deleted_at: "10".to_string(),
+        });
+
+        store.ensure_consistency();
+
+        assert_eq!(
+            store.drafts[0].tags,
+            vec!["社外".to_string(), "営業".to_string()]
+        );
+        assert_eq!(
+            store.draft_history[0].tags,
+            vec!["履歴".to_string(), "重要".to_string()]
+        );
+        assert_eq!(store.templates[0].tags, vec!["お礼".to_string()]);
+        assert_eq!(store.memos[0].tags, vec!["議事録".to_string()]);
+        assert_eq!(
+            store.trash.templates[0].template.tags,
+            vec!["お礼".to_string()]
         );
     }
 
@@ -414,6 +506,7 @@ mod tests {
                 body,
                 closing,
                 signature_id,
+                tags: Vec::new(),
                 created_at,
                 updated_at,
             }
@@ -448,6 +541,7 @@ mod tests {
                 template_id,
                 signature_id,
                 variable_values,
+                tags: Vec::new(),
                 created_at,
                 updated_at,
             }
@@ -481,6 +575,7 @@ mod tests {
                 template_id,
                 signature_id,
                 variable_values,
+                tags: Vec::new(),
                 recorded_at,
             }
         }
@@ -500,6 +595,7 @@ mod tests {
                 title,
                 is_pinned,
                 body,
+                tags: Vec::new(),
                 created_at,
                 updated_at,
             }
@@ -581,6 +677,15 @@ mod tests {
     }
 
     fn assert_consistent_snapshot(store: &StoreSnapshot, allow_trash_references: bool) {
+        let assert_tags_normalized = |tags: &[String]| {
+            let mut seen = HashSet::new();
+            for tag in tags {
+                assert_eq!(tag, tag.trim());
+                assert!(!tag.is_empty());
+                assert!(seen.insert(tag.clone()));
+            }
+        };
+
         let template_ids = store
             .templates
             .iter()
@@ -639,6 +744,7 @@ mod tests {
         }
 
         for draft in &store.drafts {
+            assert_tags_normalized(&draft.tags);
             if let Some(template_id) = draft.template_id.as_deref() {
                 assert!(template_ids.contains(template_id));
             }
@@ -648,6 +754,7 @@ mod tests {
         }
 
         for entry in &store.draft_history {
+            assert_tags_normalized(&entry.tags);
             if let Some(template_id) = entry.template_id.as_deref() {
                 assert!(template_ids.contains(template_id));
             }
@@ -657,9 +764,14 @@ mod tests {
         }
 
         for template in &store.templates {
+            assert_tags_normalized(&template.tags);
             if let Some(signature_id) = template.signature_id.as_deref() {
                 assert!(signature_ids.contains(signature_id));
             }
+        }
+
+        for memo in &store.memos {
+            assert_tags_normalized(&memo.tags);
         }
 
         assert_sorted(&store.drafts, |left, right| {

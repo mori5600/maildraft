@@ -42,6 +42,7 @@ describe("draft-workspace-selectors", () => {
       createDraft({
         body: "候補本文",
         id: "draft-b",
+        tags: ["社外"],
         title: "Beta",
         updatedAt: "20",
         variableValues: { 会社名: "候補株式会社" },
@@ -49,15 +50,22 @@ describe("draft-workspace-selectors", () => {
       createDraft({
         body: "別本文",
         id: "draft-a",
+        tags: ["社内"],
         title: "Alpha",
         updatedAt: "10",
         variableValues: { 会社名: "別会社" },
       }),
     ]);
 
-    expect(selectFilteredDrafts(searchIndex, "候補", "label").map((draft) => draft.id)).toEqual([
-      "draft-b",
-    ]);
+    expect(
+      selectFilteredDrafts(searchIndex, "候補", null, "label").map((draft) => draft.id),
+    ).toEqual(["draft-b"]);
+    expect(
+      selectFilteredDrafts(searchIndex, "社外", null, "label").map((draft) => draft.id),
+    ).toEqual(["draft-b"]);
+    expect(selectFilteredDrafts(searchIndex, "", "社内", "label").map((draft) => draft.id)).toEqual(
+      ["draft-a"],
+    );
   });
 
   it("selects history entries for the active draft only", () => {
@@ -76,6 +84,7 @@ describe("draft-workspace-selectors", () => {
           templateId: null,
           title: "A",
           variableValues: {},
+          tags: [],
         },
         {
           body: "本文",
@@ -90,6 +99,7 @@ describe("draft-workspace-selectors", () => {
           templateId: null,
           title: "B",
           variableValues: {},
+          tags: [],
         },
       ],
     });

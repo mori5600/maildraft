@@ -180,6 +180,7 @@ fn save_operations_reject_invalid_input_and_preserve_state() {
                 template_id: None,
                 signature_id: None,
                 variable_values: BTreeMap::new(),
+                tags: Vec::new(),
             })
             .unwrap_err(),
         "下書きIDは空にできません。"
@@ -197,6 +198,7 @@ fn save_operations_reject_invalid_input_and_preserve_state() {
                 body: String::new(),
                 closing: String::new(),
                 signature_id: Some("missing-signature".to_string()),
+                tags: Vec::new(),
             })
             .unwrap_err(),
         "選択した署名が見つかりませんでした。"

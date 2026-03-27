@@ -124,7 +124,10 @@ mod tests {
         assert_eq!(restored_snapshot.drafts.len(), snapshot.drafts.len());
         assert_eq!(restored_settings.logging.mode, LoggingMode::Standard);
         assert_eq!(restored_settings.logging.retention_days, 14);
-        assert_eq!(restored_settings.editor.indent_style, EditorIndentStyle::Tabs);
+        assert_eq!(
+            restored_settings.editor.indent_style,
+            EditorIndentStyle::Tabs
+        );
         assert_eq!(restored_settings.editor.tab_size, 2);
         assert_eq!(
             restored_settings.proofreading.disabled_rule_ids,

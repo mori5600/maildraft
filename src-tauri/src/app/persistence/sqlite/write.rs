@@ -90,15 +90,20 @@ pub(super) fn insert_settings(
 
 pub(super) fn clear_store_tables(transaction: &Transaction<'_>) -> Result<(), String> {
     for sql in [
+        "DELETE FROM draft_history_active_tags",
+        "DELETE FROM draft_history_trashed_tags",
         "DELETE FROM draft_history_active_values",
         "DELETE FROM draft_history_trashed_values",
         "DELETE FROM draft_history_active",
         "DELETE FROM draft_history_trashed",
+        "DELETE FROM draft_tags",
         "DELETE FROM draft_variable_values",
         "DELETE FROM drafts",
         "DELETE FROM variable_preset_values",
         "DELETE FROM variable_presets",
+        "DELETE FROM memo_tags",
         "DELETE FROM memos",
+        "DELETE FROM template_tags",
         "DELETE FROM templates",
         "DELETE FROM signatures",
     ] {
@@ -250,6 +255,14 @@ fn insert_template(
         )
         .map_err(|error| error.to_string())?;
 
+    insert_tags(
+        transaction,
+        "template_tags",
+        "template_id",
+        &template.id,
+        &template.tags,
+    )?;
+
     Ok(())
 }
 
@@ -281,6 +294,8 @@ fn insert_memo(
             ],
         )
         .map_err(|error| error.to_string())?;
+
+    insert_tags(transaction, "memo_tags", "memo_id", &memo.id, &memo.tags)?;
 
     Ok(())
 }
@@ -356,6 +371,14 @@ fn insert_draft(
         "draft_id",
         &draft.id,
         &draft.variable_values,
+    )?;
+
+    insert_tags(
+        transaction,
+        "draft_tags",
+        "draft_id",
+        &draft.id,
+        &draft.tags,
     )
 }
 
@@ -395,6 +418,14 @@ fn insert_draft_history_active(
         "history_id",
         &entry.id,
         &entry.variable_values,
+    )?;
+
+    insert_tags(
+        transaction,
+        "draft_history_active_tags",
+        "history_id",
+        &entry.id,
+        &entry.tags,
     )
 }
 
@@ -434,6 +465,14 @@ fn insert_draft_history_trashed(
         "history_id",
         &entry.id,
         &entry.variable_values,
+    )?;
+
+    insert_tags(
+        transaction,
+        "draft_history_trashed_tags",
+        "history_id",
+        &entry.id,
+        &entry.tags,
     )
 }
 
@@ -450,6 +489,23 @@ fn insert_variable_pairs(
     for (sort_order, (key, value)) in values.iter().enumerate() {
         transaction
             .execute(&sql, params![owner_id, key, value, sort_order as i64])
+            .map_err(|error| error.to_string())?;
+    }
+
+    Ok(())
+}
+
+fn insert_tags(
+    transaction: &Transaction<'_>,
+    table: &str,
+    owner_column: &str,
+    owner_id: &str,
+    tags: &[String],
+) -> Result<(), String> {
+    let sql = format!("INSERT INTO {table} ({owner_column}, tag, sort_order) VALUES (?1, ?2, ?3)");
+    for (sort_order, tag) in tags.iter().enumerate() {
+        transaction
+            .execute(&sql, params![owner_id, tag, sort_order as i64])
             .map_err(|error| error.to_string())?;
     }
 

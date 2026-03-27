@@ -301,6 +301,37 @@ describe("useDraftWorkspaceState general", () => {
     );
   });
 
+  it("updates tags through the shared draft change handler", () => {
+    const draftForm = createDraftInput({
+      id: "draft-tags",
+      tags: [],
+    });
+    const { setDraftForm } = configureWorkspaceMocks(draftForm);
+
+    const { result } = renderHook(() =>
+      useDraftWorkspaceState(
+        createStateOptions({
+          snapshot: createCleanSnapshot({
+            signatures: [createSignature({ id: "signature-default", isDefault: true })],
+          }),
+        }),
+      ),
+    );
+
+    setDraftForm.mockClear();
+
+    act(() => {
+      result.current.workspaceProps.onChangeDraft("tags", ["社外", "営業"]);
+    });
+
+    const updater = setDraftForm.mock.calls[0]?.[0] as (
+      input: typeof draftForm,
+    ) => typeof draftForm;
+    expect(updater(draftForm)).toMatchObject({
+      tags: ["社外", "営業"],
+    });
+  });
+
   it("copies the rendered preview and reports both success and failure paths", async () => {
     const draftForm = createDraftInput({
       id: "draft-copy",
@@ -357,6 +388,7 @@ describe("useDraftWorkspaceState general", () => {
               createDraft({
                 body: "候補本文",
                 id: "draft-b",
+                tags: ["社外"],
                 title: "Beta",
                 updatedAt: "20",
                 variableValues: { 会社名: "候補株式会社" },
@@ -364,6 +396,7 @@ describe("useDraftWorkspaceState general", () => {
               createDraft({
                 body: "別本文",
                 id: "draft-a",
+                tags: ["社内"],
                 title: "Alpha",
                 updatedAt: "10",
                 variableValues: { 会社名: "別会社" },
@@ -386,5 +419,16 @@ describe("useDraftWorkspaceState general", () => {
     expect(result.current.workspaceProps.searchQuery).toBe("候補");
     expect(result.current.workspaceProps.sort).toBe("label");
     expect(result.current.workspaceProps.totalDraftCount).toBe(2);
+
+    act(() => {
+      result.current.workspaceProps.onChangeSearchQuery("");
+      result.current.workspaceProps.onChangeTagFilter("社内");
+    });
+
+    await waitFor(() => {
+      expect(result.current.workspaceProps.drafts.map((draft) => draft.id)).toEqual(["draft-a"]);
+    });
+    expect(result.current.workspaceProps.activeTagFilter).toBe("社内");
+    expect(result.current.workspaceProps.availableTags).toEqual(["社外", "社内"]);
   });
 });

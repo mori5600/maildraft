@@ -16,6 +16,7 @@ describe("template model", () => {
       isPinned: false,
       subject: "",
       signatureId: "signature-default",
+      tags: [],
     });
   });
 
@@ -31,6 +32,7 @@ describe("template model", () => {
         body: "ありがとうございます。",
         closing: "よろしくお願いいたします。",
         signatureId: "signature-default",
+        tags: ["社外"],
         createdAt: "1",
         updatedAt: "2",
       }),
@@ -44,6 +46,7 @@ describe("template model", () => {
       body: "ありがとうございます。",
       closing: "よろしくお願いいたします。",
       signatureId: "signature-default",
+      tags: ["社外"],
     });
   });
 
@@ -58,6 +61,7 @@ describe("template model", () => {
       body: "",
       closing: "",
       signatureId: null,
+      tags: ["社外", "営業"],
     });
 
     expect(duplicate.id).not.toBe("template-1");
@@ -65,6 +69,7 @@ describe("template model", () => {
       name: "お礼メール コピー",
       isPinned: false,
       subject: "件名",
+      tags: ["社外", "営業"],
     });
   });
 
@@ -99,10 +104,17 @@ describe("template model", () => {
           body: "",
           closing: "",
           signatureId: "signature-default",
+          tags: [],
           createdAt: "1",
           updatedAt: "2",
         },
       ),
+    ).toBe(true);
+    expect(
+      templateHasMeaningfulContent({
+        ...emptyTemplate,
+        tags: ["社外"],
+      }),
     ).toBe(true);
   });
 });

@@ -2,6 +2,8 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::modules::tags::normalize_tags;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DraftHistoryEntry {
@@ -17,6 +19,8 @@ pub struct DraftHistoryEntry {
     pub signature_id: Option<String>,
     #[serde(default)]
     pub variable_values: BTreeMap<String, String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
     pub recorded_at: String,
 }
 
@@ -36,6 +40,8 @@ pub struct Draft {
     pub signature_id: Option<String>,
     #[serde(default)]
     pub variable_values: BTreeMap<String, String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -56,10 +62,13 @@ pub struct DraftInput {
     pub signature_id: Option<String>,
     #[serde(default)]
     pub variable_values: BTreeMap<String, String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
 }
 
 impl Draft {
     pub fn new(input: DraftInput, timestamp: &str) -> Self {
+        let input = input.normalized();
         Self {
             id: input.id,
             title: input.title,
@@ -72,12 +81,14 @@ impl Draft {
             template_id: input.template_id,
             signature_id: input.signature_id,
             variable_values: input.variable_values,
+            tags: input.tags,
             created_at: timestamp.to_string(),
             updated_at: timestamp.to_string(),
         }
     }
 
     pub fn update(&mut self, input: DraftInput, timestamp: &str) {
+        let input = input.normalized();
         self.title = input.title;
         self.is_pinned = input.is_pinned;
         self.subject = input.subject;
@@ -88,6 +99,7 @@ impl Draft {
         self.template_id = input.template_id;
         self.signature_id = input.signature_id;
         self.variable_values = input.variable_values;
+        self.tags = input.tags;
         self.updated_at = timestamp.to_string();
     }
 
@@ -103,6 +115,7 @@ impl Draft {
         self.template_id = entry.template_id.clone();
         self.signature_id = entry.signature_id.clone();
         self.variable_values = entry.variable_values.clone();
+        self.tags = entry.tags.clone();
         self.updated_at = timestamp.to_string();
     }
 
@@ -117,6 +130,7 @@ impl Draft {
             && self.template_id == input.template_id
             && self.signature_id == input.signature_id
             && self.variable_values == input.variable_values
+            && self.tags == normalize_tags(input.tags.clone())
     }
 }
 
@@ -134,8 +148,16 @@ impl DraftHistoryEntry {
             template_id: draft.template_id.clone(),
             signature_id: draft.signature_id.clone(),
             variable_values: draft.variable_values.clone(),
+            tags: draft.tags.clone(),
             recorded_at: recorded_at.to_string(),
         }
+    }
+}
+
+impl DraftInput {
+    pub fn normalized(mut self) -> Self {
+        self.tags = normalize_tags(self.tags);
+        self
     }
 }
 
@@ -160,6 +182,7 @@ mod tests {
             template_id: Some("template-1".to_string()),
             signature_id: Some("signature-1".to_string()),
             variable_values: BTreeMap::from([("会社名".to_string(), "株式会社〇〇".to_string())]),
+            tags: vec!["社外".to_string(), "営業".to_string()],
         }
     }
 
@@ -169,16 +192,19 @@ mod tests {
         assert_eq!(draft.updated_at, "10");
         assert_eq!(draft.title, "下書き");
         assert_eq!(draft.variable_values["会社名"], "株式会社〇〇");
+        assert_eq!(draft.tags, vec!["社外".to_string(), "営業".to_string()]);
 
         let mut next_input = sample_input();
         next_input.title = "更新後".to_string();
         next_input.is_pinned = false;
         next_input.body = "更新本文".to_string();
+        next_input.tags = vec!["  社内  ".to_string(), "社内".to_string()];
         draft.update(next_input, "20");
 
         assert_eq!(draft.title, "更新後");
         assert_eq!(draft.is_pinned, false);
         assert_eq!(draft.body, "更新本文");
+        assert_eq!(draft.tags, vec!["社内".to_string()]);
         assert_eq!(draft.updated_at, "20");
     }
 
@@ -194,10 +220,27 @@ mod tests {
         assert_eq!(draft.title, "下書き");
         assert_eq!(draft.is_pinned, false);
         assert_eq!(draft.updated_at, "30");
+        assert_eq!(draft.tags, vec!["社外".to_string(), "営業".to_string()]);
 
         let matching_input = sample_input();
         assert_eq!(draft.is_same_content(&matching_input), false);
         draft.is_pinned = true;
         assert_eq!(draft.is_same_content(&matching_input), true);
+    }
+
+    #[test]
+    fn draft_input_normalized_deduplicates_trimmed_tags() {
+        let input = DraftInput {
+            tags: vec![
+                " 社外 ".to_string(),
+                "".to_string(),
+                "社外".to_string(),
+                "営業".to_string(),
+            ],
+            ..sample_input()
+        }
+        .normalized();
+
+        assert_eq!(input.tags, vec!["社外".to_string(), "営業".to_string()]);
     }
 }

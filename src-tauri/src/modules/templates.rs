@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::modules::tags::normalize_tags;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Template {
@@ -14,6 +16,8 @@ pub struct Template {
     pub body: String,
     pub closing: String,
     pub signature_id: Option<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -32,10 +36,13 @@ pub struct TemplateInput {
     pub body: String,
     pub closing: String,
     pub signature_id: Option<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
 }
 
 impl Template {
     pub fn new(input: TemplateInput, timestamp: &str) -> Self {
+        let input = input.normalized();
         Self {
             id: input.id,
             name: input.name,
@@ -46,12 +53,14 @@ impl Template {
             body: input.body,
             closing: input.closing,
             signature_id: input.signature_id,
+            tags: input.tags,
             created_at: timestamp.to_string(),
             updated_at: timestamp.to_string(),
         }
     }
 
     pub fn update(&mut self, input: TemplateInput, timestamp: &str) {
+        let input = input.normalized();
         self.name = input.name;
         self.is_pinned = input.is_pinned;
         self.subject = input.subject;
@@ -60,7 +69,15 @@ impl Template {
         self.body = input.body;
         self.closing = input.closing;
         self.signature_id = input.signature_id;
+        self.tags = input.tags;
         self.updated_at = timestamp.to_string();
+    }
+}
+
+impl TemplateInput {
+    pub fn normalized(mut self) -> Self {
+        self.tags = normalize_tags(self.tags);
+        self
     }
 }
 
@@ -83,6 +100,7 @@ mod tests {
                 body: "本文".to_string(),
                 closing: "よろしくお願いいたします。".to_string(),
                 signature_id: Some("signature-1".to_string()),
+                tags: vec!["社外".to_string(), "お礼".to_string()],
             },
             "10",
         );
@@ -90,6 +108,7 @@ mod tests {
         assert_eq!(template.created_at, "10");
         assert_eq!(template.updated_at, "10");
         assert_eq!(template.name, "お礼メール");
+        assert_eq!(template.tags, vec!["社外".to_string(), "お礼".to_string()]);
 
         template.update(
             TemplateInput {
@@ -102,6 +121,7 @@ mod tests {
                 body: "更新本文".to_string(),
                 closing: "".to_string(),
                 signature_id: None,
+                tags: vec!["  日程調整 ".to_string(), "日程調整".to_string()],
             },
             "20",
         );
@@ -110,6 +130,34 @@ mod tests {
         assert_eq!(template.is_pinned, false);
         assert_eq!(template.subject, "更新件名");
         assert_eq!(template.signature_id, None);
+        assert_eq!(template.tags, vec!["日程調整".to_string()]);
         assert_eq!(template.updated_at, "20");
+    }
+
+    #[test]
+    fn template_input_normalized_deduplicates_tags() {
+        let normalized = TemplateInput {
+            id: "template-1".to_string(),
+            name: "お礼メール".to_string(),
+            is_pinned: false,
+            subject: "件名".to_string(),
+            recipient: String::new(),
+            opening: String::new(),
+            body: String::new(),
+            closing: String::new(),
+            signature_id: None,
+            tags: vec![
+                " 社外 ".to_string(),
+                "".to_string(),
+                "社外".to_string(),
+                "営業".to_string(),
+            ],
+        }
+        .normalized();
+
+        assert_eq!(
+            normalized.tags,
+            vec!["社外".to_string(), "営業".to_string()]
+        );
     }
 }

@@ -13,6 +13,7 @@ import {
   getDefaultSignatureId,
   pickKnownSignatureId,
 } from "../../../shared/lib/store-snapshot";
+import { collectUniqueTags, matchesTagFilter } from "../../../shared/lib/tags";
 import type { StoreSnapshot, WorkspaceView } from "../../../shared/types/store";
 import {
   createDraftFromTemplate,
@@ -110,6 +111,7 @@ export function useTemplateWorkspaceState({
   );
   const [templateSearchQuery, setTemplateSearchQuery] = useState("");
   const [templateSort, setTemplateSort] = useState<TemplateSortOption>("recent");
+  const [templateTagFilterState, setTemplateTagFilter] = useState<string | null>(null);
   const deferredTemplateSearchQuery = useDeferredValue(templateSearchQuery);
   const templateFormRef = useRef(templateForm);
   const selectedTemplateIdRef = useRef(selectedTemplateId);
@@ -150,22 +152,37 @@ export function useTemplateWorkspaceState({
           template.opening,
           template.body,
           template.closing,
+          ...template.tags,
         ]),
         template,
       })),
     [snapshot.templates],
   );
+  const availableTemplateTags = useMemo(
+    () => collectUniqueTags(snapshot.templates),
+    [snapshot.templates],
+  );
+  const activeTemplateTagFilter = availableTemplateTagsIncludes(
+    availableTemplateTags,
+    templateTagFilterState,
+  )
+    ? templateTagFilterState
+    : null;
   const filteredTemplates = useMemo(
     () =>
       sortTemplates(
-        templateSearchTokens.length === 0
-          ? snapshot.templates
-          : templateSearchIndex
-              .filter(({ haystack }) => matchesSearchTokens(templateSearchTokens, haystack))
-              .map(({ template }) => template),
+        templateSearchIndex
+          .filter(({ haystack, template }) => {
+            const matchesSearch =
+              templateSearchTokens.length === 0 ||
+              matchesSearchTokens(templateSearchTokens, haystack);
+
+            return matchesSearch && matchesTagFilter(template.tags, activeTemplateTagFilter);
+          })
+          .map(({ template }) => template),
         templateSort,
       ),
-    [snapshot.templates, templateSearchIndex, templateSearchTokens, templateSort],
+    [activeTemplateTagFilter, templateSearchIndex, templateSearchTokens, templateSort],
   );
 
   const { flushPendingTemplate, saveTemplate, setTemplateAutoSaveState, templateAutoSaveState } =
@@ -314,10 +331,13 @@ export function useTemplateWorkspaceState({
     syncTemplateSignatureId,
     toggleTemplatePinned,
     templateWorkspaceProps: {
+      activeTagFilter: activeTemplateTagFilter,
       autoSaveLabel: formatTemplateAutoSaveState(templateAutoSaveState),
+      availableTags: availableTemplateTags,
       canDuplicate: selectedTemplateId !== null,
       onChangeSearchQuery: setTemplateSearchQuery,
       onChangeSort: setTemplateSort,
+      onChangeTagFilter: setTemplateTagFilter,
       onChangeTemplate: changeTemplate,
       onCreateTemplate: createTemplate,
       onDeleteTemplate: deleteTemplate,
@@ -337,4 +357,8 @@ export function useTemplateWorkspaceState({
       totalTemplateCount: snapshot.templates.length,
     },
   };
+}
+
+function availableTemplateTagsIncludes(tags: string[], value: string | null): value is string {
+  return value !== null && tags.includes(value);
 }

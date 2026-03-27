@@ -12,6 +12,7 @@ import {
 } from "./draft-workspace-selectors";
 
 interface UseDraftWorkspaceDerivationsOptions {
+  activeDraftTag: string | null;
   deferredDraftSearchQuery: string;
   draftForm: DraftInput;
   draftSort: DraftSortOption;
@@ -19,6 +20,7 @@ interface UseDraftWorkspaceDerivationsOptions {
 }
 
 export function useDraftWorkspaceDerivations({
+  activeDraftTag,
   deferredDraftSearchQuery,
   draftForm,
   draftSort,
@@ -45,8 +47,9 @@ export function useDraftWorkspaceDerivations({
     [snapshot.drafts],
   );
   const filteredDrafts = useMemo(
-    () => selectFilteredDrafts(draftSearchIndex, deferredDraftSearchQuery, draftSort),
-    [deferredDraftSearchQuery, draftSearchIndex, draftSort],
+    () =>
+      selectFilteredDrafts(draftSearchIndex, deferredDraftSearchQuery, activeDraftTag, draftSort),
+    [activeDraftTag, deferredDraftSearchQuery, draftSearchIndex, draftSort],
   );
 
   return {

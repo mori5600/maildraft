@@ -34,6 +34,7 @@ const DRAFT_INPUT: DraftInput = {
   variableValues: {
     担当者名: "山田様",
   },
+  tags: [],
 };
 
 const VARIABLE_PRESET_INPUT: VariablePresetInput = {
@@ -55,6 +56,7 @@ const TEMPLATE_INPUT: TemplateInput = {
   body: "本文です。",
   closing: "よろしくお願いいたします。",
   signatureId: "signature-1",
+  tags: [],
 };
 
 const SIGNATURE_INPUT: SignatureInput = {

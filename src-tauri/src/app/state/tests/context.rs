@@ -39,6 +39,7 @@ fn input_context_builders_capture_safe_lengths_and_flags() {
             ("company".to_string(), "ACME".to_string()),
             ("person".to_string(), "Yamada".to_string()),
         ]),
+        tags: vec!["社外".to_string(), "営業".to_string()],
     };
     let template = TemplateInput {
         id: "template-1".to_string(),
@@ -50,6 +51,7 @@ fn input_context_builders_capture_safe_lengths_and_flags() {
         body: "Body".to_string(),
         closing: "Regards".to_string(),
         signature_id: Some("signature-1".to_string()),
+        tags: vec!["お礼".to_string()],
     };
     let preset = VariablePresetInput {
         id: "preset-1".to_string(),
@@ -68,6 +70,7 @@ fn input_context_builders_capture_safe_lengths_and_flags() {
         title: "商談".to_string(),
         is_pinned: false,
         body: "要点".to_string(),
+        tags: vec!["会議".to_string()],
     };
     let logging = LoggingSettings {
         mode: LoggingMode::Off,
@@ -80,11 +83,13 @@ fn input_context_builders_capture_safe_lengths_and_flags() {
     assert_eq!(draft_values.get("title_length"), Some(&json!(5)));
     assert_eq!(draft_values.get("is_pinned"), Some(&json!(true)));
     assert_eq!(draft_values.get("variable_count"), Some(&json!(2)));
+    assert_eq!(draft_values.get("tag_count"), Some(&json!(2)));
 
     let template_values = template_context(&template);
     assert_eq!(template_values.get("has_signature"), Some(&json!(true)));
     assert_eq!(template_values.get("name_length"), Some(&json!(6)));
     assert_eq!(template_values.get("subject_length"), Some(&json!(9)));
+    assert_eq!(template_values.get("tag_count"), Some(&json!(1)));
 
     let preset_values = variable_preset_context(&preset);
     assert_eq!(preset_values.get("name_length"), Some(&json!(1)));
@@ -100,6 +105,7 @@ fn input_context_builders_capture_safe_lengths_and_flags() {
     assert_eq!(memo_values.get("has_title"), Some(&json!(true)));
     assert_eq!(memo_values.get("title_length"), Some(&json!(2)));
     assert_eq!(memo_values.get("body_length"), Some(&json!(2)));
+    assert_eq!(memo_values.get("tag_count"), Some(&json!(1)));
 
     let logging_values = logging_settings_context(&logging);
     assert_eq!(logging_values.get("mode"), Some(&json!("off")));

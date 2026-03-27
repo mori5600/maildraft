@@ -69,6 +69,7 @@ fn upsert_draft_captures_history_for_meaningful_changes_after_interval() {
             template_id: existing.template_id.clone(),
             signature_id: existing.signature_id.clone(),
             variable_values: existing.variable_values.clone(),
+            tags: existing.tags.clone(),
         },
         "100",
     );
@@ -98,6 +99,7 @@ fn delete_and_restore_draft_round_trips_draft_and_history() {
             template_id: None,
             signature_id: Some("signature-default".to_string()),
             variable_values: BTreeMap::new(),
+            tags: Vec::new(),
         },
         "100",
     );
@@ -135,6 +137,7 @@ fn restore_draft_from_trash_replaces_stale_active_history_for_same_id() {
             template_id: Some("template-thanks".to_string()),
             signature_id: Some("signature-default".to_string()),
             variable_values: BTreeMap::new(),
+            tags: Vec::new(),
         },
         "100",
     );
@@ -179,6 +182,7 @@ fn restore_draft_from_trash_rejects_duplicate_active_ids_without_mutating_trash(
             template_id: None,
             signature_id: None,
             variable_values: BTreeMap::new(),
+            tags: Vec::new(),
         },
         "20",
     );
@@ -206,6 +210,7 @@ fn restore_template_from_trash_rejects_duplicate_active_ids_without_mutating_tra
             body: "active".to_string(),
             closing: String::new(),
             signature_id: None,
+            tags: Vec::new(),
         },
         "20",
     );
@@ -260,6 +265,7 @@ fn restore_memo_from_trash_rejects_duplicate_active_ids_without_mutating_trash()
             title: "会議メモ".to_string(),
             is_pinned: false,
             body: "trash".to_string(),
+            tags: Vec::new(),
         },
         "10",
     );
@@ -270,6 +276,7 @@ fn restore_memo_from_trash_rejects_duplicate_active_ids_without_mutating_trash()
             title: "競合メモ".to_string(),
             is_pinned: true,
             body: "active".to_string(),
+            tags: Vec::new(),
         },
         "20",
     );
@@ -339,6 +346,7 @@ fn draft_history_skips_updates_inside_interval_but_keeps_later_changes() {
                 template_id: None,
                 signature_id: Some("signature-default".to_string()),
                 variable_values: BTreeMap::new(),
+                tags: Vec::new(),
             },
             timestamp,
         );
@@ -435,6 +443,7 @@ fn variable_presets_can_be_deleted_and_empty_trash_clears_all_kinds() {
             body: "本文".to_string(),
             closing: "末尾".to_string(),
             signature_id: Some("signature-default".to_string()),
+            tags: Vec::new(),
         },
         "10",
     );
@@ -447,6 +456,7 @@ fn variable_presets_can_be_deleted_and_empty_trash_clears_all_kinds() {
             title: "削除予定".to_string(),
             is_pinned: false,
             body: "本文".to_string(),
+            tags: Vec::new(),
         },
         "23",
     );
@@ -475,6 +485,7 @@ fn empty_trash_then_ensure_consistency_clears_references_that_only_survived_thro
             body: "本文".to_string(),
             closing: String::new(),
             signature_id: Some("signature-default".to_string()),
+            tags: Vec::new(),
         },
         "10",
     );
@@ -523,6 +534,7 @@ fn memo_updates_in_place_after_first_save() {
             title: "会議メモ".to_string(),
             is_pinned: true,
             body: "決定事項".to_string(),
+            tags: Vec::new(),
         },
         "10",
     );
@@ -532,6 +544,7 @@ fn memo_updates_in_place_after_first_save() {
             title: "会議メモ".to_string(),
             is_pinned: false,
             body: "決定事項\n宿題".to_string(),
+            tags: Vec::new(),
         },
         "20",
     );
@@ -555,6 +568,7 @@ fn memo_delete_and_restore_round_trip() {
             title: "会議メモ".to_string(),
             is_pinned: false,
             body: "決定事項".to_string(),
+            tags: Vec::new(),
         },
         "10",
     );
@@ -582,6 +596,7 @@ fn ensure_consistency_migrates_legacy_singleton_memo() {
         title: "旧メモ".to_string(),
         is_pinned: false,
         body: "移行対象".to_string(),
+        tags: Vec::new(),
         created_at: "10".to_string(),
         updated_at: "11".to_string(),
     });

@@ -17,8 +17,7 @@ use crate::app::{
 use super::{
     context::{
         editor_settings_context, elapsed_millis, logging_settings_context,
-        proofreading_settings_context,
-        snapshot_counts_context,
+        proofreading_settings_context, snapshot_counts_context,
     },
     AppResult, AppState,
 };

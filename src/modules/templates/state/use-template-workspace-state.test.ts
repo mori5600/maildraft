@@ -28,6 +28,7 @@ const snapshot: StoreSnapshot = {
       body: "本文",
       closing: "末尾",
       signatureId: "signature-1",
+      tags: [],
       createdAt: "1",
       updatedAt: "2",
     },
@@ -41,6 +42,7 @@ const snapshot: StoreSnapshot = {
       body: "",
       closing: "",
       signatureId: null,
+      tags: [],
       createdAt: "1",
       updatedAt: "1",
     },
@@ -215,7 +217,7 @@ describe("template workspace state", () => {
 
     const savedTemplate = {
       ...snapshot.templates[0],
-      subject: "自動保存の件名",
+      tags: ["自動保存"],
       updatedAt: "3",
     };
     const onSnapshotChange = vi.fn();
@@ -239,7 +241,7 @@ describe("template workspace state", () => {
     );
 
     act(() => {
-      result.current.templateWorkspaceProps.onChangeTemplate("subject", "自動保存の件名");
+      result.current.templateWorkspaceProps.onChangeTemplate("tags", ["自動保存"]);
     });
 
     expect(result.current.templateWorkspaceProps.autoSaveLabel).toBe("未保存の変更があります");
@@ -253,9 +255,10 @@ describe("template workspace state", () => {
     expect(saveTemplateSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         id: "template-1",
-        subject: "自動保存の件名",
+        tags: ["自動保存"],
       }),
     );
+    expect(onSnapshotChange.mock.calls[0][0].templates[0]?.tags).toEqual(["自動保存"]);
     expect(onNotice).not.toHaveBeenCalled();
   });
 
@@ -452,6 +455,57 @@ describe("template workspace state", () => {
     );
     expect(onViewChange).toHaveBeenCalledWith("drafts");
     expect(onNotice).toHaveBeenCalledWith("未保存のテンプレートから新しい下書きを起こしました。");
+  });
+
+  it("filters templates by search query and active tag", () => {
+    const { result } = renderHook(() =>
+      useTemplateWorkspaceState({
+        onClearError: vi.fn(),
+        onError: vi.fn(),
+        onFlushDraft: vi.fn(),
+        onNotice: vi.fn(),
+        onOpenDraftInput: vi.fn(),
+        onSnapshotChange: vi.fn(),
+        onTrashItemSelect: vi.fn(),
+        onViewChange: vi.fn(),
+        snapshot: {
+          ...snapshot,
+          templates: [
+            {
+              ...snapshot.templates[0],
+              id: "template-1",
+              name: "お礼",
+              tags: ["社外"],
+            },
+            {
+              ...snapshot.templates[1],
+              id: "template-2",
+              name: "確認",
+              tags: ["社内"],
+            },
+          ],
+        },
+      }),
+    );
+
+    act(() => {
+      result.current.templateWorkspaceProps.onChangeSearchQuery("社外");
+    });
+
+    expect(result.current.templateWorkspaceProps.templates.map((template) => template.id)).toEqual([
+      "template-1",
+    ]);
+    expect(result.current.templateWorkspaceProps.availableTags).toEqual(["社外", "社内"]);
+
+    act(() => {
+      result.current.templateWorkspaceProps.onChangeSearchQuery("");
+      result.current.templateWorkspaceProps.onChangeTagFilter("社内");
+    });
+
+    expect(result.current.templateWorkspaceProps.activeTagFilter).toBe("社内");
+    expect(result.current.templateWorkspaceProps.templates.map((template) => template.id)).toEqual([
+      "template-2",
+    ]);
   });
 });
 

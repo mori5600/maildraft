@@ -139,6 +139,7 @@ mod tests {
             template_id: None,
             signature_id: Some("signature-default".to_string()),
             variable_values: BTreeMap::new(),
+            tags: Vec::new(),
         }
     }
 

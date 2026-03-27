@@ -10,9 +10,9 @@ use crate::modules::{
 };
 
 use super::{
-    validate_collection_size, validate_id_like, validate_text_length, validate_unique_ids,
-    validate_variables, MAX_COLLECTION_ITEMS, MAX_DRAFT_HISTORY_ITEMS, MAX_ID_LENGTH,
-    MAX_MEMO_BODY_LENGTH, MAX_NAME_LENGTH, MAX_OPENING_LENGTH, MAX_RECIPIENT_LENGTH,
+    validate_collection_size, validate_id_like, validate_tags, validate_text_length,
+    validate_unique_ids, validate_variables, MAX_COLLECTION_ITEMS, MAX_DRAFT_HISTORY_ITEMS,
+    MAX_ID_LENGTH, MAX_MEMO_BODY_LENGTH, MAX_NAME_LENGTH, MAX_OPENING_LENGTH, MAX_RECIPIENT_LENGTH,
     MAX_SIGNATURE_BODY_LENGTH, MAX_SUBJECT_LENGTH, MAX_TEXT_FIELD_LENGTH, MAX_TITLE_LENGTH,
 };
 
@@ -169,6 +169,7 @@ fn validate_draft(draft: &Draft) -> Result<(), String> {
     validate_text_length(&draft.body, "本文", MAX_TEXT_FIELD_LENGTH)?;
     validate_text_length(&draft.closing, "結び", MAX_OPENING_LENGTH)?;
     validate_variables(&draft.variable_values)?;
+    validate_tags(&draft.tags, "タグ")?;
     Ok(())
 }
 
@@ -182,6 +183,7 @@ fn validate_draft_history_entry(entry: &DraftHistoryEntry) -> Result<(), String>
     validate_text_length(&entry.body, "本文", MAX_TEXT_FIELD_LENGTH)?;
     validate_text_length(&entry.closing, "結び", MAX_OPENING_LENGTH)?;
     validate_variables(&entry.variable_values)?;
+    validate_tags(&entry.tags, "タグ")?;
     Ok(())
 }
 
@@ -189,6 +191,7 @@ fn validate_memo(memo: &Memo) -> Result<(), String> {
     validate_id_like(&memo.id, "メモID", MAX_ID_LENGTH)?;
     validate_text_length(&memo.title, "メモタイトル", MAX_TITLE_LENGTH)?;
     validate_text_length(&memo.body, "メモ本文", MAX_MEMO_BODY_LENGTH)?;
+    validate_tags(&memo.tags, "タグ")?;
     Ok(())
 }
 
@@ -207,6 +210,7 @@ fn validate_template(template: &Template) -> Result<(), String> {
     validate_text_length(&template.opening, "書き出し", MAX_OPENING_LENGTH)?;
     validate_text_length(&template.body, "本文", MAX_TEXT_FIELD_LENGTH)?;
     validate_text_length(&template.closing, "結び", MAX_OPENING_LENGTH)?;
+    validate_tags(&template.tags, "タグ")?;
     Ok(())
 }
 

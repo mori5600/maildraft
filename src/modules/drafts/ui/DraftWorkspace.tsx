@@ -14,6 +14,8 @@ import { DraftPreviewPane } from "./panes/DraftPreviewPane";
 import { useDraftWorkspaceUiState } from "./use-draft-workspace-ui-state";
 
 interface DraftWorkspaceProps {
+  activeTagFilter: string | null;
+  availableTags: string[];
   drafts: Draft[];
   totalDraftCount: number;
   draftHistory: DraftHistoryEntry[];
@@ -42,6 +44,7 @@ interface DraftWorkspaceProps {
   onCreateDraft: () => void;
   onChangeSearchQuery: (value: string) => void;
   onChangeSort: (value: DraftSortOption) => void;
+  onChangeTagFilter: (tag: string | null) => void;
   onChangeDraft: <K extends keyof DraftInput>(field: K, value: DraftInput[K]) => void;
   onChangeDraftVariable: (name: string, value: string) => void;
   onSelectVariablePreset: (id: string | null) => void;
@@ -64,6 +67,8 @@ interface DraftWorkspaceProps {
 }
 
 export function DraftWorkspace({
+  activeTagFilter,
+  availableTags,
   drafts,
   totalDraftCount,
   draftHistory,
@@ -92,6 +97,7 @@ export function DraftWorkspace({
   onCreateDraft,
   onChangeSearchQuery,
   onChangeSort,
+  onChangeTagFilter,
   onChangeDraft,
   onChangeDraftVariable,
   onSelectVariablePreset,
@@ -126,6 +132,8 @@ export function DraftWorkspace({
     <>
       <div className="grid h-full min-h-0 gap-3 xl:grid-cols-[248px_minmax(0,1fr)_320px]">
         <DraftListPane
+          activeTagFilter={activeTagFilter}
+          availableTags={availableTags}
           drafts={drafts}
           searchQuery={searchQuery}
           selectedDraftId={selectedDraftId}
@@ -133,11 +141,13 @@ export function DraftWorkspace({
           totalDraftCount={totalDraftCount}
           onChangeSearchQuery={onChangeSearchQuery}
           onChangeSort={onChangeSort}
+          onChangeTagFilter={onChangeTagFilter}
           onCreateDraft={onCreateDraft}
           onSelectDraft={onSelectDraft}
         />
 
         <DraftEditorPane
+          availableTags={availableTags}
           activeIssue={viewModel.activeIssue}
           activeIssueRequestKey={uiState.selectedIssueRequestKey}
           autoSaveLabel={autoSaveLabel}

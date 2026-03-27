@@ -60,6 +60,7 @@ export function createTemplate(overrides: Partial<Template> = {}): Template {
     body: "本日はありがとうございました。",
     closing: "引き続きよろしくお願いいたします。",
     signatureId: "signature-1",
+    tags: [],
     createdAt: DEFAULT_TIME,
     updatedAt: DEFAULT_TIME,
     ...overrides,
@@ -77,6 +78,7 @@ export function createTemplateInput(overrides: Partial<TemplateInput> = {}): Tem
     body: "本日はありがとうございました。",
     closing: "引き続きよろしくお願いいたします。",
     signatureId: "signature-1",
+    tags: [],
     ...overrides,
   };
 }
@@ -94,6 +96,7 @@ export function createDraft(overrides: Partial<Draft> = {}): Draft {
     templateId: "template-1",
     signatureId: "signature-1",
     variableValues: { 相手名: "佐藤様" },
+    tags: [],
     createdAt: DEFAULT_TIME,
     updatedAt: DEFAULT_TIME,
     ...overrides,
@@ -113,6 +116,7 @@ export function createDraftInput(overrides: Partial<DraftInput> = {}): DraftInpu
     templateId: "template-1",
     signatureId: "signature-1",
     variableValues: { 相手名: "佐藤様" },
+    tags: [],
     ...overrides,
   };
 }
@@ -132,6 +136,7 @@ export function createDraftHistoryEntry(
     templateId: "template-1",
     signatureId: "signature-1",
     variableValues: { 相手名: "佐藤様" },
+    tags: [],
     recordedAt: DEFAULT_TIME,
     ...overrides,
   };
@@ -214,6 +219,7 @@ export function createMemo(overrides: Partial<Memo> = {}): Memo {
     title: "打ち合わせメモ",
     isPinned: false,
     body: "確認事項を整理する",
+    tags: [],
     createdAt: DEFAULT_TIME,
     updatedAt: DEFAULT_TIME,
     ...overrides,
@@ -226,6 +232,7 @@ export function createMemoInput(overrides: Partial<MemoInput> = {}): MemoInput {
     title: "打ち合わせメモ",
     isPinned: false,
     body: "確認事項を整理する",
+    tags: [],
     ...overrides,
   };
 }

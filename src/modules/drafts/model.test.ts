@@ -19,6 +19,7 @@ const baseTemplate: TemplateInput = {
   body: "本日はありがとうございました。",
   closing: "よろしくお願いいたします。",
   signatureId: "signature-template",
+  tags: ["社外", "お礼"],
 };
 
 describe("draft model", () => {
@@ -28,6 +29,7 @@ describe("draft model", () => {
       subject: "お打ち合わせのお礼",
       templateId: "template-1",
       signatureId: "signature-template",
+      tags: ["社外", "お礼"],
     });
   });
 
@@ -37,6 +39,7 @@ describe("draft model", () => {
         {
           title: "",
           body: "会議メモ\n宿題を確認",
+          tags: ["議事録"],
         },
         "signature-default",
       ),
@@ -46,6 +49,7 @@ describe("draft model", () => {
       body: "会議メモ\n宿題を確認",
       templateId: null,
       signatureId: "signature-default",
+      tags: ["議事録"],
     });
   });
 
@@ -66,6 +70,7 @@ describe("draft model", () => {
           variableValues: {
             案件名: "導入相談",
           },
+          tags: ["既存", "営業"],
         },
         {
           ...baseTemplate,
@@ -82,6 +87,7 @@ describe("draft model", () => {
       variableValues: {
         案件名: "導入相談",
       },
+      tags: ["既存", "営業", "社外", "お礼"],
     });
   });
 
@@ -103,6 +109,7 @@ describe("draft model", () => {
             会社名: "株式会社〇〇",
             担当者名: "佐藤",
           },
+          tags: ["社外", "営業"],
         },
         {
           id: "draft-1",
@@ -119,6 +126,7 @@ describe("draft model", () => {
             担当者名: "佐藤",
             会社名: "株式会社〇〇",
           },
+          tags: ["社外", "営業"],
         },
       ),
     ).toBe(true);
@@ -138,6 +146,7 @@ describe("draft model", () => {
         variableValues: {
           会社名: "株式会社〇〇",
         },
+        tags: [],
       }),
     ).toBe(true);
 
@@ -154,7 +163,25 @@ describe("draft model", () => {
         templateId: null,
         signatureId: "signature-default",
         variableValues: {},
+        tags: [],
       }),
     ).toBe(false);
+
+    expect(
+      draftHasMeaningfulContent({
+        id: "draft-1",
+        title: "",
+        isPinned: false,
+        subject: "",
+        recipient: "",
+        opening: "",
+        body: "",
+        closing: "",
+        templateId: null,
+        signatureId: null,
+        variableValues: {},
+        tags: ["社外"],
+      }),
+    ).toBe(true);
   });
 });

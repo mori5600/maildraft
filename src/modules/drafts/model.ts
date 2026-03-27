@@ -1,7 +1,8 @@
+import { mergeUniqueTags, tagsEqual } from "../../shared/lib/tags";
 import type { Memo, MemoInput, MemoLike } from "../memo/model";
 import { memoLabel } from "../memo/model";
-import type { Template } from "../templates/model";
 import type { TemplateInput } from "../templates/model";
+import type { Template } from "../templates/model";
 
 export interface DraftHistoryEntry {
   id: string;
@@ -15,6 +16,7 @@ export interface DraftHistoryEntry {
   templateId: string | null;
   signatureId: string | null;
   variableValues: Record<string, string>;
+  tags: string[];
   recordedAt: string;
 }
 
@@ -30,6 +32,7 @@ export interface Draft {
   templateId: string | null;
   signatureId: string | null;
   variableValues: Record<string, string>;
+  tags: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -46,6 +49,7 @@ export interface DraftInput {
   templateId: string | null;
   signatureId: string | null;
   variableValues: Record<string, string>;
+  tags: string[];
 }
 
 export function createEmptyDraft(defaultSignatureId: string | null): DraftInput {
@@ -61,6 +65,7 @@ export function createEmptyDraft(defaultSignatureId: string | null): DraftInput 
     templateId: null,
     signatureId: defaultSignatureId,
     variableValues: {},
+    tags: [],
   };
 }
 
@@ -74,7 +79,15 @@ export function createDraftFromTemplate(
 export function createDraftFromTemplateInput(
   template: Pick<
     Template | TemplateInput,
-    "id" | "name" | "subject" | "recipient" | "opening" | "body" | "closing" | "signatureId"
+    | "id"
+    | "name"
+    | "subject"
+    | "recipient"
+    | "opening"
+    | "body"
+    | "closing"
+    | "signatureId"
+    | "tags"
   >,
   defaultSignatureId: string | null,
 ): DraftInput {
@@ -90,6 +103,7 @@ export function createDraftFromTemplateInput(
     templateId: template.id,
     signatureId: template.signatureId ?? defaultSignatureId,
     variableValues: {},
+    tags: [...(template.tags ?? [])],
   };
 }
 
@@ -98,13 +112,14 @@ export function createDraftFromMemo(memo: Memo, defaultSignatureId: string | nul
 }
 
 export function createDraftFromMemoInput(
-  memo: Pick<Memo | MemoInput | MemoLike, "title" | "body">,
+  memo: Pick<Memo | MemoInput | MemoLike, "title" | "body" | "tags">,
   defaultSignatureId: string | null,
 ): DraftInput {
   return {
     ...createEmptyDraft(defaultSignatureId),
     title: memoLabel(memo),
     body: memo.body,
+    tags: [...(memo.tags ?? [])],
   };
 }
 
@@ -125,6 +140,7 @@ export function applyTemplateToDraft(draft: DraftInput, template: Template): Dra
     templateId: template.id,
     signatureId: template.signatureId ?? draft.signatureId,
     variableValues: draft.variableValues,
+    tags: mergeUniqueTags(draft.tags, template.tags),
   };
 }
 
@@ -135,6 +151,7 @@ export function duplicateDraftInput(draft: DraftInput): DraftInput {
     isPinned: false,
     title: withCopySuffix(draft.title.trim() ? draft.title : draftLabel(draft)),
     variableValues: { ...draft.variableValues },
+    tags: [...(draft.tags ?? [])],
   };
 }
 
@@ -151,6 +168,7 @@ export function toDraftInput(draft: Draft): DraftInput {
     templateId: draft.templateId,
     signatureId: draft.signatureId,
     variableValues: draft.variableValues,
+    tags: draft.tags ?? [],
   };
 }
 
@@ -171,6 +189,7 @@ export function toDraftInputFromHistory(entry: DraftHistoryEntry): DraftInput {
     templateId: entry.templateId,
     signatureId: entry.signatureId,
     variableValues: entry.variableValues,
+    tags: entry.tags ?? [],
   };
 }
 
@@ -183,6 +202,7 @@ export function draftHasMeaningfulContent(draft: DraftInput): boolean {
     draft.body.trim() ||
     draft.closing.trim() ||
     draft.templateId ||
+    (draft.tags?.length ?? 0) > 0 ||
     Object.values(draft.variableValues).some((value) => value.trim().length > 0),
   );
 }
@@ -203,7 +223,8 @@ export function draftInputsEqual(left: DraftInput, right: DraftInput | null): bo
     left.closing === right.closing &&
     left.templateId === right.templateId &&
     left.signatureId === right.signatureId &&
-    variableValuesEqual(left.variableValues, right.variableValues)
+    variableValuesEqual(left.variableValues, right.variableValues) &&
+    tagsEqual(left.tags, right.tags)
   );
 }
 
@@ -223,7 +244,8 @@ export function draftMatchesPersistedDraft(left: DraftInput, right: Draft | null
     left.closing === right.closing &&
     left.templateId === right.templateId &&
     left.signatureId === right.signatureId &&
-    variableValuesEqual(left.variableValues, right.variableValues)
+    variableValuesEqual(left.variableValues, right.variableValues) &&
+    tagsEqual(left.tags, right.tags)
   );
 }
 

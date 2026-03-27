@@ -34,6 +34,17 @@ fn sqlite_repository_round_trips_store_and_settings() {
     });
     snapshot.drafts.retain(|draft| draft.id != "draft-welcome");
     snapshot.draft_history.clear();
+    snapshot.templates[0].tags = vec!["社外".to_string(), "お礼".to_string()];
+    snapshot.memos.push(crate::modules::memo::Memo {
+        id: "memo-tagged".to_string(),
+        title: "タグ付きメモ".to_string(),
+        is_pinned: false,
+        body: "本文".to_string(),
+        tags: vec!["会議".to_string(), "議事録".to_string()],
+        created_at: "1".to_string(),
+        updated_at: "2".to_string(),
+    });
+    snapshot.trash.drafts[0].draft.tags = vec!["ゴミ箱".to_string()];
     snapshot.ensure_consistency();
 
     let settings = AppSettings {
@@ -82,7 +93,7 @@ fn sqlite_repository_initializes_schema_only_once() {
     let version = connection
         .pragma_query_value(None, "user_version", |row| row.get::<_, i32>(0))
         .expect("query user version");
-    assert_eq!(version, 2);
+    assert_eq!(version, 3);
     assert!(!store_initialized(&connection).expect("store initialized"));
     assert!(!settings_initialized(&connection).expect("settings initialized"));
 
@@ -186,7 +197,17 @@ fn sqlite_load_helpers_reconstruct_snapshot_from_raw_tables() {
         .open_connection_for_tests()
         .expect("open connection");
     let transaction = connection.transaction().expect("transaction");
-    let snapshot = StoreSnapshot::seeded();
+    let mut snapshot = StoreSnapshot::seeded();
+    snapshot.drafts[0].tags = vec!["社外".to_string()];
+    snapshot
+        .draft_history
+        .push(crate::modules::drafts::DraftHistoryEntry::from_draft(
+            &snapshot.drafts[0],
+            "9",
+        ));
+    snapshot.draft_history[0].tags = vec!["履歴".to_string()];
+    snapshot.templates[0].tags = vec!["テンプレ".to_string()];
+    snapshot.ensure_consistency();
     insert_store_snapshot(&transaction, &snapshot).expect("insert snapshot");
     set_initialization_flags(&transaction, Some(true), None).expect("mark initialized");
     transaction.commit().expect("commit");

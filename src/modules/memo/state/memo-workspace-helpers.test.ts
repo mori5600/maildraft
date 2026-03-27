@@ -27,6 +27,7 @@ const snapshot: StoreSnapshot = {
       title: "商談メモ",
       isPinned: true,
       body: "確認事項を整理する",
+      tags: ["会議"],
       createdAt: "1",
       updatedAt: "10",
     },
@@ -35,6 +36,7 @@ const snapshot: StoreSnapshot = {
       title: "",
       isPinned: false,
       body: "会話ログ\nA社",
+      tags: ["議事録"],
       createdAt: "1",
       updatedAt: "5",
     },
@@ -90,6 +92,12 @@ describe("memo workspace helpers", () => {
       "memo-2",
     ]);
     expect(filterMemos(snapshot.memos, "A社", "recent").map((memo) => memo.id)).toEqual(["memo-2"]);
+    expect(filterMemos(snapshot.memos, "会議", "recent").map((memo) => memo.id)).toEqual([
+      "memo-1",
+    ]);
+    expect(filterMemos(snapshot.memos, "", "recent", "議事録").map((memo) => memo.id)).toEqual([
+      "memo-2",
+    ]);
     expect(getMemoUpdatedAt(snapshot.memos, "memo-2")).toBe("5");
     expect(getMemoUpdatedAt(snapshot.memos, "missing")).toBeNull();
 
@@ -100,6 +108,7 @@ describe("memo workspace helpers", () => {
           title: "",
           isPinned: false,
           body: "",
+          tags: [],
         },
         snapshot,
       ),
@@ -112,6 +121,7 @@ describe("memo workspace helpers", () => {
           title: "商談メモ",
           isPinned: true,
           body: "確認事項を整理する",
+          tags: ["会議"],
         },
         snapshot,
       ),
@@ -124,6 +134,7 @@ describe("memo workspace helpers", () => {
           title: "商談メモ",
           isPinned: true,
           body: "更新後の本文",
+          tags: [],
         },
         snapshot,
       ),

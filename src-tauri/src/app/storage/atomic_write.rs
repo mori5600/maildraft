@@ -51,8 +51,8 @@ mod tests {
     use pretty_assertions::assert_eq;
     use tempfile::tempdir;
 
-    use super::{temporary_path, write_json_safely};
     use super::super::paths::backup_path;
+    use super::{temporary_path, write_json_safely};
 
     #[test]
     fn write_json_safely_creates_parent_directories_and_replaces_content() {

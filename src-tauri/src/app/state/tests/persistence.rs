@@ -15,6 +15,7 @@ fn save_template_and_variable_preset_persist_store_updates() {
             body: "ご確認をお願いします。".to_string(),
             closing: "よろしくお願いいたします。".to_string(),
             signature_id: Some("signature-default".to_string()),
+            tags: Vec::new(),
         })
         .expect("save template");
     assert_eq!(saved_template.template.id, "template-follow-up");
@@ -55,6 +56,7 @@ fn save_memo_persists_store_updates() {
             title: "打ち合わせメモ".to_string(),
             is_pinned: true,
             body: "宿題を確認".to_string(),
+            tags: Vec::new(),
         })
         .expect("save memo");
 
@@ -136,6 +138,7 @@ fn trash_operations_round_trip_and_persist_snapshot_changes() {
             title: "会議".to_string(),
             is_pinned: false,
             body: "確認事項".to_string(),
+            tags: Vec::new(),
         })
         .expect("save memo");
     let deleted = state.delete_memo("memo-trash").expect("trash memo");

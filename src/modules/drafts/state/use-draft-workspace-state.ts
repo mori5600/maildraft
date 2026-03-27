@@ -3,6 +3,7 @@ import { useDeferredValue, useEffect, useState } from "react";
 import { copyPlainText } from "../../../shared/lib/clipboard";
 import type { DraftSortOption } from "../../../shared/lib/list-sort";
 import { pickKnownSignatureId, templateExists } from "../../../shared/lib/store-snapshot";
+import { collectUniqueTags } from "../../../shared/lib/tags";
 import type { StoreSnapshot } from "../../../shared/types/store";
 import { renderDraftPreview } from "../../renderer/render-draft";
 import { applyTemplateToDraft, type DraftInput } from "../model";
@@ -68,7 +69,12 @@ export function useDraftWorkspaceState({
 }: DraftWorkspaceStateOptions) {
   const [draftSearchQuery, setDraftSearchQuery] = useState("");
   const [draftSort, setDraftSort] = useState<DraftSortOption>("recent");
+  const [draftTagFilterState, setDraftTagFilter] = useState<string | null>(null);
   const deferredDraftSearchQuery = useDeferredValue(draftSearchQuery);
+  const availableDraftTags = collectUniqueTags(snapshot.drafts);
+  const activeDraftTagFilter = availableDraftTagsIncludes(availableDraftTags, draftTagFilterState)
+    ? draftTagFilterState
+    : null;
 
   const persistenceState = useDraftPersistenceState({
     onClearError,
@@ -103,6 +109,7 @@ export function useDraftWorkspaceState({
     filteredDrafts,
     selectedDraftSignature,
   } = useDraftWorkspaceDerivations({
+    activeDraftTag: activeDraftTagFilter,
     deferredDraftSearchQuery,
     draftForm,
     draftSort,
@@ -230,7 +237,9 @@ export function useDraftWorkspaceState({
       togglePinned: toggleDraftPinned,
     } satisfies DraftWorkspaceHandle,
     workspaceProps: {
+      activeTagFilter: activeDraftTagFilter,
       autoSaveLabel: formatDraftAutoSaveState(draftAutoSaveState),
+      availableTags: availableDraftTags,
       canApplyVariablePreset: variablePresetState.canApplyVariablePreset,
       canDuplicate: selectedDraftId !== null,
       canSaveVariablePreset: variablePresetState.canSaveVariablePreset,
@@ -247,6 +256,7 @@ export function useDraftWorkspaceState({
       onChangeDraftVariable: changeDraftVariable,
       onChangeSearchQuery: setDraftSearchQuery,
       onChangeSort: setDraftSort,
+      onChangeTagFilter: setDraftTagFilter,
       onChangeVariablePresetName: variablePresetState.changeVariablePresetName,
       onCopyPreview: copyPreview,
       onCreateDraft: createDraftWithReset,
@@ -277,6 +287,10 @@ export function useDraftWorkspaceState({
       variablePresets: snapshot.variablePresets,
     },
   };
+}
+
+function availableDraftTagsIncludes(tags: string[], value: string | null): value is string {
+  return value !== null && tags.includes(value);
 }
 
 function isDetailedProofreadingTriggerField(

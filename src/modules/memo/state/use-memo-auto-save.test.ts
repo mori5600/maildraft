@@ -105,7 +105,8 @@ describe("memo auto save", () => {
       createMemo({
         id: "memo-1",
         title: "打ち合わせメモ",
-        body: "更新後",
+        body: "更新前",
+        tags: ["議事録"],
         updatedAt: "20",
       }),
     );
@@ -114,7 +115,8 @@ describe("memo auto save", () => {
       initialMemoForm: createMemoInput({
         id: "memo-1",
         title: "打ち合わせメモ",
-        body: "更新後",
+        body: "更新前",
+        tags: ["議事録"],
       }),
     });
 
@@ -128,12 +130,12 @@ describe("memo auto save", () => {
     expect(saveMemoMock).toHaveBeenCalledWith(
       expect.objectContaining({
         id: "memo-1",
-        body: "更新後",
+        tags: ["議事録"],
       }),
     );
     expect(result.current.autoSaveLabel).toBe("自動保存済み");
-    expect(result.current.snapshot.memos[0]?.body).toBe("更新後");
-    expect(result.current.memoForm.body).toBe("更新後");
+    expect(result.current.snapshot.memos[0]?.tags).toEqual(["議事録"]);
+    expect(result.current.memoForm.tags).toEqual(["議事録"]);
     expect(result.current.selectedMemoId).toBe("memo-1");
     expect(onNotice).not.toHaveBeenCalled();
   });

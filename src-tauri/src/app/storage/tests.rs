@@ -6,8 +6,8 @@ use tempfile::tempdir;
 
 use super::{
     load_app_settings, load_app_settings_with_status, load_store_snapshot,
-    load_store_snapshot_with_status, write_app_settings, write_store_snapshot,
-    StartupNoticeSnapshot, StartupNoticeTone, paths::backup_path,
+    load_store_snapshot_with_status, paths::backup_path, write_app_settings, write_store_snapshot,
+    StartupNoticeSnapshot, StartupNoticeTone,
 };
 use crate::{
     app::settings::{AppSettings, LoggingMode, LoggingSettings, ProofreadingSettings},

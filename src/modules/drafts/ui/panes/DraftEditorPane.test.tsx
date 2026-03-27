@@ -17,11 +17,12 @@ describe("DraftEditorPane", () => {
 
     render(
       <DraftEditorPane
+        availableTags={["既存", "社外", "営業"]}
         activeIssue={null}
         activeIssueRequestKey={0}
         autoSaveLabel="自動保存済み"
         canDuplicate
-        draftForm={createDraftInput()}
+        draftForm={createDraftInput({ tags: ["既存"] })}
         selectedDraftId="draft-input-1"
         showWhitespace={false}
         signatures={[createSignature()]}
@@ -53,6 +54,12 @@ describe("DraftEditorPane", () => {
     await user.selectOptions(screen.getAllByRole("combobox")[0], "template-1");
     expect(handleApplyTemplate).toHaveBeenCalledWith("template-1");
 
+    await user.type(screen.getByRole("combobox", { name: "タグ" }), "社外{Enter}");
+    expect(handleChangeDraft).toHaveBeenCalledWith("tags", ["既存", "社外"]);
+
+    await user.click(screen.getByRole("button", { name: "タグ「既存」を削除" }));
+    expect(handleChangeDraft).toHaveBeenCalledWith("tags", []);
+
     await user.click(screen.getByRole("button", { name: "固定" }));
     expect(handleTogglePinned).toHaveBeenCalled();
 
@@ -66,6 +73,7 @@ describe("DraftEditorPane", () => {
   it("keeps multiline draft fields in CodeMirror when whitespace is visible", () => {
     render(
       <DraftEditorPane
+        availableTags={["社外"]}
         activeIssue={null}
         activeIssueRequestKey={0}
         autoSaveLabel="自動保存済み"
@@ -86,6 +94,7 @@ describe("DraftEditorPane", () => {
 
     expect(screen.getByRole("textbox", { name: "一覧名" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "件名" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "タグ" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "宛名メモ" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "書き出し" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "本文" })).toBeInTheDocument();

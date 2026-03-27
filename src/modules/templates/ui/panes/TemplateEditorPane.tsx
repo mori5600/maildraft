@@ -2,10 +2,12 @@ import { CodeEditor } from "../../../../shared/ui/code-editor/CodeEditor";
 import type { EditorSettings } from "../../../../shared/ui/code-editor/editor-settings";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Field, Panel, Select } from "../../../../shared/ui/primitives";
+import { TagEditorField } from "../../../../shared/ui/TagEditorField";
 import type { Signature } from "../../../signatures/model";
 import type { TemplateInput } from "../../model";
 
 interface TemplateEditorPaneProps {
+  availableTags: string[];
   signatures: Signature[];
   selectedTemplateId: string | null;
   templateForm: TemplateInput;
@@ -21,6 +23,7 @@ interface TemplateEditorPaneProps {
 }
 
 export function TemplateEditorPane({
+  availableTags,
   signatures,
   selectedTemplateId,
   templateForm,
@@ -126,6 +129,13 @@ export function TemplateEditorPane({
               {"`{{相手名}}` や `{{日付}}` をそのまま保存できます。"}
             </div>
           </div>
+
+          <TagEditorField
+            availableTags={availableTags}
+            key={templateForm.id}
+            tags={templateForm.tags}
+            onChangeTags={(tags) => onChangeTemplate("tags", tags)}
+          />
 
           <Field hint="社名や担当者など" label="宛名メモ" wrapWithLabel={false}>
             <CodeEditor

@@ -17,6 +17,7 @@ impl AppState {
     ///
     /// Returns an error if the store lock cannot be acquired or persistence fails.
     pub fn save_memo(&self, input: MemoInput) -> AppResult<Memo> {
+        let input = input.normalized();
         let started_at = Instant::now();
         let safe_context = memo_context(&input);
         let timestamp = timestamp();

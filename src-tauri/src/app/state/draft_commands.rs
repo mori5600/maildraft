@@ -46,6 +46,7 @@ impl AppState {
     ///
     /// Returns an error if the store lock, persistence step, or saved draft lookup fails.
     pub fn save_draft(&self, input: DraftInput) -> AppResult<SaveDraftResult> {
+        let input = input.normalized();
         let started_at = Instant::now();
         let safe_context = draft_context(&input);
         let draft_id = input.id.clone();

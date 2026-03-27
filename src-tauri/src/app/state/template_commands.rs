@@ -27,6 +27,7 @@ impl AppState {
     /// Returns an error if the store lock cannot be acquired, persistence fails, or the saved
     /// template cannot be resolved after consistency fixes.
     pub fn save_template(&self, input: TemplateInput) -> AppResult<SaveTemplateResult> {
+        let input = input.normalized();
         let started_at = Instant::now();
         let safe_context = template_context(&input);
         let template_id = input.id.clone();

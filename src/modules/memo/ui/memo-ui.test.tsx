@@ -14,20 +14,24 @@ describe("memo UI", () => {
     const handleCreateMemo = vi.fn();
     const handleChangeSearchQuery = vi.fn();
     const handleChangeSort = vi.fn();
+    const handleChangeTagFilter = vi.fn();
 
     render(
       <MemoListPane
+        activeTagFilter={null}
+        availableTags={["会議", "議事録"]}
         availableSortOptions={[
           { value: "recent", label: "更新順" },
           { value: "label", label: "タイトル順" },
         ]}
-        memos={[createMemo({ isPinned: true })]}
+        memos={[createMemo({ isPinned: true, tags: ["会議", "議事録"] })]}
         searchQuery="打ち"
         selectedMemoId="memo-1"
         sort="recent"
         totalMemoCount={3}
         onChangeSearchQuery={handleChangeSearchQuery}
         onChangeSort={handleChangeSort}
+        onChangeTagFilter={handleChangeTagFilter}
         onCreateMemo={handleCreateMemo}
         onSelectMemo={handleSelectMemo}
       />,
@@ -42,6 +46,10 @@ describe("memo UI", () => {
     expect(handleChangeSearchQuery).toHaveBeenCalledWith("");
     await user.selectOptions(screen.getByRole("combobox"), "label");
     expect(handleChangeSort).toHaveBeenCalledWith("label");
+    await user.click(screen.getByRole("button", { name: "会議" }));
+    expect(handleChangeTagFilter).toHaveBeenCalledWith("会議");
+    expect(screen.getAllByText("会議")).toHaveLength(2);
+    expect(screen.getAllByText("議事録")).toHaveLength(2);
     await user.click(screen.getByText("打ち合わせメモ").closest("button") ?? document.body);
     expect(handleSelectMemo).toHaveBeenCalledWith("memo-1");
   });
@@ -59,8 +67,9 @@ describe("memo UI", () => {
       <MemoEditorPane
         activeMemoUpdatedAt="1710000000000"
         autoSaveLabel="自動保存済み"
+        availableTags={["会議", "議事録", "社内"]}
         canStartDraftFromMemo
-        memoForm={createMemoInput()}
+        memoForm={createMemoInput({ tags: ["会議"] })}
         selectedMemoId="memo-1"
         showWhitespace={false}
         onChangeMemo={handleChangeMemo}
@@ -82,6 +91,10 @@ describe("memo UI", () => {
     await user.keyboard("{Enter}follow");
     expect(bodyEditor).toHaveFocus();
     expect(handleChangeMemo).toHaveBeenCalledWith("body", expect.stringContaining("follow"));
+    await user.type(screen.getByRole("combobox", { name: "タグ" }), "議事録{Enter}");
+    expect(handleChangeMemo).toHaveBeenCalledWith("tags", ["会議", "議事録"]);
+    await user.click(screen.getByRole("button", { name: "タグ「会議」を削除" }));
+    expect(handleChangeMemo).toHaveBeenCalledWith("tags", []);
 
     await user.click(screen.getByRole("button", { name: "新規" }));
     expect(handleCreateMemo).toHaveBeenCalled();
@@ -104,6 +117,7 @@ describe("memo UI", () => {
       <MemoEditorPane
         activeMemoUpdatedAt={null}
         autoSaveLabel="自動保存待機中"
+        availableTags={["会議"]}
         canStartDraftFromMemo
         memoForm={createMemoInput({
           title: "A 社メモ",
@@ -127,8 +141,10 @@ describe("memo UI", () => {
   it("connects memo workspace panes", () => {
     render(
       <MemoWorkspace
+        activeTagFilter={null}
         activeMemoUpdatedAt={null}
         autoSaveLabel="自動保存待機中"
+        availableTags={["会議"]}
         availableSortOptions={[{ value: "recent", label: "更新順" }]}
         canStartDraftFromMemo={false}
         memos={[createMemo()]}
@@ -141,6 +157,7 @@ describe("memo UI", () => {
         onChangeMemo={vi.fn()}
         onChangeSearchQuery={vi.fn()}
         onChangeSort={vi.fn()}
+        onChangeTagFilter={vi.fn()}
         onCreateMemo={vi.fn()}
         onDeleteMemo={vi.fn(async () => {})}
         onSaveMemo={vi.fn(async () => {})}
@@ -152,6 +169,7 @@ describe("memo UI", () => {
 
     expect(screen.getByText("メモ一覧")).toBeInTheDocument();
     expect(screen.getByText("メモエディタ")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "タグ" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "メモタイトル" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "メモ本文" })).toBeInTheDocument();
   });

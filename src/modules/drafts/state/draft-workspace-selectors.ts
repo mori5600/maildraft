@@ -4,6 +4,7 @@ import {
   createSearchTokens,
   matchesSearchTokens,
 } from "../../../shared/lib/search";
+import { matchesTagFilter } from "../../../shared/lib/tags";
 import type { Draft, DraftHistoryEntry } from "../model";
 import type { DraftProofreadingIssue } from "../proofreading/model";
 
@@ -22,6 +23,7 @@ export function createDraftSearchIndex(drafts: Draft[]): DraftSearchIndexEntry[]
       draft.opening,
       draft.body,
       draft.closing,
+      ...draft.tags,
       ...Object.values(draft.variableValues),
     ]),
   }));
@@ -30,16 +32,20 @@ export function createDraftSearchIndex(drafts: Draft[]): DraftSearchIndexEntry[]
 export function selectFilteredDrafts(
   searchIndex: DraftSearchIndexEntry[],
   searchQuery: string,
+  activeTag: string | null,
   sort: DraftSortOption,
 ): Draft[] {
   const draftSearchTokens = createSearchTokens(searchQuery);
 
   return sortDrafts(
-    draftSearchTokens.length === 0
-      ? searchIndex.map(({ draft }) => draft)
-      : searchIndex
-          .filter(({ haystack }) => matchesSearchTokens(draftSearchTokens, haystack))
-          .map(({ draft }) => draft),
+    searchIndex
+      .filter(({ draft, haystack }) => {
+        const matchesSearch =
+          draftSearchTokens.length === 0 || matchesSearchTokens(draftSearchTokens, haystack);
+
+        return matchesSearch && matchesTagFilter(draft.tags, activeTag);
+      })
+      .map(({ draft }) => draft),
     sort,
   );
 }

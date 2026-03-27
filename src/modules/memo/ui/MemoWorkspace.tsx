@@ -5,8 +5,10 @@ import { MemoEditorPane } from "./panes/MemoEditorPane";
 import { MemoListPane } from "./panes/MemoListPane";
 
 interface MemoWorkspaceProps {
+  activeTagFilter: string | null;
   activeMemoUpdatedAt: string | null;
   autoSaveLabel: string;
+  availableTags: string[];
   availableSortOptions: Array<{ value: MemoSortOption; label: string }>;
   canStartDraftFromMemo: boolean;
   memos: Memo[];
@@ -15,6 +17,7 @@ interface MemoWorkspaceProps {
   onChangeMemo: <K extends keyof MemoInput>(field: K, value: MemoInput[K]) => void;
   onChangeSearchQuery: (value: string) => void;
   onChangeSort: (value: MemoSortOption) => void;
+  onChangeTagFilter: (tag: string | null) => void;
   onCreateMemo: () => void;
   onDeleteMemo: () => Promise<void>;
   onSaveMemo: () => Promise<void>;
@@ -29,8 +32,10 @@ interface MemoWorkspaceProps {
 }
 
 export function MemoWorkspace({
+  activeTagFilter,
   activeMemoUpdatedAt,
   autoSaveLabel,
+  availableTags,
   availableSortOptions,
   canStartDraftFromMemo,
   memos,
@@ -39,6 +44,7 @@ export function MemoWorkspace({
   onChangeMemo,
   onChangeSearchQuery,
   onChangeSort,
+  onChangeTagFilter,
   onCreateMemo,
   onDeleteMemo,
   onSaveMemo,
@@ -54,10 +60,13 @@ export function MemoWorkspace({
   return (
     <div className="grid h-full min-h-0 gap-3 xl:grid-cols-[268px_minmax(0,1fr)]">
       <MemoListPane
+        activeTagFilter={activeTagFilter}
+        availableTags={availableTags}
         availableSortOptions={availableSortOptions}
         memos={memos}
         onChangeSearchQuery={onChangeSearchQuery}
         onChangeSort={onChangeSort}
+        onChangeTagFilter={onChangeTagFilter}
         onCreateMemo={onCreateMemo}
         onSelectMemo={onSelectMemo}
         searchQuery={searchQuery}
@@ -69,6 +78,7 @@ export function MemoWorkspace({
       <MemoEditorPane
         activeMemoUpdatedAt={activeMemoUpdatedAt}
         autoSaveLabel={autoSaveLabel}
+        availableTags={availableTags}
         canStartDraftFromMemo={canStartDraftFromMemo}
         editorSettings={editorSettings}
         memoForm={memoForm}

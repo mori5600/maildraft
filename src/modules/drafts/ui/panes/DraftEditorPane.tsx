@@ -4,6 +4,7 @@ import { CodeEditor } from "../../../../shared/ui/code-editor/CodeEditor";
 import type { EditorSettings } from "../../../../shared/ui/code-editor/editor-settings";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Field, Panel, Select } from "../../../../shared/ui/primitives";
+import { TagEditorField } from "../../../../shared/ui/TagEditorField";
 import type { Signature } from "../../../signatures/model";
 import type { Template } from "../../../templates/model";
 import type { DraftInput } from "../../model";
@@ -15,6 +16,7 @@ function cn(...classNames: Array<string | false | null | undefined>): string {
 }
 
 interface DraftEditorPaneProps {
+  availableTags: string[];
   activeIssue: DraftProofreadingIssue | null;
   activeIssueRequestKey: number;
   draftForm: DraftInput;
@@ -34,6 +36,7 @@ interface DraftEditorPaneProps {
 }
 
 export function DraftEditorPane({
+  availableTags,
   activeIssue,
   activeIssueRequestKey,
   draftForm,
@@ -203,6 +206,13 @@ export function DraftEditorPane({
               </Select>
             </Field>
           </div>
+
+          <TagEditorField
+            availableTags={availableTags}
+            key={draftForm.id}
+            tags={draftForm.tags}
+            onChangeTags={(tags) => onChangeDraft("tags", tags)}
+          />
 
           <Field hint="社名や担当者など" label="宛名メモ" wrapWithLabel={false}>
             <CodeEditor

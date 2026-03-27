@@ -12,16 +12,20 @@ describe("DraftListPane", () => {
     const handleCreateDraft = vi.fn();
     const handleChangeSearchQuery = vi.fn();
     const handleChangeSort = vi.fn();
+    const handleChangeTagFilter = vi.fn();
 
     render(
       <DraftListPane
-        drafts={[createDraft({ isPinned: true })]}
+        activeTagFilter={null}
+        availableTags={["社外", "営業"]}
+        drafts={[createDraft({ isPinned: true, tags: ["社外", "営業"] })]}
         searchQuery="礼"
         selectedDraftId="draft-1"
         sort="recent"
         totalDraftCount={3}
         onChangeSearchQuery={handleChangeSearchQuery}
         onChangeSort={handleChangeSort}
+        onChangeTagFilter={handleChangeTagFilter}
         onCreateDraft={handleCreateDraft}
         onSelectDraft={handleSelectDraft}
       />,
@@ -39,6 +43,12 @@ describe("DraftListPane", () => {
 
     await user.selectOptions(screen.getByRole("combobox"), "label");
     expect(handleChangeSort).toHaveBeenCalledWith("label");
+
+    await user.click(screen.getByRole("button", { name: "社外" }));
+    expect(handleChangeTagFilter).toHaveBeenCalledWith("社外");
+
+    expect(screen.getAllByText("社外")).toHaveLength(2);
+    expect(screen.getAllByText("営業")).toHaveLength(2);
 
     await user.click(screen.getByText("4/12 打ち合わせお礼").closest("button") ?? document.body);
     expect(handleSelectDraft).toHaveBeenCalledWith("draft-1");

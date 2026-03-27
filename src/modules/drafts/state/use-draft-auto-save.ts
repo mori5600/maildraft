@@ -219,6 +219,7 @@ function serializeDraftRevision(input: DraftInput): string {
     recipient: input.recipient,
     signatureId: input.signatureId,
     subject: input.subject,
+    tags: input.tags,
     templateId: input.templateId,
     title: input.title,
     variableValues,

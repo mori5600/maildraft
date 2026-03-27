@@ -85,6 +85,7 @@ pub(super) fn draft_context(input: &DraftInput) -> Map<String, Value> {
         "variable_count".to_string(),
         json!(input.variable_values.len()),
     );
+    context.insert("tag_count".to_string(), json!(input.tags.len()));
     context
 }
 
@@ -113,6 +114,7 @@ pub(super) fn template_context(input: &TemplateInput) -> Map<String, Value> {
         "closing_length".to_string(),
         json!(input.closing.chars().count()),
     );
+    context.insert("tag_count".to_string(), json!(input.tags.len()));
     context
 }
 
@@ -143,6 +145,7 @@ pub(super) fn memo_context(input: &MemoInput) -> Map<String, Value> {
         json!(input.title.chars().count()),
     );
     context.insert("body_length".to_string(), json!(input.body.chars().count()));
+    context.insert("tag_count".to_string(), json!(input.tags.len()));
     context
 }
 
@@ -164,7 +167,10 @@ pub(super) fn proofreading_settings_context(settings: &ProofreadingSettings) -> 
 
 pub(super) fn editor_settings_context(settings: &EditorSettings) -> Map<String, Value> {
     let mut context = Map::new();
-    context.insert("indent_style".to_string(), json!(settings.indent_style.as_str()));
+    context.insert(
+        "indent_style".to_string(),
+        json!(settings.indent_style.as_str()),
+    );
     context.insert("tab_size".to_string(), json!(settings.tab_size));
     context
 }

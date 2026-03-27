@@ -3,6 +3,7 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } f
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import { MEMO_SORT_OPTIONS, type MemoSortOption } from "../../../shared/lib/list-sort";
 import { applyDeletedMemoResult, getDefaultSignatureId } from "../../../shared/lib/store-snapshot";
+import { collectUniqueTags } from "../../../shared/lib/tags";
 import type { StoreSnapshot, WorkspaceView } from "../../../shared/types/store";
 import { createDraftFromMemoInput, type DraftInput } from "../../drafts/model";
 import { buildTrashItemKey } from "../../trash/model";
@@ -45,6 +46,7 @@ export function useMemoWorkspaceState({
   const [memoForm, setMemoForm] = useState<MemoInput>(initialMemoState.memoForm);
   const [memoSearchQuery, setMemoSearchQuery] = useState("");
   const [memoSort, setMemoSort] = useState<MemoSortOption>("recent");
+  const [memoTagFilterState, setMemoTagFilter] = useState<string | null>(null);
   const deferredMemoSearchQuery = useDeferredValue(memoSearchQuery);
   const memoFormRef = useRef(memoForm);
   const selectedMemoIdRef = useRef(selectedMemoId);
@@ -62,9 +64,13 @@ export function useMemoWorkspaceState({
     snapshotRef.current = snapshot;
   }, [snapshot]);
 
+  const availableMemoTags = useMemo(() => collectUniqueTags(snapshot.memos), [snapshot.memos]);
+  const activeMemoTagFilter = availableMemoTagsIncludes(availableMemoTags, memoTagFilterState)
+    ? memoTagFilterState
+    : null;
   const filteredMemos = useMemo(
-    () => filterMemos(snapshot.memos, deferredMemoSearchQuery, memoSort),
-    [deferredMemoSearchQuery, memoSort, snapshot.memos],
+    () => filterMemos(snapshot.memos, deferredMemoSearchQuery, memoSort, activeMemoTagFilter),
+    [activeMemoTagFilter, deferredMemoSearchQuery, memoSort, snapshot.memos],
   );
 
   const { autoSaveLabel, flushPendingMemo, saveMemo } = useMemoAutoSave({
@@ -175,8 +181,10 @@ export function useMemoWorkspaceState({
     saveMemo,
     toggleMemoPinned,
     memoWorkspaceProps: {
+      activeTagFilter: activeMemoTagFilter,
       activeMemoUpdatedAt: selectedMemoUpdatedAt,
       autoSaveLabel,
+      availableTags: availableMemoTags,
       availableSortOptions: MEMO_SORT_OPTIONS,
       canStartDraftFromMemo: memoHasDraftContent(memoForm),
       memos: filteredMemos,
@@ -184,6 +192,7 @@ export function useMemoWorkspaceState({
       onChangeMemo: changeMemo,
       onChangeSearchQuery: setMemoSearchQuery,
       onChangeSort: setMemoSort,
+      onChangeTagFilter: setMemoTagFilter,
       onCreateMemo: createMemo,
       onDeleteMemo: deleteMemo,
       onSaveMemo: saveMemo,
@@ -197,4 +206,8 @@ export function useMemoWorkspaceState({
       totalMemoCount: snapshot.memos.length,
     },
   };
+}
+
+function availableMemoTagsIncludes(tags: string[], value: string | null): value is string {
+  return value !== null && tags.includes(value);
 }

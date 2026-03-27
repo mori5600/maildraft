@@ -2,6 +2,7 @@ pub mod drafts;
 pub mod memo;
 pub mod signatures;
 pub mod store;
+pub mod tags;
 pub mod templates;
 pub mod trash;
 pub mod variable_presets;

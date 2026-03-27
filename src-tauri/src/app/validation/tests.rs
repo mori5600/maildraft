@@ -3,10 +3,10 @@ use std::fs::{self, File};
 use tempfile::tempdir;
 
 use super::{
-    read_text_file_with_limit, validate_export_backup_path, validate_import_backup_path,
-    validate_store_snapshot, MAX_BACKUP_FILE_BYTES,
+    read_text_file_with_limit, validate_draft_input, validate_export_backup_path,
+    validate_import_backup_path, validate_store_snapshot, MAX_BACKUP_FILE_BYTES,
 };
-use crate::modules::store::StoreSnapshot;
+use crate::modules::{drafts::DraftInput, store::StoreSnapshot};
 
 #[test]
 fn backup_path_validation_requires_absolute_json_files() {
@@ -65,5 +65,40 @@ fn store_snapshot_validation_rejects_duplicate_active_and_trashed_ids() {
     assert_eq!(
         validate_store_snapshot(&snapshot).unwrap_err(),
         "下書きIDが重複しています。"
+    );
+}
+
+#[test]
+fn store_snapshot_validation_rejects_non_normalized_tags() {
+    let mut snapshot = StoreSnapshot::seeded();
+    snapshot.drafts[0].tags = vec![" 社外 ".to_string(), "社外".to_string()];
+
+    assert_eq!(
+        validate_store_snapshot(&snapshot).unwrap_err(),
+        "タグの前後に空白は使えません。"
+    );
+}
+
+#[test]
+fn draft_input_validation_rejects_too_many_tags() {
+    let snapshot = StoreSnapshot::seeded();
+    let input = DraftInput {
+        id: "draft-tags".to_string(),
+        title: "タグ過多".to_string(),
+        is_pinned: false,
+        subject: String::new(),
+        recipient: String::new(),
+        opening: String::new(),
+        body: String::new(),
+        closing: String::new(),
+        template_id: None,
+        signature_id: Some("signature-default".to_string()),
+        variable_values: Default::default(),
+        tags: (0..21).map(|index| format!("tag-{index}")).collect(),
+    };
+
+    assert_eq!(
+        validate_draft_input(&input, &snapshot).unwrap_err(),
+        "タグは 20 件以内で入力してください。"
     );
 }

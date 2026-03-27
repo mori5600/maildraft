@@ -188,6 +188,7 @@ function serializeMemoRevision(input: MemoInput): string {
     body: input.body,
     id: input.id,
     isPinned: input.isPinned,
+    tags: input.tags,
     title: input.title,
   });
 }

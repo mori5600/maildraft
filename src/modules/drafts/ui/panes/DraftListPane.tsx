@@ -6,10 +6,14 @@ import { truncate } from "../../../../shared/lib/text";
 import { formatStoredTime } from "../../../../shared/lib/time";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Input, Panel, Select } from "../../../../shared/ui/primitives";
+import { TagBadgeList } from "../../../../shared/ui/TagBadgeList";
+import { TagFilterBar } from "../../../../shared/ui/TagFilterBar";
 import type { Draft } from "../../model";
 import { draftLabel } from "../../model";
 
 interface DraftListPaneProps {
+  activeTagFilter: string | null;
+  availableTags: string[];
   drafts: Draft[];
   totalDraftCount: number;
   selectedDraftId: string | null;
@@ -19,9 +23,12 @@ interface DraftListPaneProps {
   onCreateDraft: () => void;
   onChangeSearchQuery: (value: string) => void;
   onChangeSort: (value: DraftSortOption) => void;
+  onChangeTagFilter: (tag: string | null) => void;
 }
 
 export const DraftListPane = memo(function DraftListPane({
+  activeTagFilter,
+  availableTags,
   drafts,
   totalDraftCount,
   selectedDraftId,
@@ -31,8 +38,10 @@ export const DraftListPane = memo(function DraftListPane({
   onCreateDraft,
   onChangeSearchQuery,
   onChangeSort,
+  onChangeTagFilter,
 }: DraftListPaneProps) {
-  const draftCountLabel = searchQuery.trim()
+  const hasActiveFilter = Boolean(searchQuery.trim() || activeTagFilter);
+  const draftCountLabel = hasActiveFilter
     ? `${drafts.length} / ${totalDraftCount}件`
     : `${totalDraftCount}件`;
 
@@ -92,12 +101,18 @@ export const DraftListPane = memo(function DraftListPane({
               ))}
             </Select>
           </div>
+
+          <TagFilterBar
+            activeTag={activeTagFilter}
+            availableTags={availableTags}
+            onChangeTag={onChangeTagFilter}
+          />
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
         {drafts.length === 0 ? (
           <div className="rounded-[7px] border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3 py-2.5 text-[13px] leading-6 text-(--color-text-muted)">
-            {searchQuery.trim() ? "検索に一致する下書きはありません。" : "まだ下書きはありません。"}
+            {hasActiveFilter ? "条件に一致する下書きはありません。" : "まだ下書きはありません。"}
           </div>
         ) : (
           <div className="space-y-1">
@@ -132,6 +147,7 @@ export const DraftListPane = memo(function DraftListPane({
                   <div className="mt-1 truncate text-[11px] text-(--color-text-muted)">
                     {truncate(draft.subject || "件名未設定")}
                   </div>
+                  <TagBadgeList className="mt-1.5" tags={draft.tags} />
                   <div className="mt-1.5 text-[10px] text-(--color-text-subtle)">
                     {formatStoredTime(draft.updatedAt)}
                   </div>
