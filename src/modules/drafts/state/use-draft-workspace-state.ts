@@ -6,13 +6,8 @@ import { pickKnownSignatureId, templateExists } from "../../../shared/lib/store-
 import { collectUniqueTags, resolveActiveTagFilter } from "../../../shared/lib/tags";
 import type { StoreSnapshot } from "../../../shared/types/store";
 import { renderDraftPreview } from "../../renderer/render-draft";
-import type { TemplateInput } from "../../templates/model";
-import {
-  applyTemplateToDraft,
-  createTemplateFromDraftInput,
-  draftHasMeaningfulContent,
-  type DraftInput,
-} from "../model";
+import { createTemplateFromDraftInput, type TemplateInput } from "../../templates/model";
+import { applyTemplateToDraft, draftHasMeaningfulContent, type DraftInput } from "../model";
 import { formatDraftAutoSaveState, toDraftWorkspaceErrorMessage } from "./draft-workspace-helpers";
 import { useDraftPersistenceState } from "./use-draft-persistence-state";
 import { useDraftProofreadingState } from "./use-draft-proofreading-state";

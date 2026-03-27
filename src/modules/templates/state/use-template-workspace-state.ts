@@ -147,16 +147,23 @@ export function useTemplateWorkspaceState({
       templateFormRef,
     });
 
-  const openTemplateInput = useCallback(
-    (input: TemplateInput) => {
-      flushPendingTemplate();
+  const openUnsavedTemplate = useCallback(
+    (input: TemplateInput, noticeMessage: string) => {
       setSelectedTemplateId(null);
       setTemplateForm(input);
       setTemplateAutoSaveState("idle");
       onViewChange("templates");
-      onNotice("下書きから新しいテンプレートを作成しています。");
+      onNotice(noticeMessage);
     },
-    [flushPendingTemplate, onNotice, onViewChange, setTemplateAutoSaveState],
+    [onNotice, onViewChange, setTemplateAutoSaveState],
+  );
+
+  const openTemplateInput = useCallback(
+    (input: TemplateInput) => {
+      flushPendingTemplate();
+      openUnsavedTemplate(input, "下書きから新しいテンプレートを作成しています。");
+    },
+    [flushPendingTemplate, openUnsavedTemplate],
   );
 
   function hydrateTemplateState(
@@ -199,19 +206,11 @@ export function useTemplateWorkspaceState({
   const createTemplate = useCallback(() => {
     onFlushDraft();
     flushPendingTemplate();
-    setSelectedTemplateId(null);
-    setTemplateForm(createEmptyTemplate(getDefaultSignatureId(snapshot)));
-    setTemplateAutoSaveState("idle");
-    onViewChange("templates");
-    onNotice("新しいテンプレートを作成しています。");
-  }, [
-    flushPendingTemplate,
-    onFlushDraft,
-    onNotice,
-    onViewChange,
-    setTemplateAutoSaveState,
-    snapshot,
-  ]);
+    openUnsavedTemplate(
+      createEmptyTemplate(getDefaultSignatureId(snapshot)),
+      "新しいテンプレートを作成しています。",
+    );
+  }, [flushPendingTemplate, onFlushDraft, openUnsavedTemplate, snapshot]);
 
   function changeTemplate<K extends keyof TemplateInput>(field: K, value: TemplateInput[K]) {
     setTemplateForm((current) => ({

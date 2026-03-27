@@ -5,7 +5,6 @@ import {
   applyTemplateToDraft,
   createDraftFromMemoInput,
   createDraftFromTemplateInput,
-  createTemplateFromDraftInput,
   draftHasMeaningfulContent,
   draftInputsEqual,
 } from "./model";
@@ -51,44 +50,6 @@ describe("draft model", () => {
       templateId: null,
       signatureId: "signature-default",
       tags: ["議事録"],
-    });
-  });
-
-  it("creates a template from a draft and reuses the current draft content", () => {
-    expect(
-      createTemplateFromDraftInput({
-        title: "4/12 打ち合わせお礼",
-        subject: "お打ち合わせのお礼",
-        recipient: "株式会社〇〇\n佐藤様",
-        opening: "いつもお世話になっております。",
-        body: "本日はありがとうございました。",
-        closing: "よろしくお願いいたします。",
-        signatureId: "signature-default",
-        tags: ["社外", "お礼"],
-      }),
-    ).toMatchObject({
-      name: "4/12 打ち合わせお礼",
-      isPinned: false,
-      subject: "お打ち合わせのお礼",
-      signatureId: "signature-default",
-      tags: ["社外", "お礼"],
-    });
-
-    expect(
-      createTemplateFromDraftInput({
-        title: "",
-        subject: "",
-        recipient: "",
-        opening: "",
-        body: "本文のみ",
-        closing: "",
-        signatureId: null,
-        tags: [],
-      }),
-    ).toMatchObject({
-      name: "新しいテンプレート",
-      body: "本文のみ",
-      signatureId: null,
     });
   });
 

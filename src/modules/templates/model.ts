@@ -30,6 +30,17 @@ export interface TemplateInput {
 
 export const DEFAULT_TEMPLATE_NAME = "新しいテンプレート";
 
+type DraftTemplateSource = {
+  body: string;
+  closing: string;
+  opening: string;
+  recipient: string;
+  signatureId: string | null;
+  subject: string;
+  tags: string[];
+  title: string;
+};
+
 export function createEmptyTemplate(defaultSignatureId: string | null): TemplateInput {
   return {
     id: crypto.randomUUID(),
@@ -42,6 +53,21 @@ export function createEmptyTemplate(defaultSignatureId: string | null): Template
     closing: "",
     signatureId: defaultSignatureId,
     tags: [],
+  };
+}
+
+export function createTemplateFromDraftInput(draft: DraftTemplateSource): TemplateInput {
+  return {
+    id: crypto.randomUUID(),
+    name: draft.title.trim() || draft.subject.trim() || DEFAULT_TEMPLATE_NAME,
+    isPinned: false,
+    subject: draft.subject,
+    recipient: draft.recipient,
+    opening: draft.opening,
+    body: draft.body,
+    closing: draft.closing,
+    signatureId: draft.signatureId,
+    tags: [...(draft.tags ?? [])],
   };
 }
 
