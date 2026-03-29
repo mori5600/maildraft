@@ -35,10 +35,10 @@ interface TemplateWorkspaceProps {
   onChangeTagFilter: (tag: string | null) => void;
   onChangeTemplate: <K extends keyof TemplateInput>(field: K, value: TemplateInput[K]) => void;
   onSaveTemplate: () => Promise<void>;
-  onDeleteTemplate: () => Promise<void>;
-  onDuplicateTemplate: () => Promise<void>;
-  onStartDraftFromTemplate: () => void;
-  onTogglePinned: () => void;
+  onDeleteTemplate: (templateId?: string) => Promise<void>;
+  onDuplicateTemplate: (templateId?: string) => Promise<void>;
+  onStartDraftFromTemplate: (templateId?: string) => void;
+  onTogglePinned: (templateId?: string) => void | Promise<void>;
 }
 
 export function TemplateWorkspace({
@@ -91,7 +91,11 @@ export function TemplateWorkspace({
           onChangeSort={onChangeSort}
           onChangeTagFilter={onChangeTagFilter}
           onCreateTemplate={onCreateTemplate}
+          onDeleteTemplate={(templateId) => onDeleteTemplate(templateId)}
+          onDuplicateTemplate={(templateId) => onDuplicateTemplate(templateId)}
           onSelectTemplate={onSelectTemplate}
+          onStartDraftFromTemplate={(templateId) => onStartDraftFromTemplate(templateId)}
+          onTogglePinned={(templateId) => onTogglePinned(templateId)}
         />
 
         <TemplateEditorPane
@@ -104,10 +108,10 @@ export function TemplateWorkspace({
           signatures={signatures}
           templateForm={templateForm}
           onChangeTemplate={onChangeTemplate}
-          onDeleteTemplate={onDeleteTemplate}
-          onDuplicateTemplate={onDuplicateTemplate}
+          onDeleteTemplate={() => onDeleteTemplate()}
+          onDuplicateTemplate={() => onDuplicateTemplate()}
           onSaveTemplate={onSaveTemplate}
-          onTogglePinned={onTogglePinned}
+          onTogglePinned={() => onTogglePinned()}
         />
 
         <TemplatePreviewPane
@@ -115,13 +119,13 @@ export function TemplateWorkspace({
           previewBodyText={previewBodyText}
           templateForm={templateForm}
           onOpenPreview={() => setIsWidePreviewOpen(true)}
-          onStartDraftFromTemplate={onStartDraftFromTemplate}
+          onStartDraftFromTemplate={() => onStartDraftFromTemplate()}
         />
       </div>
 
       <PreviewOverlay
         action={
-          <Button size="sm" variant="ghost" onClick={onStartDraftFromTemplate}>
+          <Button size="sm" variant="ghost" onClick={() => onStartDraftFromTemplate()}>
             下書きを作成
           </Button>
         }

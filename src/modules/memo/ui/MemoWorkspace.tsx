@@ -20,11 +20,11 @@ interface MemoWorkspaceProps {
   onChangeSort: (value: MemoSortOption) => void;
   onChangeTagFilter: (tag: string | null) => void;
   onCreateMemo: () => void;
-  onDeleteMemo: () => Promise<void>;
+  onDeleteMemo: (memoId?: string) => Promise<void>;
   onSaveMemo: () => Promise<void>;
   onSelectMemo: (id: string) => void;
-  onTogglePinned: () => void;
-  onStartDraftFromMemo: () => void;
+  onTogglePinned: (memoId?: string) => void | Promise<void>;
+  onStartDraftFromMemo: (memoId?: string) => void;
   searchQuery: string;
   selectedMemoId: string | null;
   showWhitespace: boolean;
@@ -71,7 +71,10 @@ export function MemoWorkspace({
         onChangeSort={onChangeSort}
         onChangeTagFilter={onChangeTagFilter}
         onCreateMemo={onCreateMemo}
+        onDeleteMemo={(memoId) => onDeleteMemo(memoId)}
         onSelectMemo={onSelectMemo}
+        onStartDraftFromMemo={(memoId) => onStartDraftFromMemo(memoId)}
+        onTogglePinned={(memoId) => onTogglePinned(memoId)}
         searchQuery={searchQuery}
         selectedMemoId={selectedMemoId}
         sort={sort}
@@ -87,10 +90,10 @@ export function MemoWorkspace({
         memoForm={memoForm}
         onChangeMemo={onChangeMemo}
         onCreateMemo={onCreateMemo}
-        onDeleteMemo={onDeleteMemo}
+        onDeleteMemo={() => onDeleteMemo()}
         onSaveMemo={onSaveMemo}
-        onTogglePinned={onTogglePinned}
-        onStartDraftFromMemo={onStartDraftFromMemo}
+        onTogglePinned={() => onTogglePinned()}
+        onStartDraftFromMemo={() => onStartDraftFromMemo()}
         selectedMemoId={selectedMemoId}
         showWhitespace={showWhitespace}
       />

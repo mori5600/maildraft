@@ -1,21 +1,42 @@
 import { formatStoredTime } from "../../../../shared/lib/time";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Panel, Pill } from "../../../../shared/ui/primitives";
+import { useListContextMenu } from "../../../../shared/ui/use-list-context-menu";
 import { type TrashItem, trashItemTypeLabel } from "../../model";
 
 interface TrashListPaneProps {
   items: TrashItem[];
   selectedItemKey: string | null;
+  onDeleteItemPermanently: (item: TrashItem) => Promise<void>;
   onSelectItem: (key: string) => void;
   onEmptyTrash: () => Promise<void>;
+  onRestoreItem: (item: TrashItem) => Promise<void>;
 }
 
 export function TrashListPane({
   items,
   selectedItemKey,
+  onDeleteItemPermanently,
   onSelectItem,
   onEmptyTrash,
+  onRestoreItem,
 }: TrashListPaneProps) {
+  const { contextMenu, openItemContextMenu } = useListContextMenu<TrashItem>({
+    createItems: (item) => [
+      {
+        id: "restore",
+        label: "復元",
+        onSelect: () => onRestoreItem(item),
+      },
+      {
+        id: "delete",
+        label: "完全削除",
+        onSelect: () => onDeleteItemPermanently(item),
+        tone: "danger",
+      },
+    ],
+  });
+
   return (
     <Panel className="flex min-h-0 flex-col overflow-hidden">
       <PaneHeader
@@ -53,6 +74,7 @@ export function TrashListPane({
                   }`}
                   type="button"
                   onClick={() => onSelectItem(item.key)}
+                  onContextMenu={(event) => openItemContextMenu(event, item)}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="truncate text-[13px] font-medium text-(--color-text-strong)">
@@ -69,6 +91,7 @@ export function TrashListPane({
           </div>
         )}
       </div>
+      {contextMenu}
     </Panel>
   );
 }

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -19,11 +19,15 @@ describe("trash UI", () => {
     const user = userEvent.setup();
     const handleSelectItem = vi.fn();
     const handleEmptyTrash = vi.fn(async () => {});
+    const handleRestoreItem = vi.fn(async () => {});
+    const handleDeleteItemPermanently = vi.fn(async () => {});
     render(
       <TrashListPane
         items={[createTrashDraftItem(), createTrashTemplateItem()]}
         selectedItemKey="draft:draft-1"
+        onDeleteItemPermanently={handleDeleteItemPermanently}
         onEmptyTrash={handleEmptyTrash}
+        onRestoreItem={handleRestoreItem}
         onSelectItem={handleSelectItem}
       />,
     );
@@ -32,6 +36,14 @@ describe("trash UI", () => {
     expect(handleEmptyTrash).toHaveBeenCalled();
     await user.click(screen.getByText("打ち合わせお礼").closest("button") ?? document.body);
     expect(handleSelectItem).toHaveBeenCalledWith("template:template-1");
+
+    fireEvent.contextMenu(screen.getByText("打ち合わせお礼").closest("button")!);
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    expect(handleSelectItem).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole("menuitem", { name: "復元" }));
+    expect(handleRestoreItem).toHaveBeenCalledWith(
+      expect.objectContaining({ key: "template:template-1" }),
+    );
   });
 
   it("renders trash detail and action buttons", async () => {

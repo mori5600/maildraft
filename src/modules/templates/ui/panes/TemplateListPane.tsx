@@ -8,6 +8,7 @@ import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Input, Panel, Select } from "../../../../shared/ui/primitives";
 import { TagBadgeList } from "../../../../shared/ui/TagBadgeList";
 import { TagFilterBar } from "../../../../shared/ui/TagFilterBar";
+import { useListContextMenu } from "../../../../shared/ui/use-list-context-menu";
 import type { Template } from "../../model";
 
 interface TemplateListPaneProps {
@@ -24,6 +25,10 @@ interface TemplateListPaneProps {
   onChangeSearchQuery: (value: string) => void;
   onChangeSort: (value: TemplateSortOption) => void;
   onChangeTagFilter: (tag: string | null) => void;
+  onDeleteTemplate: (templateId: string) => Promise<void>;
+  onDuplicateTemplate: (templateId: string) => Promise<void>;
+  onStartDraftFromTemplate: (templateId: string) => void;
+  onTogglePinned: (templateId: string) => void | Promise<void>;
 }
 
 export const TemplateListPane = memo(function TemplateListPane({
@@ -40,7 +45,37 @@ export const TemplateListPane = memo(function TemplateListPane({
   onChangeSearchQuery,
   onChangeSort,
   onChangeTagFilter,
+  onDeleteTemplate,
+  onDuplicateTemplate,
+  onStartDraftFromTemplate,
+  onTogglePinned,
 }: TemplateListPaneProps) {
+  const { contextMenu, openItemContextMenu } = useListContextMenu<Template>({
+    createItems: (template) => [
+      {
+        id: "start-draft",
+        label: "下書きを作成",
+        onSelect: () => onStartDraftFromTemplate(template.id),
+      },
+      {
+        id: "duplicate",
+        label: "複製",
+        onSelect: () => onDuplicateTemplate(template.id),
+      },
+      { id: "sep-actions", type: "separator" },
+      {
+        id: "pin",
+        label: template.isPinned ? "固定を外す" : "固定する",
+        onSelect: () => onTogglePinned(template.id),
+      },
+      {
+        id: "delete",
+        label: "ゴミ箱へ移動",
+        onSelect: () => onDeleteTemplate(template.id),
+        tone: "danger",
+      },
+    ],
+  });
   const hasActiveFilter = Boolean(searchQuery.trim() || activeTagFilter);
   const templateCountLabel = hasActiveFilter
     ? `${templates.length} / ${totalTemplateCount}件`
@@ -133,6 +168,7 @@ export const TemplateListPane = memo(function TemplateListPane({
                   }`}
                   type="button"
                   onClick={() => onSelectTemplate(template.id)}
+                  onContextMenu={(event) => openItemContextMenu(event, template)}
                 >
                   <div className="flex items-center gap-2">
                     <div className="truncate text-[13px] font-medium text-(--color-text-strong)">
@@ -161,6 +197,7 @@ export const TemplateListPane = memo(function TemplateListPane({
           </div>
         )}
       </div>
+      {contextMenu}
     </Panel>
   );
 });

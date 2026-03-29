@@ -19,6 +19,7 @@ import {
   draftHasMeaningfulContent,
   type DraftInput,
   insertContentBlockIntoDraft,
+  toDraftInput,
 } from "../model";
 import { formatDraftAutoSaveState, toDraftWorkspaceErrorMessage } from "./draft-workspace-helpers";
 import { useDraftPersistenceState } from "./use-draft-persistence-state";
@@ -49,7 +50,7 @@ export interface DraftWorkspaceHandle {
   openDraftById: (draftId: string, snapshot?: StoreSnapshot) => void;
   openDraftInput: (input: DraftInput) => void;
   saveDraft: () => Promise<void>;
-  togglePinned: () => void;
+  togglePinned: () => void | Promise<void>;
   copyPreview: () => Promise<void>;
 }
 
@@ -247,13 +248,24 @@ export function useDraftWorkspaceState({
     onNotice(`テンプレート「${template.name}」を下書きに反映しました。`);
   }
 
-  function createTemplateFromDraft() {
-    if (!canCreateTemplate) {
+  function createTemplateFromDraft(targetDraftId?: string) {
+    const sourceDraft =
+      !targetDraftId || targetDraftId === selectedDraftId
+        ? draftForm
+        : (() => {
+            const targetDraft = snapshot.drafts.find((draft) => draft.id === targetDraftId);
+            return targetDraft ? toDraftInput(targetDraft) : null;
+          })();
+
+    if (!sourceDraft || !draftHasMeaningfulContent(sourceDraft)) {
       return;
     }
 
-    flushPendingDraft();
-    onOpenTemplateInput(createTemplateFromDraftInput(draftForm));
+    if (!targetDraftId || targetDraftId === selectedDraftId) {
+      flushPendingDraft();
+    }
+
+    onOpenTemplateInput(createTemplateFromDraftInput(sourceDraft));
   }
 
   function insertBlock(target: DraftBlockInsertTarget, blockId: string) {

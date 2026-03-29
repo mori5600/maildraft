@@ -26,9 +26,9 @@ interface SignatureWorkspaceProps {
   onChangeSort: (value: SignatureSortOption) => void;
   onChangeSignature: <K extends keyof SignatureInput>(field: K, value: SignatureInput[K]) => void;
   onSaveSignature: () => Promise<void>;
-  onDeleteSignature: () => Promise<void>;
-  onDuplicateSignature: () => Promise<void>;
-  onTogglePinned: () => void;
+  onDeleteSignature: (signatureId?: string) => Promise<void>;
+  onDuplicateSignature: (signatureId?: string) => Promise<void>;
+  onTogglePinned: (signatureId?: string) => void | Promise<void>;
 }
 
 export function SignatureWorkspace({
@@ -70,7 +70,10 @@ export function SignatureWorkspace({
           onChangeSearchQuery={onChangeSearchQuery}
           onChangeSort={onChangeSort}
           onCreateSignature={onCreateSignature}
+          onDeleteSignature={(signatureId) => onDeleteSignature(signatureId)}
+          onDuplicateSignature={(signatureId) => onDuplicateSignature(signatureId)}
           onSelectSignature={onSelectSignature}
+          onTogglePinned={(signatureId) => onTogglePinned(signatureId)}
         />
 
         <SignatureEditorPane
@@ -81,10 +84,10 @@ export function SignatureWorkspace({
           showWhitespace={showWhitespace}
           signatureForm={signatureForm}
           onChangeSignature={onChangeSignature}
-          onDeleteSignature={onDeleteSignature}
-          onDuplicateSignature={onDuplicateSignature}
+          onDeleteSignature={() => onDeleteSignature()}
+          onDuplicateSignature={() => onDuplicateSignature()}
           onSaveSignature={onSaveSignature}
-          onTogglePinned={onTogglePinned}
+          onTogglePinned={() => onTogglePinned()}
         />
 
         <SignaturePreviewPane

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -13,6 +13,10 @@ describe("DraftListPane", () => {
     const handleChangeSearchQuery = vi.fn();
     const handleChangeSort = vi.fn();
     const handleChangeTagFilter = vi.fn();
+    const handleCreateTemplateFromDraft = vi.fn();
+    const handleDeleteDraft = vi.fn(async () => {});
+    const handleDuplicateDraft = vi.fn(async () => {});
+    const handleTogglePinned = vi.fn();
 
     render(
       <DraftListPane
@@ -27,7 +31,11 @@ describe("DraftListPane", () => {
         onChangeSort={handleChangeSort}
         onChangeTagFilter={handleChangeTagFilter}
         onCreateDraft={handleCreateDraft}
+        onCreateTemplateFromDraft={handleCreateTemplateFromDraft}
+        onDeleteDraft={handleDeleteDraft}
+        onDuplicateDraft={handleDuplicateDraft}
         onSelectDraft={handleSelectDraft}
+        onTogglePinned={handleTogglePinned}
       />,
     );
 
@@ -52,5 +60,11 @@ describe("DraftListPane", () => {
 
     await user.click(screen.getByText("4/12 打ち合わせお礼").closest("button") ?? document.body);
     expect(handleSelectDraft).toHaveBeenCalledWith("draft-1");
+
+    fireEvent.contextMenu(screen.getByText("4/12 打ち合わせお礼").closest("button")!);
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    expect(handleSelectDraft).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole("menuitem", { name: "テンプレート化" }));
+    expect(handleCreateTemplateFromDraft).toHaveBeenCalledWith("draft-1");
   });
 });

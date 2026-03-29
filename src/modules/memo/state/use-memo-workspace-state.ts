@@ -2,7 +2,11 @@ import { useCallback, useDeferredValue, useEffect, useRef, useState } from "reac
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import { MEMO_SORT_OPTIONS, type MemoSortOption } from "../../../shared/lib/list-sort";
-import { applyDeletedMemoResult, getDefaultSignatureId } from "../../../shared/lib/store-snapshot";
+import {
+  applyDeletedMemoResult,
+  applySavedMemoResult,
+  getDefaultSignatureId,
+} from "../../../shared/lib/store-snapshot";
 import type { StoreSnapshot, WorkspaceView } from "../../../shared/types/store";
 import { createDraftFromMemoInput, type DraftInput } from "../../drafts/model";
 import { buildTrashItemKey } from "../../trash/model";
@@ -134,30 +138,72 @@ export function useMemoWorkspaceState({
     }));
   }
 
-  function toggleMemoPinned() {
-    setMemoForm((current) => ({
-      ...current,
-      isPinned: !current.isPinned,
-    }));
+  function resolveMemoInput(targetMemoId?: string): MemoInput | null {
+    const currentSelectedId = selectedMemoIdRef.current;
+    if (!targetMemoId || targetMemoId === currentSelectedId) {
+      return memoFormRef.current;
+    }
+
+    const targetMemo = findMemo(snapshotRef.current, targetMemoId);
+    return targetMemo ? toMemoInput(targetMemo) : null;
   }
 
-  const startDraftFromMemo = useCallback(() => {
-    const currentMemo = memoFormRef.current;
+  async function toggleMemoPinned(targetMemoId?: string) {
+    const currentSelectedId = selectedMemoIdRef.current;
 
-    if (!memoHasDraftContent(currentMemo)) {
+    if (!targetMemoId || targetMemoId === currentSelectedId) {
+      setMemoForm((current) => ({
+        ...current,
+        isPinned: !current.isPinned,
+      }));
       return;
     }
 
-    flushPendingMemo();
-    onOpenDraftInput(
-      createDraftFromMemoInput(currentMemo, getDefaultSignatureId(snapshotRef.current)),
-    );
-    onViewChange("drafts");
-    onNotice("メモから新しい下書きを起こしました。");
-  }, [flushPendingMemo, onNotice, onOpenDraftInput, onViewChange]);
+    const targetMemo = findMemo(snapshotRef.current, targetMemoId);
+    if (!targetMemo) {
+      return;
+    }
 
-  async function deleteMemo() {
-    if (!selectedMemoId) {
+    try {
+      onClearError();
+      const savedMemo = await maildraftApi.saveMemo({
+        ...toMemoInput(targetMemo),
+        isPinned: !targetMemo.isPinned,
+      });
+      const nextSnapshot = applySavedMemoResult(snapshotRef.current, savedMemo);
+      onSnapshotChange(nextSnapshot);
+      onNotice(savedMemo.isPinned ? "メモを固定しました。" : "メモの固定を外しました。");
+    } catch (toggleError) {
+      onError(toMemoWorkspaceErrorMessage(toggleError));
+    }
+  }
+
+  const startDraftFromMemo = useCallback(
+    (targetMemoId?: string) => {
+      const currentMemo = resolveMemoInput(targetMemoId);
+
+      if (!currentMemo || !memoHasDraftContent(currentMemo)) {
+        return;
+      }
+
+      if (!targetMemoId || targetMemoId === selectedMemoIdRef.current) {
+        flushPendingMemo();
+      }
+
+      onOpenDraftInput(
+        createDraftFromMemoInput(currentMemo, getDefaultSignatureId(snapshotRef.current)),
+      );
+      onViewChange("drafts");
+      onNotice("メモから新しい下書きを起こしました。");
+    },
+    [flushPendingMemo, onNotice, onOpenDraftInput, onViewChange],
+  );
+
+  async function deleteMemo(targetMemoId?: string) {
+    const currentSelectedId = selectedMemoIdRef.current;
+    const nextTargetId = targetMemoId ?? currentSelectedId;
+
+    if (!nextTargetId) {
       setMemoForm(createEmptyMemo());
       onNotice("編集中のメモをリセットしました。");
       return;
@@ -165,11 +211,15 @@ export function useMemoWorkspaceState({
 
     try {
       onClearError();
-      const deletedMemo = await maildraftApi.deleteMemo(selectedMemoId);
+      const deletedMemo = await maildraftApi.deleteMemo(nextTargetId);
       const nextSnapshot = applyDeletedMemoResult(snapshotRef.current, deletedMemo);
       onSnapshotChange(nextSnapshot);
-      hydrateMemoState(nextSnapshot);
-      onTrashItemSelect(buildTrashItemKey("memo", selectedMemoId));
+
+      if (nextTargetId === currentSelectedId) {
+        hydrateMemoState(nextSnapshot);
+      }
+
+      onTrashItemSelect(buildTrashItemKey("memo", nextTargetId));
       onNotice("メモをゴミ箱に移動しました。");
     } catch (deleteError) {
       onError(toMemoWorkspaceErrorMessage(deleteError));

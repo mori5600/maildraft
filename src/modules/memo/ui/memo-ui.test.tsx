@@ -33,7 +33,10 @@ describe("memo UI", () => {
         onChangeSort={handleChangeSort}
         onChangeTagFilter={handleChangeTagFilter}
         onCreateMemo={handleCreateMemo}
+        onDeleteMemo={vi.fn(async () => {})}
         onSelectMemo={handleSelectMemo}
+        onStartDraftFromMemo={vi.fn()}
+        onTogglePinned={vi.fn()}
       />,
     );
 

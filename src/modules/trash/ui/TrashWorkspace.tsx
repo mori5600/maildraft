@@ -33,7 +33,9 @@ export function TrashWorkspace({
       <TrashListPane
         items={items}
         selectedItemKey={selectedItem?.key ?? null}
+        onDeleteItemPermanently={onDeleteItemPermanently}
         onEmptyTrash={onEmptyTrash}
+        onRestoreItem={onRestoreItem}
         onSelectItem={onSelectItem}
       />
 

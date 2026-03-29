@@ -224,64 +224,123 @@ export function useTemplateWorkspaceState({
     }));
   }
 
-  function toggleTemplatePinned() {
-    setTemplateForm((current) => ({
-      ...current,
-      isPinned: !current.isPinned,
-    }));
+  function resolveTemplateInput(targetTemplateId?: string): TemplateInput | null {
+    const currentSelectedId = selectedTemplateIdRef.current;
+    if (!targetTemplateId || targetTemplateId === currentSelectedId) {
+      return templateFormRef.current;
+    }
+
+    const targetTemplate = findTemplate(snapshotRef.current, targetTemplateId);
+    return targetTemplate ? toTemplateInput(targetTemplate) : null;
   }
 
-  async function duplicateTemplate() {
-    if (!selectedTemplateId) {
+  async function toggleTemplatePinned(targetTemplateId?: string) {
+    const currentSelectedId = selectedTemplateIdRef.current;
+
+    if (!targetTemplateId || targetTemplateId === currentSelectedId) {
+      setTemplateForm((current) => ({
+        ...current,
+        isPinned: !current.isPinned,
+      }));
       return;
     }
 
-    const duplicate = duplicateTemplateInput(templateForm);
+    const targetTemplate = findTemplate(snapshotRef.current, targetTemplateId);
+    if (!targetTemplate) {
+      return;
+    }
+
+    try {
+      onClearError();
+      const savedTemplate = await maildraftApi.saveTemplate({
+        ...toTemplateInput(targetTemplate),
+        isPinned: !targetTemplate.isPinned,
+      });
+      const nextSnapshot = applySavedTemplateResult(snapshotRef.current, savedTemplate);
+      onSnapshotChange(nextSnapshot);
+      onNotice(
+        savedTemplate.template.isPinned
+          ? "テンプレートを固定しました。"
+          : "テンプレートの固定を外しました。",
+      );
+    } catch (toggleError) {
+      onError(toTemplateWorkspaceErrorMessage(toggleError));
+    }
+  }
+
+  async function duplicateTemplate(targetTemplateId?: string) {
+    const currentSelectedId = selectedTemplateIdRef.current;
+    if (!targetTemplateId && !currentSelectedId) {
+      return;
+    }
+
+    const sourceTemplate = resolveTemplateInput(targetTemplateId);
+    if (!sourceTemplate) {
+      return;
+    }
+
+    const duplicate = duplicateTemplateInput(sourceTemplate);
 
     try {
       onClearError();
       const savedTemplate = await maildraftApi.saveTemplate(duplicate);
       const nextSnapshot = applySavedTemplateResult(snapshotRef.current, savedTemplate);
       onSnapshotChange(nextSnapshot);
-      hydrateTemplateState(nextSnapshot, savedTemplate.template.id);
+
+      if (!targetTemplateId || targetTemplateId === currentSelectedId) {
+        hydrateTemplateState(nextSnapshot, savedTemplate.template.id);
+      }
+
       onNotice("テンプレートを複製しました。");
     } catch (duplicateError) {
       onError(toTemplateWorkspaceErrorMessage(duplicateError));
     }
   }
 
-  async function deleteTemplate() {
-    if (!selectedTemplateId) {
+  async function deleteTemplate(targetTemplateId?: string) {
+    const currentSelectedId = selectedTemplateIdRef.current;
+    const nextTargetId = targetTemplateId ?? currentSelectedId;
+
+    if (!nextTargetId) {
       createTemplate();
       return;
     }
 
     try {
       onClearError();
-      const deletedTemplate = await maildraftApi.deleteTemplate(selectedTemplateId);
+      const deletedTemplate = await maildraftApi.deleteTemplate(nextTargetId);
       const nextSnapshot = applyDeletedTemplateResult(snapshotRef.current, deletedTemplate);
       onSnapshotChange(nextSnapshot);
-      hydrateTemplateState(nextSnapshot);
-      onTrashItemSelect(buildTrashItemKey("template", selectedTemplateId));
+
+      if (nextTargetId === currentSelectedId) {
+        hydrateTemplateState(nextSnapshot);
+      }
+
+      onTrashItemSelect(buildTrashItemKey("template", nextTargetId));
       onNotice("テンプレートをゴミ箱に移動しました。");
     } catch (deleteError) {
       onError(toTemplateWorkspaceErrorMessage(deleteError));
     }
   }
 
-  function startDraftFromTemplate() {
-    const template = findTemplate(snapshot, templateForm.id);
+  function startDraftFromTemplate(targetTemplateId?: string) {
+    const isCurrentTarget = !targetTemplateId || targetTemplateId === selectedTemplateIdRef.current;
+    const template = targetTemplateId
+      ? findTemplate(snapshotRef.current, targetTemplateId)
+      : findTemplate(snapshot, templateForm.id);
     const fallbackSignatureId = getDefaultSignatureId(snapshot);
     const nextDraft = template
       ? createDraftFromTemplate(template, fallbackSignatureId)
-      : createDraftFromTemplateInput(templateForm, fallbackSignatureId);
+      : createDraftFromTemplateInput(templateFormRef.current, fallbackSignatureId);
 
     onOpenDraftInput(nextDraft);
     onViewChange("drafts");
     onNotice(
       template
         ? `テンプレート「${template.name}」から新しい下書きを起こしました。`
-        : "未保存のテンプレートから新しい下書きを起こしました。",
+        : isCurrentTarget
+          ? "未保存のテンプレートから新しい下書きを起こしました。"
+          : "テンプレートから新しい下書きを起こしました。",
     );
   }
 

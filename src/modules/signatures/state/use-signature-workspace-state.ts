@@ -220,26 +220,74 @@ export function useSignatureWorkspaceState({
     }));
   }
 
-  function toggleSignaturePinned() {
-    setSignatureForm((current) => ({
-      ...current,
-      isPinned: !current.isPinned,
-    }));
+  function resolveSignatureInput(targetSignatureId?: string): SignatureInput | null {
+    const currentSelectedId = selectedSignatureIdRef.current;
+    if (!targetSignatureId || targetSignatureId === currentSelectedId) {
+      return signatureFormRef.current;
+    }
+
+    const targetSignature = findSignature(snapshotRef.current, targetSignatureId);
+    return targetSignature ? toSignatureInput(targetSignature) : null;
   }
 
-  async function duplicateSignature() {
-    if (!selectedSignatureId) {
+  async function toggleSignaturePinned(targetSignatureId?: string) {
+    const currentSelectedId = selectedSignatureIdRef.current;
+
+    if (!targetSignatureId || targetSignatureId === currentSelectedId) {
+      setSignatureForm((current) => ({
+        ...current,
+        isPinned: !current.isPinned,
+      }));
       return;
     }
 
-    const duplicate = duplicateSignatureInput(signatureForm);
+    const targetSignature = findSignature(snapshotRef.current, targetSignatureId);
+    if (!targetSignature) {
+      return;
+    }
+
+    try {
+      onClearError();
+      const savedSignature = await maildraftApi.saveSignature({
+        ...toSignatureInput(targetSignature),
+        isPinned: !targetSignature.isPinned,
+      });
+      const nextSnapshot = applySavedSignatureResult(snapshotRef.current, savedSignature);
+      onSnapshotChange(nextSnapshot);
+      onSignatureSnapshotChange(nextSnapshot);
+      onNotice(
+        nextSnapshot.signatures.find((signature) => signature.id === targetSignatureId)?.isPinned
+          ? "署名を固定しました。"
+          : "署名の固定を外しました。",
+      );
+    } catch (toggleError) {
+      onError(toSignatureWorkspaceErrorMessage(toggleError));
+    }
+  }
+
+  async function duplicateSignature(targetSignatureId?: string) {
+    const currentSelectedId = selectedSignatureIdRef.current;
+    if (!targetSignatureId && !currentSelectedId) {
+      return;
+    }
+
+    const sourceSignature = resolveSignatureInput(targetSignatureId);
+    if (!sourceSignature) {
+      return;
+    }
+
+    const duplicate = duplicateSignatureInput(sourceSignature);
 
     try {
       onClearError();
       const savedSignature = await maildraftApi.saveSignature(duplicate);
       const nextSnapshot = applySavedSignatureResult(snapshotRef.current, savedSignature);
       onSnapshotChange(nextSnapshot);
-      hydrateSignatureState(nextSnapshot, duplicate.id);
+
+      if (!targetSignatureId || targetSignatureId === currentSelectedId) {
+        hydrateSignatureState(nextSnapshot, duplicate.id);
+      }
+
       onSignatureSnapshotChange(nextSnapshot);
       onNotice("署名を複製しました。");
     } catch (duplicateError) {
@@ -247,20 +295,27 @@ export function useSignatureWorkspaceState({
     }
   }
 
-  async function deleteSignature() {
-    if (!selectedSignatureId) {
+  async function deleteSignature(targetSignatureId?: string) {
+    const currentSelectedId = selectedSignatureIdRef.current;
+    const nextTargetId = targetSignatureId ?? currentSelectedId;
+
+    if (!nextTargetId) {
       createSignature();
       return;
     }
 
     try {
       onClearError();
-      const deletedSignature = await maildraftApi.deleteSignature(selectedSignatureId);
+      const deletedSignature = await maildraftApi.deleteSignature(nextTargetId);
       const nextSnapshot = applyDeletedSignatureResult(snapshotRef.current, deletedSignature);
       onSnapshotChange(nextSnapshot);
-      hydrateSignatureState(nextSnapshot);
+
+      if (nextTargetId === currentSelectedId) {
+        hydrateSignatureState(nextSnapshot);
+      }
+
       onSignatureSnapshotChange(nextSnapshot);
-      onTrashItemSelect(buildTrashItemKey("signature", selectedSignatureId));
+      onTrashItemSelect(buildTrashItemKey("signature", nextTargetId));
       onNotice("署名をゴミ箱に移動しました。");
     } catch (deleteError) {
       onError(toSignatureWorkspaceErrorMessage(deleteError));

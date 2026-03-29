@@ -145,70 +145,115 @@ export function useDraftPersistenceState({
     [flushPendingDraft, openDraftById],
   );
 
-  const toggleDraftPinned = useCallback(() => {
-    setDraftForm((current) => ({
-      ...current,
-      isPinned: !current.isPinned,
-    }));
-  }, []);
-
-  const duplicateDraft = useCallback(async () => {
-    if (!selectedDraftId) {
-      return;
+  function resolveDraftInput(targetDraftId?: string): DraftInput | null {
+    const currentSelectedId = selectedDraftIdRef.current;
+    if (!targetDraftId || targetDraftId === currentSelectedId) {
+      return draftFormRef.current;
     }
 
-    const duplicate = duplicateDraftInput(draftForm);
+    const targetDraft = snapshotRef.current.drafts.find((draft) => draft.id === targetDraftId);
+    return targetDraft ? toDraftInput(targetDraft) : null;
+  }
 
-    try {
-      onClearError();
-      const savedDraft = await maildraftApi.saveDraft(duplicate);
-      const nextSnapshot = applySavedDraftResult(snapshotRef.current, savedDraft);
-      onSnapshotChange(nextSnapshot);
-      setSelectedDraftId(savedDraft.draft.id);
-      setDraftForm(toDraftInput(savedDraft.draft));
-      setDraftAutoSaveState("saved");
-      onNotice("下書きを複製しました。");
-    } catch (duplicateError) {
-      onError(toDraftWorkspaceErrorMessage(duplicateError));
-    }
-  }, [
-    draftForm,
-    onClearError,
-    onError,
-    onNotice,
-    onSnapshotChange,
-    selectedDraftId,
-    setDraftAutoSaveState,
-  ]);
+  const toggleDraftPinned = useCallback(
+    async (targetDraftId?: string) => {
+      const currentSelectedId = selectedDraftIdRef.current;
 
-  const deleteDraft = useCallback(async () => {
-    if (!selectedDraftId) {
-      createDraft();
-      return;
-    }
+      if (!targetDraftId || targetDraftId === currentSelectedId) {
+        setDraftForm((current) => ({
+          ...current,
+          isPinned: !current.isPinned,
+        }));
+        return;
+      }
 
-    try {
-      onClearError();
-      const deletedDraft = await maildraftApi.deleteDraft(selectedDraftId);
-      const nextSnapshot = applyDeletedDraftResult(snapshotRef.current, deletedDraft);
-      onSnapshotChange(nextSnapshot);
-      const nextSelectedId = nextSnapshot.drafts[0]?.id ?? null;
-      setSelectedDraftId(nextSelectedId);
-      setDraftForm(pickDraftInput(nextSnapshot, nextSelectedId));
-      setDraftAutoSaveState(nextSelectedId ? "saved" : "idle");
-      onNotice("下書きをゴミ箱に移動しました。");
-    } catch (deleteError) {
-      onError(toDraftWorkspaceErrorMessage(deleteError));
-    }
-  }, [
-    createDraft,
-    onClearError,
-    onError,
-    onNotice,
-    onSnapshotChange,
-    selectedDraftId,
-    setDraftAutoSaveState,
-  ]);
+      const targetDraft = snapshotRef.current.drafts.find((draft) => draft.id === targetDraftId);
+      if (!targetDraft) {
+        return;
+      }
+
+      try {
+        onClearError();
+        const savedDraft = await maildraftApi.saveDraft({
+          ...toDraftInput(targetDraft),
+          isPinned: !targetDraft.isPinned,
+        });
+        const nextSnapshot = applySavedDraftResult(snapshotRef.current, savedDraft);
+        onSnapshotChange(nextSnapshot);
+        onNotice(
+          savedDraft.draft.isPinned ? "下書きを固定しました。" : "下書きの固定を外しました。",
+        );
+      } catch (toggleError) {
+        onError(toDraftWorkspaceErrorMessage(toggleError));
+      }
+    },
+    [onClearError, onError, onNotice, onSnapshotChange],
+  );
+
+  const duplicateDraft = useCallback(
+    async (targetDraftId?: string) => {
+      const currentSelectedId = selectedDraftIdRef.current;
+      if (!targetDraftId && !currentSelectedId) {
+        return;
+      }
+
+      const sourceDraft = resolveDraftInput(targetDraftId);
+      if (!sourceDraft) {
+        return;
+      }
+
+      const duplicate = duplicateDraftInput(sourceDraft);
+
+      try {
+        onClearError();
+        const savedDraft = await maildraftApi.saveDraft(duplicate);
+        const nextSnapshot = applySavedDraftResult(snapshotRef.current, savedDraft);
+        onSnapshotChange(nextSnapshot);
+
+        if (!targetDraftId || targetDraftId === currentSelectedId) {
+          setSelectedDraftId(savedDraft.draft.id);
+          setDraftForm(toDraftInput(savedDraft.draft));
+          setDraftAutoSaveState("saved");
+        }
+
+        onNotice("下書きを複製しました。");
+      } catch (duplicateError) {
+        onError(toDraftWorkspaceErrorMessage(duplicateError));
+      }
+    },
+    [onClearError, onError, onNotice, onSnapshotChange, setDraftAutoSaveState],
+  );
+
+  const deleteDraft = useCallback(
+    async (targetDraftId?: string) => {
+      const currentSelectedId = selectedDraftIdRef.current;
+      const nextTargetId = targetDraftId ?? currentSelectedId;
+
+      if (!nextTargetId) {
+        createDraft();
+        return;
+      }
+
+      try {
+        onClearError();
+        const deletedDraft = await maildraftApi.deleteDraft(nextTargetId);
+        const nextSnapshot = applyDeletedDraftResult(snapshotRef.current, deletedDraft);
+        onSnapshotChange(nextSnapshot);
+
+        if (nextTargetId === currentSelectedId) {
+          const nextSelectedId = nextSnapshot.drafts[0]?.id ?? null;
+          setSelectedDraftId(nextSelectedId);
+          setDraftForm(pickDraftInput(nextSnapshot, nextSelectedId));
+          setDraftAutoSaveState(nextSelectedId ? "saved" : "idle");
+        }
+
+        onNotice("下書きをゴミ箱に移動しました。");
+      } catch (deleteError) {
+        onError(toDraftWorkspaceErrorMessage(deleteError));
+      }
+    },
+    [createDraft, onClearError, onError, onNotice, onSnapshotChange, setDraftAutoSaveState],
+  );
 
   const restoreDraftHistory = useCallback(
     async (historyId: string) => {

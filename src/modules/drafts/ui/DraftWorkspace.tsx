@@ -60,15 +60,15 @@ interface DraftWorkspaceProps {
   onSaveVariablePreset: () => Promise<void>;
   onDeleteVariablePreset: () => Promise<void>;
   onCopyPreview: () => Promise<void>;
-  onCreateTemplateFromDraft: () => void;
+  onCreateTemplateFromDraft: (draftId?: string) => void;
   onSaveDraft: () => Promise<void>;
-  onDeleteDraft: () => Promise<void>;
-  onDuplicateDraft: () => Promise<void>;
+  onDeleteDraft: (draftId?: string) => Promise<void>;
+  onDuplicateDraft: (draftId?: string) => Promise<void>;
   onInsertBlock: (target: DraftBlockInsertTarget, blockId: string) => void;
   onDisableIssueRule: (ruleId: string) => void;
   onIgnoreIssue: (issueId: string) => void;
   onRunDetailedCheck: () => void;
-  onTogglePinned: () => void;
+  onTogglePinned: (draftId?: string) => void | Promise<void>;
   onRestoreDraftHistory: (historyId: string) => Promise<void>;
   onApplyTemplate: (templateId: string) => void;
 }
@@ -157,7 +157,11 @@ export function DraftWorkspace({
           onChangeSort={onChangeSort}
           onChangeTagFilter={onChangeTagFilter}
           onCreateDraft={onCreateDraft}
+          onCreateTemplateFromDraft={(draftId) => onCreateTemplateFromDraft(draftId)}
+          onDeleteDraft={(draftId) => onDeleteDraft(draftId)}
+          onDuplicateDraft={(draftId) => onDuplicateDraft(draftId)}
           onSelectDraft={onSelectDraft}
+          onTogglePinned={(draftId) => onTogglePinned(draftId)}
         />
 
         <DraftEditorPane
@@ -176,12 +180,12 @@ export function DraftWorkspace({
           templates={templates}
           onApplyTemplate={onApplyTemplate}
           onChangeDraft={onChangeDraft}
-          onCreateTemplateFromDraft={onCreateTemplateFromDraft}
-          onDeleteDraft={onDeleteDraft}
-          onDuplicateDraft={onDuplicateDraft}
+          onCreateTemplateFromDraft={() => onCreateTemplateFromDraft()}
+          onDeleteDraft={() => onDeleteDraft()}
+          onDuplicateDraft={() => onDuplicateDraft()}
           onInsertBlock={onInsertBlock}
           onSaveDraft={onSaveDraft}
-          onTogglePinned={onTogglePinned}
+          onTogglePinned={() => onTogglePinned()}
         />
 
         <DraftPreviewPane

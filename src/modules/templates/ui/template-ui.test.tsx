@@ -48,7 +48,11 @@ describe("template UI", () => {
         onChangeSort={handleChangeSort}
         onChangeTagFilter={handleChangeTagFilter}
         onCreateTemplate={handleCreateTemplate}
+        onDeleteTemplate={vi.fn(async () => {})}
+        onDuplicateTemplate={vi.fn(async () => {})}
         onSelectTemplate={handleSelectTemplate}
+        onStartDraftFromTemplate={vi.fn()}
+        onTogglePinned={vi.fn()}
       />,
     );
 

@@ -8,6 +8,7 @@ import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Input, Panel, Select } from "../../../../shared/ui/primitives";
 import { TagBadgeList } from "../../../../shared/ui/TagBadgeList";
 import { TagFilterBar } from "../../../../shared/ui/TagFilterBar";
+import { useListContextMenu } from "../../../../shared/ui/use-list-context-menu";
 import type { Draft } from "../../model";
 import { draftLabel } from "../../model";
 
@@ -25,6 +26,10 @@ interface DraftListPaneProps {
   onChangeSearchQuery: (value: string) => void;
   onChangeSort: (value: DraftSortOption) => void;
   onChangeTagFilter: (tag: string | null) => void;
+  onCreateTemplateFromDraft: (draftId: string) => void;
+  onDeleteDraft: (draftId: string) => Promise<void>;
+  onDuplicateDraft: (draftId: string) => Promise<void>;
+  onTogglePinned: (draftId: string) => void | Promise<void>;
 }
 
 export const DraftListPane = memo(function DraftListPane({
@@ -41,7 +46,37 @@ export const DraftListPane = memo(function DraftListPane({
   onChangeSearchQuery,
   onChangeSort,
   onChangeTagFilter,
+  onCreateTemplateFromDraft,
+  onDeleteDraft,
+  onDuplicateDraft,
+  onTogglePinned,
 }: DraftListPaneProps) {
+  const { contextMenu, openItemContextMenu } = useListContextMenu<Draft>({
+    createItems: (draft) => [
+      {
+        id: "duplicate",
+        label: "複製",
+        onSelect: () => onDuplicateDraft(draft.id),
+      },
+      {
+        id: "template",
+        label: "テンプレート化",
+        onSelect: () => onCreateTemplateFromDraft(draft.id),
+      },
+      { id: "sep-actions", type: "separator" },
+      {
+        id: "pin",
+        label: draft.isPinned ? "固定を外す" : "固定する",
+        onSelect: () => onTogglePinned(draft.id),
+      },
+      {
+        id: "delete",
+        label: "ゴミ箱へ移動",
+        onSelect: () => onDeleteDraft(draft.id),
+        tone: "danger",
+      },
+    ],
+  });
   const hasActiveFilter = Boolean(searchQuery.trim() || activeTagFilter);
   const draftCountLabel = hasActiveFilter
     ? `${drafts.length} / ${totalDraftCount}件`
@@ -132,6 +167,7 @@ export const DraftListPane = memo(function DraftListPane({
                   }`}
                   type="button"
                   onClick={() => onSelectDraft(draft.id)}
+                  onContextMenu={(event) => openItemContextMenu(event, draft)}
                 >
                   <div className="flex items-center gap-2">
                     <div className="truncate text-[13px] font-medium text-(--color-text-strong)">
@@ -160,6 +196,7 @@ export const DraftListPane = memo(function DraftListPane({
           </div>
         )}
       </div>
+      {contextMenu}
     </Panel>
   );
 });

@@ -15,8 +15,8 @@ interface BlockWorkspaceProps {
   onChangeSearchQuery: (value: string) => void;
   onChangeTagFilter: (tag: string | null) => void;
   onCreateBlock: () => void;
-  onDeleteBlock: () => Promise<void>;
-  onDuplicateBlock: () => Promise<void>;
+  onDeleteBlock: (blockId?: string) => Promise<void>;
+  onDuplicateBlock: (blockId?: string) => Promise<void>;
   onSaveBlock: () => Promise<void>;
   onSelectBlock: (id: string) => void;
   searchQuery: string;
@@ -58,6 +58,8 @@ export function BlockWorkspace({
         onChangeSearchQuery={onChangeSearchQuery}
         onChangeTagFilter={onChangeTagFilter}
         onCreateBlock={onCreateBlock}
+        onDeleteBlock={(blockId) => onDeleteBlock(blockId)}
+        onDuplicateBlock={(blockId) => onDuplicateBlock(blockId)}
         onSelectBlock={onSelectBlock}
         searchQuery={searchQuery}
         selectedBlockId={selectedBlockId}
@@ -74,8 +76,8 @@ export function BlockWorkspace({
         showWhitespace={showWhitespace}
         onChangeBlock={onChangeBlock}
         onCreateBlock={onCreateBlock}
-        onDeleteBlock={onDeleteBlock}
-        onDuplicateBlock={onDuplicateBlock}
+        onDeleteBlock={() => onDeleteBlock()}
+        onDuplicateBlock={() => onDuplicateBlock()}
         onSaveBlock={onSaveBlock}
       />
     </div>

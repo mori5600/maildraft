@@ -8,7 +8,8 @@ import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Input, Panel, Select } from "../../../../shared/ui/primitives";
 import { TagBadgeList } from "../../../../shared/ui/TagBadgeList";
 import { TagFilterBar } from "../../../../shared/ui/TagFilterBar";
-import { type Memo, memoExcerpt, memoLabel } from "../../model";
+import { useListContextMenu } from "../../../../shared/ui/use-list-context-menu";
+import { type Memo, memoExcerpt, memoHasDraftContent, memoLabel } from "../../model";
 
 interface MemoListPaneProps {
   activeTagFilter: string | null;
@@ -20,7 +21,10 @@ interface MemoListPaneProps {
   onChangeSort: (value: MemoSortOption) => void;
   onChangeTagFilter: (tag: string | null) => void;
   onCreateMemo: () => void;
+  onDeleteMemo: (memoId: string) => Promise<void>;
   onSelectMemo: (id: string) => void;
+  onStartDraftFromMemo: (memoId: string) => void;
+  onTogglePinned: (memoId: string) => void | Promise<void>;
   searchQuery: string;
   selectedMemoId: string | null;
   sort: MemoSortOption;
@@ -37,12 +41,37 @@ export function MemoListPane({
   onChangeSort,
   onChangeTagFilter,
   onCreateMemo,
+  onDeleteMemo,
   onSelectMemo,
+  onStartDraftFromMemo,
+  onTogglePinned,
   searchQuery,
   selectedMemoId,
   sort,
   totalMemoCount,
 }: MemoListPaneProps) {
+  const { contextMenu, openItemContextMenu } = useListContextMenu<Memo>({
+    createItems: (memo) => [
+      {
+        id: "start-draft",
+        label: "下書きを作成",
+        disabled: !memoHasDraftContent(memo),
+        onSelect: () => onStartDraftFromMemo(memo.id),
+      },
+      { id: "sep-actions", type: "separator" },
+      {
+        id: "pin",
+        label: memo.isPinned ? "固定を外す" : "固定する",
+        onSelect: () => onTogglePinned(memo.id),
+      },
+      {
+        id: "delete",
+        label: "ゴミ箱へ移動",
+        onSelect: () => onDeleteMemo(memo.id),
+        tone: "danger",
+      },
+    ],
+  });
   const hasActiveFilter = Boolean(searchQuery.trim() || activeTagFilter);
   const memoCountLabel = hasActiveFilter
     ? `${memos.length} / ${totalMemoCount}件`
@@ -135,6 +164,7 @@ export function MemoListPane({
                   }`}
                   type="button"
                   onClick={() => onSelectMemo(memo.id)}
+                  onContextMenu={(event) => openItemContextMenu(event, memo)}
                 >
                   <div className="flex items-start gap-2.5">
                     <DocumentTextIcon
@@ -171,6 +201,7 @@ export function MemoListPane({
           </div>
         )}
       </div>
+      {contextMenu}
     </Panel>
   );
 }

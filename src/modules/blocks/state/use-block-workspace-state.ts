@@ -134,25 +134,48 @@ export function useBlockWorkspaceState({
     }));
   }
 
-  async function duplicateBlock() {
-    if (!selectedBlockId) {
+  function resolveBlockInput(targetBlockId?: string): ContentBlockInput | null {
+    const currentSelectedId = selectedBlockIdRef.current;
+    if (!targetBlockId || targetBlockId === currentSelectedId) {
+      return blockFormRef.current;
+    }
+
+    const targetBlock = snapshotRef.current.blocks.find((block) => block.id === targetBlockId);
+    return targetBlock ? pickBlockInput(snapshotRef.current, targetBlockId) : null;
+  }
+
+  async function duplicateBlock(targetBlockId?: string) {
+    const currentSelectedId = selectedBlockIdRef.current;
+    if (!targetBlockId && !currentSelectedId) {
+      return;
+    }
+
+    const sourceBlock = resolveBlockInput(targetBlockId);
+    if (!sourceBlock) {
       return;
     }
 
     try {
       onClearError();
-      const savedBlock = await maildraftApi.saveBlock(duplicateContentBlockInput(blockForm));
+      const savedBlock = await maildraftApi.saveBlock(duplicateContentBlockInput(sourceBlock));
       const nextSnapshot = applySavedBlockResult(snapshotRef.current, savedBlock);
       onSnapshotChange(nextSnapshot);
-      hydrateBlockState(nextSnapshot, savedBlock.block.id);
+
+      if (!targetBlockId || targetBlockId === currentSelectedId) {
+        hydrateBlockState(nextSnapshot, savedBlock.block.id);
+      }
+
       onNotice("文面ブロックを複製しました。");
     } catch (duplicateError) {
       onError(toBlockWorkspaceErrorMessage(duplicateError));
     }
   }
 
-  async function deleteBlock() {
-    if (!selectedBlockId) {
+  async function deleteBlock(targetBlockId?: string) {
+    const currentSelectedId = selectedBlockIdRef.current;
+    const nextTargetId = targetBlockId ?? currentSelectedId;
+
+    if (!nextTargetId) {
       setBlockForm(createEmptyContentBlock());
       onNotice("編集中の文面ブロックをリセットしました。");
       return;
@@ -160,11 +183,15 @@ export function useBlockWorkspaceState({
 
     try {
       onClearError();
-      const deletedBlock = await maildraftApi.deleteBlock(selectedBlockId);
+      const deletedBlock = await maildraftApi.deleteBlock(nextTargetId);
       const nextSnapshot = applyDeletedBlockResult(snapshotRef.current, deletedBlock);
       onSnapshotChange(nextSnapshot);
-      hydrateBlockState(nextSnapshot);
-      onTrashItemSelect(buildTrashItemKey("block", selectedBlockId));
+
+      if (nextTargetId === currentSelectedId) {
+        hydrateBlockState(nextSnapshot);
+      }
+
+      onTrashItemSelect(buildTrashItemKey("block", nextTargetId));
       onNotice("文面ブロックをゴミ箱に移動しました。");
     } catch (deleteError) {
       onError(toBlockWorkspaceErrorMessage(deleteError));

@@ -4,6 +4,7 @@ import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Input, Panel, Pill } from "../../../../shared/ui/primitives";
 import { TagBadgeList } from "../../../../shared/ui/TagBadgeList";
 import { TagFilterBar } from "../../../../shared/ui/TagFilterBar";
+import { useListContextMenu } from "../../../../shared/ui/use-list-context-menu";
 import { type ContentBlock, contentBlockCategoryLabel, contentBlockLabel } from "../../model";
 
 interface BlockListPaneProps {
@@ -14,6 +15,8 @@ interface BlockListPaneProps {
   onChangeSearchQuery: (value: string) => void;
   onChangeTagFilter: (tag: string | null) => void;
   onCreateBlock: () => void;
+  onDeleteBlock: (blockId: string) => Promise<void>;
+  onDuplicateBlock: (blockId: string) => Promise<void>;
   onSelectBlock: (id: string) => void;
   searchQuery: string;
   selectedBlockId: string | null;
@@ -28,11 +31,28 @@ export function BlockListPane({
   onChangeSearchQuery,
   onChangeTagFilter,
   onCreateBlock,
+  onDeleteBlock,
+  onDuplicateBlock,
   onSelectBlock,
   searchQuery,
   selectedBlockId,
   totalBlockCount,
 }: BlockListPaneProps) {
+  const { contextMenu, openItemContextMenu } = useListContextMenu<ContentBlock>({
+    createItems: (block) => [
+      {
+        id: "duplicate",
+        label: "複製",
+        onSelect: () => onDuplicateBlock(block.id),
+      },
+      {
+        id: "delete",
+        label: "ゴミ箱へ移動",
+        onSelect: () => onDeleteBlock(block.id),
+        tone: "danger",
+      },
+    ],
+  });
   const hasActiveFilter = Boolean(searchQuery.trim() || activeTagFilter);
   const blockCountLabel = hasActiveFilter
     ? `${blocks.length} / ${totalBlockCount}件`
@@ -111,6 +131,7 @@ export function BlockListPane({
                   }`}
                   type="button"
                   onClick={() => onSelectBlock(block.id)}
+                  onContextMenu={(event) => openItemContextMenu(event, block)}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="truncate text-[13px] font-medium text-(--color-text-strong)">
@@ -131,6 +152,7 @@ export function BlockListPane({
           </div>
         )}
       </div>
+      {contextMenu}
     </Panel>
   );
 }

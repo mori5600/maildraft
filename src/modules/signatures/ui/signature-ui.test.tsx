@@ -26,7 +26,10 @@ describe("signature UI", () => {
         onChangeSearchQuery={handleChangeSearchQuery}
         onChangeSort={handleChangeSort}
         onCreateSignature={handleCreateSignature}
+        onDeleteSignature={vi.fn(async () => {})}
+        onDuplicateSignature={vi.fn(async () => {})}
         onSelectSignature={handleSelectSignature}
+        onTogglePinned={vi.fn()}
       />,
     );
 

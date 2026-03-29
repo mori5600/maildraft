@@ -5,6 +5,7 @@ import { SIGNATURE_SORT_OPTIONS, type SignatureSortOption } from "../../../../sh
 import { formatStoredTime } from "../../../../shared/lib/time";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Input, Panel, Select } from "../../../../shared/ui/primitives";
+import { useListContextMenu } from "../../../../shared/ui/use-list-context-menu";
 import type { Signature } from "../../model";
 
 interface SignatureListPaneProps {
@@ -17,6 +18,9 @@ interface SignatureListPaneProps {
   onCreateSignature: () => void;
   onChangeSearchQuery: (value: string) => void;
   onChangeSort: (value: SignatureSortOption) => void;
+  onDeleteSignature: (signatureId: string) => Promise<void>;
+  onDuplicateSignature: (signatureId: string) => Promise<void>;
+  onTogglePinned: (signatureId: string) => void | Promise<void>;
 }
 
 export const SignatureListPane = memo(function SignatureListPane({
@@ -29,7 +33,31 @@ export const SignatureListPane = memo(function SignatureListPane({
   onCreateSignature,
   onChangeSearchQuery,
   onChangeSort,
+  onDeleteSignature,
+  onDuplicateSignature,
+  onTogglePinned,
 }: SignatureListPaneProps) {
+  const { contextMenu, openItemContextMenu } = useListContextMenu<Signature>({
+    createItems: (signature) => [
+      {
+        id: "duplicate",
+        label: "複製",
+        onSelect: () => onDuplicateSignature(signature.id),
+      },
+      { id: "sep-actions", type: "separator" },
+      {
+        id: "pin",
+        label: signature.isPinned ? "固定を外す" : "固定する",
+        onSelect: () => onTogglePinned(signature.id),
+      },
+      {
+        id: "delete",
+        label: "ゴミ箱へ移動",
+        onSelect: () => onDeleteSignature(signature.id),
+        tone: "danger",
+      },
+    ],
+  });
   const signatureCountLabel = searchQuery.trim()
     ? `${signatures.length} / ${totalSignatureCount}件`
     : `${totalSignatureCount}件`;
@@ -112,6 +140,7 @@ export const SignatureListPane = memo(function SignatureListPane({
                   }`}
                   type="button"
                   onClick={() => onSelectSignature(signature.id)}
+                  onContextMenu={(event) => openItemContextMenu(event, signature)}
                 >
                   <div className="flex items-center gap-2">
                     <div className="truncate text-[13px] font-medium text-(--color-text-strong)">
@@ -141,6 +170,7 @@ export const SignatureListPane = memo(function SignatureListPane({
           </div>
         )}
       </div>
+      {contextMenu}
     </Panel>
   );
 });
