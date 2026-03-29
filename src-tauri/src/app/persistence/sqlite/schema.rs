@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SQLITE_SCHEMA_VERSION: i32 = 5;
+pub(super) const SQLITE_SCHEMA_VERSION: i32 = 5;
 
 pub(super) fn apply_migrations(connection: &Connection) -> Result<(), String> {
     let current_version = connection

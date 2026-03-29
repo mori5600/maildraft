@@ -4,6 +4,7 @@ use tempfile::tempdir;
 use super::{
     connection::{settings_initialized, store_initialized},
     read::load_store_snapshot,
+    schema::SQLITE_SCHEMA_VERSION,
     write::{insert_store_snapshot, set_initialization_flags},
     SqliteRepository,
 };
@@ -93,7 +94,7 @@ fn sqlite_repository_initializes_schema_only_once() {
     let version = connection
         .pragma_query_value(None, "user_version", |row| row.get::<_, i32>(0))
         .expect("query user version");
-    assert_eq!(version, 3);
+    assert_eq!(version, SQLITE_SCHEMA_VERSION);
     assert!(!store_initialized(&connection).expect("store initialized"));
     assert!(!settings_initialized(&connection).expect("settings initialized"));
 
