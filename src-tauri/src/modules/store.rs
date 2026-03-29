@@ -1,11 +1,13 @@
 //! Store types shared across storage and Tauri commands.
 
+mod block_operations;
 mod consistency;
 mod draft_operations;
 mod memo_operations;
 mod seed;
 mod signature_operations;
 mod template_operations;
+mod variable_preset_operations;
 
 #[cfg(test)]
 mod tests;
@@ -14,11 +16,14 @@ mod trash_operations;
 use serde::{Deserialize, Serialize};
 
 use crate::modules::{
+    blocks::ContentBlock,
     drafts::{Draft, DraftHistoryEntry},
     memo::Memo,
     signatures::Signature,
     templates::Template,
-    trash::{TrashSnapshot, TrashedDraft, TrashedMemo, TrashedSignature, TrashedTemplate},
+    trash::{
+        TrashSnapshot, TrashedBlock, TrashedDraft, TrashedMemo, TrashedSignature, TrashedTemplate,
+    },
     variable_presets::VariablePreset,
 };
 
@@ -40,6 +45,8 @@ pub struct StoreSnapshot {
     pub signatures: Vec<Signature>,
     #[serde(default)]
     pub memos: Vec<Memo>,
+    #[serde(default)]
+    pub blocks: Vec<ContentBlock>,
     #[serde(default, alias = "memo", skip_serializing)]
     pub legacy_memo: Option<Memo>,
     #[serde(default)]
@@ -99,6 +106,18 @@ pub struct DeleteSignatureResult {
 #[serde(rename_all = "camelCase")]
 pub struct DeleteMemoResult {
     pub trashed_memo: TrashedMemo,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveBlockResult {
+    pub block: ContentBlock,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteBlockResult {
+    pub trashed_block: TrashedBlock,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -426,11 +426,26 @@ fn variable_presets_can_be_deleted_and_empty_trash_clears_all_kinds() {
             id: "preset-a".to_string(),
             name: "A社向け".to_string(),
             values: BTreeMap::from([("会社名".to_string(), "株式会社〇〇".to_string())]),
+            tags: vec!["社外".to_string()],
         },
         "10",
     );
     assert_eq!(store.delete_variable_preset("preset-a"), true);
     assert_eq!(store.delete_variable_preset("preset-a"), false);
+    store.upsert_variable_preset(
+        VariablePresetInput {
+            id: "preset-b".to_string(),
+            name: "B社向け".to_string(),
+            values: BTreeMap::new(),
+            tags: vec!["営業".to_string()],
+        },
+        "11",
+    );
+    assert_eq!(store.mark_variable_preset_used("preset-b", "12"), true);
+    assert_eq!(
+        store.variable_presets[0].last_used_at.as_deref(),
+        Some("12")
+    );
 
     store.upsert_template(
         TemplateInput {

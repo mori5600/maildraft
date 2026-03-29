@@ -15,6 +15,13 @@ pub(crate) fn delete_variable_preset_impl(
     state.delete_variable_preset(&id)
 }
 
+pub(crate) fn record_variable_preset_usage_impl(
+    state: &AppState,
+    id: String,
+) -> Result<VariablePresetResult, String> {
+    state.record_variable_preset_usage(&id)
+}
+
 #[tauri::command]
 pub(crate) fn save_variable_preset(
     state: tauri::State<'_, AppState>,
@@ -29,4 +36,12 @@ pub(crate) fn delete_variable_preset(
     id: String,
 ) -> Result<VariablePresetResult, String> {
     delete_variable_preset_impl(&state, id)
+}
+
+#[tauri::command]
+pub(crate) fn record_variable_preset_usage(
+    state: tauri::State<'_, AppState>,
+    id: String,
+) -> Result<VariablePresetResult, String> {
+    record_variable_preset_usage_impl(&state, id)
 }

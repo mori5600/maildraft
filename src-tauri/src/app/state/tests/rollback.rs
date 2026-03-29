@@ -100,6 +100,7 @@ fn save_variable_preset_rolls_back_when_store_persistence_fails() {
                 id: "preset-rollback".to_string(),
                 name: "新規セット".to_string(),
                 values: BTreeMap::from([("会社名".to_string(), "株式会社〇〇".to_string())]),
+                tags: Vec::new(),
             })
         },
     );

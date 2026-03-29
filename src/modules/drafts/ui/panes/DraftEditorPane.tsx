@@ -1,15 +1,17 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { CodeEditor } from "../../../../shared/ui/code-editor/CodeEditor";
 import type { EditorSettings } from "../../../../shared/ui/code-editor/editor-settings";
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
 import { Button, Field, Panel, Select } from "../../../../shared/ui/primitives";
 import { TagEditorField } from "../../../../shared/ui/TagEditorField";
+import type { ContentBlock } from "../../../blocks/model";
 import type { Signature } from "../../../signatures/model";
 import type { Template } from "../../../templates/model";
-import type { DraftInput } from "../../model";
+import type { DraftBlockInsertTarget, DraftInput } from "../../model";
 import { draftLabel } from "../../model";
 import type { DraftProofreadingIssue } from "../../proofreading/model";
+import { DraftBlockInsertOverlay } from "../DraftBlockInsertOverlay";
 
 function cn(...classNames: Array<string | false | null | undefined>): string {
   return classNames.filter(Boolean).join(" ");
@@ -20,6 +22,7 @@ interface DraftEditorPaneProps {
   activeIssue: DraftProofreadingIssue | null;
   activeIssueRequestKey: number;
   draftForm: DraftInput;
+  blocks: ContentBlock[];
   templates: Template[];
   signatures: Signature[];
   selectedDraftId: string | null;
@@ -32,6 +35,7 @@ interface DraftEditorPaneProps {
   onCreateTemplateFromDraft: () => void;
   onDeleteDraft: () => Promise<void>;
   onDuplicateDraft: () => Promise<void>;
+  onInsertBlock: (target: DraftBlockInsertTarget, blockId: string) => void;
   onSaveDraft: () => Promise<void>;
   onTogglePinned: () => void;
   onApplyTemplate: (templateId: string) => void;
@@ -42,6 +46,7 @@ export function DraftEditorPane({
   activeIssue,
   activeIssueRequestKey,
   draftForm,
+  blocks,
   templates,
   signatures,
   selectedDraftId,
@@ -54,11 +59,13 @@ export function DraftEditorPane({
   onCreateTemplateFromDraft,
   onDeleteDraft,
   onDuplicateDraft,
+  onInsertBlock,
   onSaveDraft,
   onTogglePinned,
   onApplyTemplate,
 }: DraftEditorPaneProps) {
   const signatureSelectRef = useRef<HTMLSelectElement>(null);
+  const [blockInsertTarget, setBlockInsertTarget] = useState<DraftBlockInsertTarget | null>(null);
   const hasMissingTemplate = Boolean(
     draftForm.templateId && !templates.some((template) => template.id === draftForm.templateId),
   );
@@ -241,7 +248,21 @@ export function DraftEditorPane({
             />
           </Field>
 
-          <Field label="書き出し" wrapWithLabel={false}>
+          <Field
+            action={
+              <Button
+                aria-label="書き出しに文面ブロックを挿入"
+                disabled={blocks.length === 0}
+                size="sm"
+                variant="ghost"
+                onClick={() => setBlockInsertTarget("opening")}
+              >
+                挿入
+              </Button>
+            }
+            label="書き出し"
+            wrapWithLabel={false}
+          >
             <CodeEditor
               ariaLabel="書き出し"
               className="min-h-33"
@@ -256,7 +277,21 @@ export function DraftEditorPane({
             />
           </Field>
 
-          <Field label="本文" wrapWithLabel={false}>
+          <Field
+            action={
+              <Button
+                aria-label="本文に文面ブロックを挿入"
+                disabled={blocks.length === 0}
+                size="sm"
+                variant="ghost"
+                onClick={() => setBlockInsertTarget("body")}
+              >
+                挿入
+              </Button>
+            }
+            label="本文"
+            wrapWithLabel={false}
+          >
             <CodeEditor
               ariaLabel="本文"
               className="min-h-70"
@@ -271,7 +306,21 @@ export function DraftEditorPane({
             />
           </Field>
 
-          <Field label="結び" wrapWithLabel={false}>
+          <Field
+            action={
+              <Button
+                aria-label="結びに文面ブロックを挿入"
+                disabled={blocks.length === 0}
+                size="sm"
+                variant="ghost"
+                onClick={() => setBlockInsertTarget("closing")}
+              >
+                挿入
+              </Button>
+            }
+            label="結び"
+            wrapWithLabel={false}
+          >
             <CodeEditor
               ariaLabel="結び"
               className="min-h-33"
@@ -287,6 +336,16 @@ export function DraftEditorPane({
           </Field>
         </div>
       </div>
+
+      {blockInsertTarget ? (
+        <DraftBlockInsertOverlay
+          key={`${draftForm.id}:${blockInsertTarget}`}
+          blocks={blocks}
+          target={blockInsertTarget}
+          onClose={() => setBlockInsertTarget(null)}
+          onInsertBlock={onInsertBlock}
+        />
+      ) : null}
     </Panel>
   );
 }

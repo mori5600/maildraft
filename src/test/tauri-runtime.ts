@@ -1,5 +1,6 @@
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 
+import type { ContentBlock, ContentBlockInput } from "../modules/blocks/model";
 import type { Draft, DraftInput } from "../modules/drafts/model";
 import type { VariablePresetInput } from "../modules/drafts/variable-presets";
 import type { MemoInput } from "../modules/memo/model";
@@ -14,6 +15,7 @@ import type {
 } from "../modules/settings/model";
 import type { StartupNoticeSnapshot, StoreSnapshot } from "../shared/types/store";
 import {
+  createContentBlock,
   createDraft,
   createEditorSettingsSnapshot,
   createLogEntry,
@@ -38,6 +40,14 @@ function toStoredDraft(input: DraftInput, previous: Draft | null): Draft {
   };
 }
 
+function toStoredBlock(input: ContentBlockInput, previous: ContentBlock | null): ContentBlock {
+  return {
+    ...input,
+    createdAt: previous?.createdAt ?? "1710000000000",
+    updatedAt: String(Date.now()),
+  };
+}
+
 export interface MockTauriRuntime {
   commandCalls: Array<{ cmd: string; payload?: unknown }>;
   getEditorSettings: () => EditorSettingsSnapshot;
@@ -55,6 +65,10 @@ interface MockTauriRuntimeOptions {
   snapshot?: StoreSnapshot;
   startupNotice?: StartupNoticeSnapshot | null;
 }
+
+type StoreSnapshotOverrides = Partial<Omit<StoreSnapshot, "trash">> & {
+  trash?: Partial<StoreSnapshot["trash"]>;
+};
 
 export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): MockTauriRuntime {
   const snapshot = cloneData(options.snapshot ?? createStoreSnapshot());
@@ -109,6 +123,22 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
           draftHistory: snapshot.draftHistory.filter((entry) => entry.draftId === nextDraft.id),
         });
       }
+      case "save_block": {
+        const input = (payload as { input: ContentBlockInput }).input;
+        const currentIndex = snapshot.blocks.findIndex((block) => block.id === input.id);
+        const previous = currentIndex >= 0 ? snapshot.blocks[currentIndex] : null;
+        const nextBlock = toStoredBlock(input, previous);
+
+        if (currentIndex >= 0) {
+          snapshot.blocks[currentIndex] = nextBlock;
+        } else {
+          snapshot.blocks.unshift(nextBlock);
+        }
+
+        return cloneData({
+          block: nextBlock,
+        });
+      }
       case "save_memo": {
         const input = (payload as { input: MemoInput }).input;
         const currentIndex = snapshot.memos.findIndex((memo) => memo.id === input.id);
@@ -146,6 +176,22 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
         });
         return cloneData({
           trashedMemo: trashedMemos[0],
+        });
+      }
+      case "delete_block": {
+        const id = (payload as { id: string }).id;
+        const currentIndex = snapshot.blocks.findIndex((block) => block.id === id);
+        if (currentIndex < 0) {
+          throw new Error("指定した文面ブロックが見つかりませんでした。");
+        }
+
+        const [deletedBlock] = snapshot.blocks.splice(currentIndex, 1);
+        snapshot.trash.blocks.unshift({
+          block: deletedBlock,
+          deletedAt: String(Date.now()),
+        });
+        return cloneData({
+          trashedBlock: snapshot.trash.blocks[0],
         });
       }
       case "delete_draft": {
@@ -224,6 +270,19 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
         snapshot.memos.unshift(restored.memo);
         return cloneData(restored.memo);
       }
+      case "restore_block_from_trash": {
+        const id = (payload as { id: string }).id;
+        const trashedIndex = snapshot.trash.blocks.findIndex((entry) => entry.block.id === id);
+        if (trashedIndex < 0) {
+          throw new Error("指定した項目がゴミ箱に見つかりませんでした。");
+        }
+
+        const [restored] = snapshot.trash.blocks.splice(trashedIndex, 1);
+        snapshot.blocks.unshift(restored.block);
+        return cloneData({
+          block: restored.block,
+        });
+      }
       case "permanently_delete_memo_from_trash": {
         const id = (payload as { id: string }).id;
         const trashedMemos = snapshot.trash.memos ?? [];
@@ -233,6 +292,18 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
         }
 
         trashedMemos.splice(trashedIndex, 1);
+        return cloneData({
+          trash: snapshot.trash,
+        });
+      }
+      case "permanently_delete_block_from_trash": {
+        const id = (payload as { id: string }).id;
+        const trashedIndex = snapshot.trash.blocks.findIndex((entry) => entry.block.id === id);
+        if (trashedIndex < 0) {
+          throw new Error("指定した項目がゴミ箱に見つかりませんでした。");
+        }
+
+        snapshot.trash.blocks.splice(trashedIndex, 1);
         return cloneData({
           trash: snapshot.trash,
         });
@@ -294,8 +365,10 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
           id: input.id,
           name: input.name,
           values: input.values,
+          tags: input.tags,
           createdAt: previous?.createdAt ?? String(Date.now()),
           updatedAt: String(Date.now()),
+          lastUsedAt: previous?.lastUsedAt ?? null,
         };
 
         if (currentIndex >= 0) {
@@ -303,6 +376,26 @@ export function installMockTauriRuntime(options: MockTauriRuntimeOptions = {}): 
         } else {
           snapshot.variablePresets.unshift(nextPreset);
         }
+
+        return cloneData({
+          variablePresets: snapshot.variablePresets,
+        });
+      }
+      case "record_variable_preset_usage": {
+        const id = (payload as { id: string }).id;
+        const currentIndex = snapshot.variablePresets.findIndex((preset) => preset.id === id);
+        if (currentIndex < 0) {
+          throw new Error("指定した変数値セットが見つかりませんでした。");
+        }
+
+        snapshot.variablePresets[currentIndex] = {
+          ...snapshot.variablePresets[currentIndex],
+          updatedAt: String(Date.now()),
+          lastUsedAt: String(Date.now()),
+        };
+        snapshot.variablePresets.sort(
+          (left, right) => Number(right.lastUsedAt ?? 0) - Number(left.lastUsedAt ?? 0),
+        );
 
         return cloneData({
           variablePresets: snapshot.variablePresets,
@@ -339,13 +432,15 @@ export function resetMockTauriRuntime() {
   clearMocks();
 }
 
-export function createSeededRuntimeSnapshot(overrides: Partial<StoreSnapshot> = {}): StoreSnapshot {
+export function createSeededRuntimeSnapshot(overrides: StoreSnapshotOverrides = {}): StoreSnapshot {
   const baseSnapshot = createStoreSnapshot({
+    blocks: [createContentBlock()],
     trash: {
       drafts: [],
       templates: [],
       signatures: [],
       memos: [],
+      blocks: [],
     },
   });
 

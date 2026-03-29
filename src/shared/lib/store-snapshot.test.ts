@@ -2,14 +2,17 @@ import { describe, expect, it } from "vitest";
 
 import type { StoreSnapshot } from "../types/store";
 import {
+  applyDeletedBlockResult,
   applyDeletedDraftResult,
   applyDeletedMemoResult,
   applyDeletedSignatureResult,
   applyDeletedTemplateResult,
+  applyRestoredBlockResult,
   applyRestoredDraftResult,
   applyRestoredMemoResult,
   applyRestoredSignatureResult,
   applyRestoredTemplateResult,
+  applySavedBlockResult,
   applySavedDraftResult,
   applySavedMemoResult,
   applySavedSignatureResult,
@@ -46,6 +49,17 @@ const snapshot: StoreSnapshot = {
   ],
   draftHistory: [],
   variablePresets: [],
+  blocks: [
+    {
+      id: "block-1",
+      name: "お礼",
+      category: "thanks",
+      body: "ありがとうございました。",
+      tags: [],
+      createdAt: "1",
+      updatedAt: "2",
+    },
+  ],
   templates: [
     {
       id: "template-1",
@@ -129,6 +143,7 @@ const snapshot: StoreSnapshot = {
       },
     ],
     memos: [],
+    blocks: [],
   },
 };
 
@@ -150,6 +165,7 @@ describe("store-snapshot helpers", () => {
       drafts: [],
       draftHistory: [],
       variablePresets: [],
+      blocks: [],
       templates: [],
       signatures: [],
       memos: [],
@@ -158,6 +174,7 @@ describe("store-snapshot helpers", () => {
         templates: [],
         signatures: [],
         memos: [],
+        blocks: [],
       },
     };
 
@@ -238,6 +255,16 @@ describe("store-snapshot helpers", () => {
       },
     });
     expect(nextTemplateSnapshot.templates[0]?.name).toBe("更新テンプレート");
+
+    const nextBlockSnapshot = applySavedBlockResult(snapshot, {
+      block: {
+        ...snapshot.blocks[0],
+        name: "更新ブロック",
+        tags: ["お礼"],
+        updatedAt: "5",
+      },
+    });
+    expect(nextBlockSnapshot.blocks[0]?.name).toBe("更新ブロック");
 
     const nextSignatureSnapshot = applySavedSignatureResult(snapshot, {
       signatures: [
@@ -324,6 +351,21 @@ describe("store-snapshot helpers", () => {
     expect(
       restoredTemplateSnapshot.trash.templates.some((entry) => entry.template.id === "template-1"),
     ).toBe(false);
+
+    const deletedBlockSnapshot = applyDeletedBlockResult(snapshot, {
+      trashedBlock: {
+        block: snapshot.blocks[0],
+        deletedAt: "12",
+      },
+    });
+    expect(deletedBlockSnapshot.blocks).toHaveLength(0);
+    expect(deletedBlockSnapshot.trash.blocks[0]?.block.id).toBe("block-1");
+
+    const restoredBlockSnapshot = applyRestoredBlockResult(deletedBlockSnapshot, {
+      block: snapshot.blocks[0],
+    });
+    expect(restoredBlockSnapshot.blocks[0]?.id).toBe("block-1");
+    expect(restoredBlockSnapshot.trash.blocks).toHaveLength(0);
 
     const deletedSignatureSnapshot = applyDeletedSignatureResult(snapshot, {
       signatures: [snapshot.signatures[0]],
@@ -511,6 +553,7 @@ describe("store-snapshot helpers", () => {
         templates: [],
         signatures: [],
         memos: [],
+        blocks: [],
       },
     });
     expect(nextAfterEmptyTrash.drafts[0]?.signatureId).toBeNull();
@@ -529,8 +572,10 @@ describe("store-snapshot helpers", () => {
           id: "preset-2",
           name: "B社向け",
           values: { 相手名: "高橋様" },
+          tags: ["社外"],
           createdAt: "10",
           updatedAt: "20",
+          lastUsedAt: "25",
         },
       ],
     });

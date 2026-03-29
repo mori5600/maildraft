@@ -1,7 +1,8 @@
 use crate::{
     app::settings::{AppSettings, ProofreadingSettingsInput},
     modules::{
-        drafts::DraftInput, memo::MemoInput, signatures::SignatureInput, store::StoreSnapshot,
+        blocks::ContentBlockInput, drafts::DraftInput, memo::MemoInput,
+        signatures::SignatureInput, store::StoreSnapshot,
         templates::TemplateInput, variable_presets::VariablePresetInput,
     },
 };
@@ -71,6 +72,14 @@ pub fn validate_memo_input(input: &MemoInput) -> Result<(), String> {
     Ok(())
 }
 
+pub fn validate_block_input(input: &ContentBlockInput) -> Result<(), String> {
+    validate_id_like(&input.id, "文面ブロックID", MAX_ID_LENGTH)?;
+    validate_text_length(&input.name, "文面ブロック名", MAX_NAME_LENGTH)?;
+    validate_text_length(&input.body, "文面ブロック本文", MAX_TEXT_FIELD_LENGTH)?;
+    validate_tags(&input.tags, "タグ")?;
+    Ok(())
+}
+
 pub fn validate_signature_input(input: &SignatureInput) -> Result<(), String> {
     validate_id_like(&input.id, "署名ID", MAX_ID_LENGTH)?;
     validate_text_length(&input.name, "署名名", MAX_NAME_LENGTH)?;
@@ -97,6 +106,7 @@ pub fn validate_variable_preset_input(input: &VariablePresetInput) -> Result<(),
     validate_id_like(&input.id, "変数値セットID", MAX_ID_LENGTH)?;
     validate_text_length(&input.name, "変数値セット名", MAX_NAME_LENGTH)?;
     validate_variables(&input.values)?;
+    validate_tags(&input.tags, "タグ")?;
     Ok(())
 }
 

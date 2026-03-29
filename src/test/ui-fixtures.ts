@@ -1,3 +1,4 @@
+import type { ContentBlock, ContentBlockInput } from "../modules/blocks/model";
 import type { Draft, DraftHistoryEntry, DraftInput } from "../modules/drafts/model";
 import type { VariablePreset } from "../modules/drafts/variable-presets";
 import type { Memo, MemoInput } from "../modules/memo/model";
@@ -16,6 +17,7 @@ import {
 import type { Signature, SignatureInput } from "../modules/signatures/model";
 import type { Template, TemplateInput } from "../modules/templates/model";
 import type {
+  TrashedBlock,
   TrashedMemo,
   TrashedSignature,
   TrashItem,
@@ -24,6 +26,10 @@ import type {
 import type { StoreSnapshot } from "../shared/types/store";
 
 const DEFAULT_TIME = "1710000000000";
+
+type StoreSnapshotOverrides = Partial<Omit<StoreSnapshot, "trash">> & {
+  trash?: Partial<TrashSnapshot>;
+};
 
 export function createSignature(overrides: Partial<Signature> = {}): Signature {
   return {
@@ -121,6 +127,32 @@ export function createDraftInput(overrides: Partial<DraftInput> = {}): DraftInpu
   };
 }
 
+export function createContentBlock(overrides: Partial<ContentBlock> = {}): ContentBlock {
+  return {
+    id: "block-1",
+    name: "お礼",
+    category: "thanks",
+    body: "このたびはお時間をいただき、ありがとうございました。",
+    tags: [],
+    createdAt: DEFAULT_TIME,
+    updatedAt: DEFAULT_TIME,
+    ...overrides,
+  };
+}
+
+export function createContentBlockInput(
+  overrides: Partial<ContentBlockInput> = {},
+): ContentBlockInput {
+  return {
+    id: "block-input-1",
+    name: "お礼",
+    category: "thanks",
+    body: "このたびはお時間をいただき、ありがとうございました。",
+    tags: [],
+    ...overrides,
+  };
+}
+
 export function createDraftHistoryEntry(
   overrides: Partial<DraftHistoryEntry> = {},
 ): DraftHistoryEntry {
@@ -147,8 +179,10 @@ export function createVariablePreset(overrides: Partial<VariablePreset> = {}): V
     id: "preset-1",
     name: "A社向け",
     values: { 相手名: "佐藤様" },
+    tags: [],
     createdAt: DEFAULT_TIME,
     updatedAt: DEFAULT_TIME,
+    lastUsedAt: null,
     ...overrides,
   };
 }
@@ -274,6 +308,15 @@ export function createTrashSnapshot(overrides: Partial<TrashSnapshot> = {}): Tra
       },
     ],
     memos: [],
+    blocks: [],
+    ...overrides,
+  };
+}
+
+export function createTrashedBlock(overrides: Partial<TrashedBlock> = {}): TrashedBlock {
+  return {
+    block: createContentBlock(),
+    deletedAt: DEFAULT_TIME,
     ...overrides,
   };
 }
@@ -341,11 +384,23 @@ export function createTrashMemoItem(): Extract<TrashItem, { kind: "memo" }> {
   };
 }
 
-export function createStoreSnapshot(overrides: Partial<StoreSnapshot> = {}): StoreSnapshot {
+export function createTrashBlockItem(): Extract<TrashItem, { kind: "block" }> {
+  const block = createContentBlock();
+  return {
+    kind: "block",
+    key: `block:${block.id}`,
+    deletedAt: DEFAULT_TIME,
+    label: block.name,
+    block,
+  };
+}
+
+export function createStoreSnapshot(overrides: StoreSnapshotOverrides = {}): StoreSnapshot {
   const baseSnapshot: StoreSnapshot = {
     drafts: [createDraft()],
     draftHistory: [createDraftHistoryEntry()],
     variablePresets: [createVariablePreset()],
+    blocks: [createContentBlock()],
     templates: [createTemplate()],
     signatures: [createSignature()],
     memos: [createMemo()],

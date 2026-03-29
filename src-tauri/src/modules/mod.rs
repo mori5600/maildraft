@@ -1,3 +1,4 @@
+pub mod blocks;
 pub mod drafts;
 pub mod memo;
 pub mod signatures;

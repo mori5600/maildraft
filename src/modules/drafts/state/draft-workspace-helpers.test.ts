@@ -36,6 +36,7 @@ const snapshot: StoreSnapshot = {
   ],
   draftHistory: [],
   variablePresets: [],
+  blocks: [],
   templates: [],
   signatures: [
     {
@@ -53,6 +54,8 @@ const snapshot: StoreSnapshot = {
     drafts: [],
     templates: [],
     signatures: [],
+    memos: [],
+    blocks: [],
   },
 };
 

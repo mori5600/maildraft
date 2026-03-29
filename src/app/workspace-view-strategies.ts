@@ -1,4 +1,5 @@
 import {
+  Bars3BottomLeftIcon,
   Cog6ToothIcon,
   DocumentDuplicateIcon,
   EnvelopeIcon,
@@ -28,6 +29,11 @@ export const WORKSPACE_VIEW_STRATEGIES = {
     title: "テンプレート",
     description: "定型文と推奨署名を管理",
     icon: DocumentDuplicateIcon,
+  },
+  blocks: {
+    title: "文面ブロック",
+    description: "短い定型文の部品を管理",
+    icon: Bars3BottomLeftIcon,
   },
   signatures: {
     title: "署名",

@@ -1,3 +1,5 @@
+import type { ContentBlock } from "../blocks/model";
+import { contentBlockCategoryLabel, contentBlockLabel } from "../blocks/model";
 import { type Draft, type DraftHistoryEntry, draftLabel } from "../drafts/model";
 import { type Memo, memoLabel } from "../memo/model";
 import type { Signature } from "../signatures/model";
@@ -7,7 +9,8 @@ export interface TrashSnapshot {
   drafts: TrashedDraft[];
   templates: TrashedTemplate[];
   signatures: TrashedSignature[];
-  memos?: TrashedMemo[];
+  memos: TrashedMemo[];
+  blocks: TrashedBlock[];
 }
 
 export interface TrashedDraft {
@@ -28,6 +31,11 @@ export interface TrashedSignature {
 
 export interface TrashedMemo {
   memo: Memo;
+  deletedAt: string;
+}
+
+export interface TrashedBlock {
+  block: ContentBlock;
   deletedAt: string;
 }
 
@@ -60,6 +68,13 @@ export type TrashItem =
       deletedAt: string;
       label: string;
       memo: Memo;
+    }
+  | {
+      kind: "block";
+      key: string;
+      deletedAt: string;
+      label: string;
+      block: ContentBlock;
     };
 
 const TRASH_ITEM_TYPE_LABELS = {
@@ -67,6 +82,7 @@ const TRASH_ITEM_TYPE_LABELS = {
   template: "テンプレート",
   signature: "署名",
   memo: "メモ",
+  block: "文面ブロック",
 } satisfies Record<TrashItem["kind"], string>;
 
 /**
@@ -77,6 +93,7 @@ export function collectTrashItems(trash: TrashSnapshot): TrashItem[] {
   const templates = trash.templates ?? [];
   const signatures = trash.signatures ?? [];
   const memos = trash.memos ?? [];
+  const blocks = trash.blocks ?? [];
 
   return [
     ...drafts.map((entry) => ({
@@ -107,6 +124,13 @@ export function collectTrashItems(trash: TrashSnapshot): TrashItem[] {
       deletedAt: entry.deletedAt,
       label: memoLabel(entry.memo),
       memo: entry.memo,
+    })),
+    ...blocks.map((entry) => ({
+      kind: "block" as const,
+      key: buildTrashItemKey("block", entry.block.id),
+      deletedAt: entry.deletedAt,
+      label: `${contentBlockLabel(entry.block)} / ${contentBlockCategoryLabel(entry.block.category)}`,
+      block: entry.block,
     })),
   ].sort((left, right) => Number(right.deletedAt) - Number(left.deletedAt));
 }

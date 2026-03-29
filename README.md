@@ -40,10 +40,11 @@ npm run tauri build
 
 ## できること
 
-- 下書き、テンプレート、署名、メモの作成、編集、削除
-- 下書き、テンプレート、メモへのタグ付け、既存タグ候補からの再利用、タグ検索、単一タグ絞り込み
+- 下書き、テンプレート、文面ブロック、署名、メモの作成、編集、削除
+- 下書き、テンプレート、メモ、文面ブロックへのタグ付け、既存タグ候補からの再利用、タグ検索、件数付きの単一タグ絞り込み
+- 文面ブロックの検索、複製、タグ管理、下書きの書き出し / 本文 / 結びへの挿入
 - テンプレートやメモからの下書き作成、下書きからのテンプレート化
-- `{{会社名}}` のような差し込み変数の入力と、差し込み値セットの保存
+- `{{会社名}}` のような差し込み変数の入力、差し込み値セットの保存、最近使ったセットやタグ一致を使った推薦表示
 - 下書きの自動保存と履歴復元
 - 下書きの校正、修正候補の適用、ルールの一時無視 / 無効化
 - ゴミ箱への退避、復元、完全削除
@@ -58,6 +59,7 @@ npm run tauri build
 
 - `下書き`: 本文の作成、差し込み、プレビュー、履歴復元
 - `テンプレート`: 定型文の管理と下書き作成
+- `文面ブロック`: 短い定型文の管理と下書きへの挿入
 - `署名`: 署名の管理と既定署名の切り替え
 - `メモ`: 会話ログや論点整理、下書き作成前のメモ
 - `ゴミ箱`: 削除した下書き、テンプレート、署名の復元
@@ -147,6 +149,7 @@ cargo test --manifest-path src-tauri/Cargo.toml
 - `src/app`: アプリシェル、トップレベル state、workspace 切り替え
 - `src/modules/drafts`: 下書きの model、state、UI
 - `src/modules/templates`: テンプレートの model、state、UI
+- `src/modules/blocks`: 文面ブロックの model、state、UI
 - `src/modules/signatures`: 署名の model、state、UI
 - `src/modules/memo`: メモの model、state、UI
 - `src/modules/trash`: ゴミ箱の model、state、UI
@@ -158,7 +161,7 @@ cargo test --manifest-path src-tauri/Cargo.toml
 ### バックエンド
 
 - `src-tauri/src/app`: Tauri アプリ state、保存、バックアップ、ログ
-- `src-tauri/src/modules`: drafts / templates / signatures / memo / trash / store / variable presets の Rust 側実装
+- `src-tauri/src/modules`: drafts / templates / blocks / signatures / memo / trash / store / variable presets の Rust 側実装
 - `src-tauri/capabilities`: Tauri capability 設定
 
 ## 補足

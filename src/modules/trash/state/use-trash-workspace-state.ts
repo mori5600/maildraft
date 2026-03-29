@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from "react";
 
 import { maildraftApi } from "../../../shared/api/maildraft-api";
 import {
+  applyRestoredBlockResult,
   applyRestoredDraftResult,
   applyRestoredMemoResult,
   applyRestoredSignatureResult,
@@ -25,6 +26,7 @@ function toErrorMessage(error: unknown): string {
 }
 
 interface TrashWorkspaceStateOptions {
+  onBlockRestored: (snapshot: StoreSnapshot, blockId: string) => void;
   onClearError: () => void;
   onDraftRestored: (draftId: string, snapshot: StoreSnapshot) => void;
   onError: (message: string) => void;
@@ -47,6 +49,7 @@ type TrashItemStrategyMap<Result> = {
 type RestoreTrashItemContext = Required<Pick<TrashWorkspaceStateOptions, "onMemoRestored">> &
   Pick<
     TrashWorkspaceStateOptions,
+    | "onBlockRestored"
     | "onDraftRestored"
     | "onNotice"
     | "onSignatureRestored"
@@ -75,6 +78,14 @@ function createRestoreTrashItemStrategies(
   context: RestoreTrashItemContext,
 ): TrashItemStrategyMap<Promise<void>> {
   return {
+    block: async (item) => {
+      const restoredBlock = await maildraftApi.restoreBlockFromTrash(item.block.id);
+      const nextSnapshot = applyRestoredBlockResult(context.snapshot, restoredBlock);
+      context.onSnapshotChange(nextSnapshot);
+      context.onBlockRestored(nextSnapshot, item.block.id);
+      context.onViewChange("blocks");
+      context.onNotice("文面ブロックをゴミ箱から復元しました。");
+    },
     draft: async (item) => {
       const restoredDraft = await maildraftApi.restoreDraftFromTrash(item.draft.id);
       const nextSnapshot = applyRestoredDraftResult(context.snapshot, restoredDraft);
@@ -118,6 +129,12 @@ function createDeleteTrashItemStrategies(
   context: DeleteTrashItemContext,
 ): TrashItemStrategyMap<Promise<void>> {
   return {
+    block: async (item) => {
+      const deletedBlock = await maildraftApi.permanentlyDeleteBlockFromTrash(item.block.id);
+      const nextSnapshot = applyTrashMutationResult(context.snapshot, deletedBlock);
+      context.onSnapshotChange(nextSnapshot);
+      context.onNotice("文面ブロックを完全に削除しました。");
+    },
     draft: async (item) => {
       const deletedDraft = await maildraftApi.permanentlyDeleteDraftFromTrash(item.draft.id);
       const nextSnapshot = applyTrashMutationResult(context.snapshot, deletedDraft);
@@ -161,6 +178,7 @@ function createDeleteTrashItemStrategies(
  * change active default-signature state.
  */
 export function useTrashWorkspaceState({
+  onBlockRestored,
   onClearError,
   onDraftRestored,
   onError,
@@ -208,6 +226,7 @@ export function useTrashWorkspaceState({
       await runTrashItemStrategy(
         createRestoreTrashItemStrategies({
           snapshot: snapshotRef.current,
+          onBlockRestored,
           onDraftRestored,
           onMemoRestored,
           onNotice,

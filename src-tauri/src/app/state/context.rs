@@ -4,7 +4,8 @@ use serde_json::{json, Map, Value};
 
 use crate::app::settings::{EditorSettings, LoggingSettings, ProofreadingSettings};
 use crate::modules::{
-    drafts::DraftInput, memo::MemoInput, signatures::SignatureInput, store::StoreSnapshot,
+    blocks::ContentBlockInput, drafts::DraftInput, memo::MemoInput, signatures::SignatureInput,
+    store::StoreSnapshot,
     templates::TemplateInput, variable_presets::VariablePresetInput,
 };
 
@@ -36,6 +37,7 @@ pub(super) fn snapshot_counts_context(snapshot: &StoreSnapshot) -> Map<String, V
         json!(snapshot.signatures.len()),
     );
     context.insert("memo_count".to_string(), json!(snapshot.memos.len()));
+    context.insert("block_count".to_string(), json!(snapshot.blocks.len()));
     context.insert(
         "trash_count".to_string(),
         json!(snapshot.trash.item_count()),
@@ -122,6 +124,7 @@ pub(super) fn variable_preset_context(input: &VariablePresetInput) -> Map<String
     let mut context = Map::new();
     context.insert("name_length".to_string(), json!(input.name.chars().count()));
     context.insert("value_count".to_string(), json!(input.values.len()));
+    context.insert("tag_count".to_string(), json!(input.tags.len()));
     context
 }
 
@@ -145,6 +148,15 @@ pub(super) fn memo_context(input: &MemoInput) -> Map<String, Value> {
         json!(input.title.chars().count()),
     );
     context.insert("body_length".to_string(), json!(input.body.chars().count()));
+    context.insert("tag_count".to_string(), json!(input.tags.len()));
+    context
+}
+
+pub(super) fn block_context(input: &ContentBlockInput) -> Map<String, Value> {
+    let mut context = Map::new();
+    context.insert("name_length".to_string(), json!(input.name.chars().count()));
+    context.insert("body_length".to_string(), json!(input.body.chars().count()));
+    context.insert("category".to_string(), json!(input.category.as_str()));
     context.insert("tag_count".to_string(), json!(input.tags.len()));
     context
 }

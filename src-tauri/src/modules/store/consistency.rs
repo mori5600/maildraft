@@ -30,6 +30,14 @@ impl StoreSnapshot {
             normalize_tags_in_place(&mut memo.tags);
         }
 
+        for block in &mut self.blocks {
+            normalize_tags_in_place(&mut block.tags);
+        }
+
+        for preset in &mut self.variable_presets {
+            normalize_tags_in_place(&mut preset.tags);
+        }
+
         if let Some(legacy_memo) = &mut self.legacy_memo {
             normalize_tags_in_place(&mut legacy_memo.tags);
         }
@@ -47,6 +55,10 @@ impl StoreSnapshot {
 
         for entry in &mut self.trash.memos {
             normalize_tags_in_place(&mut entry.memo.tags);
+        }
+
+        for entry in &mut self.trash.blocks {
+            normalize_tags_in_place(&mut entry.block.tags);
         }
     }
 
@@ -182,7 +194,24 @@ impl StoreSnapshot {
                 .then(right.updated_at.cmp(&left.updated_at))
         });
         self.variable_presets
-            .sort_by(|left, right| right.updated_at.cmp(&left.updated_at));
+            .sort_by(|left, right| {
+                let left_recent = left
+                    .last_used_at
+                    .as_deref()
+                    .unwrap_or(left.updated_at.as_str())
+                    .parse::<u64>()
+                    .unwrap_or_default();
+                let right_recent = right
+                    .last_used_at
+                    .as_deref()
+                    .unwrap_or(right.updated_at.as_str())
+                    .parse::<u64>()
+                    .unwrap_or_default();
+                let left_updated = left.updated_at.parse::<u64>().unwrap_or_default();
+                let right_updated = right.updated_at.parse::<u64>().unwrap_or_default();
+
+                right_recent.cmp(&left_recent).then(right_updated.cmp(&left_updated))
+            });
         self.signatures.sort_by(|left, right| {
             right
                 .is_pinned
@@ -190,6 +219,8 @@ impl StoreSnapshot {
                 .then(right.updated_at.cmp(&left.updated_at))
         });
         self.memos
+            .sort_by(|left, right| right.updated_at.cmp(&left.updated_at));
+        self.blocks
             .sort_by(|left, right| right.updated_at.cmp(&left.updated_at));
         self.trash
             .drafts
@@ -199,6 +230,12 @@ impl StoreSnapshot {
             .sort_by(|left, right| right.deleted_at.cmp(&left.deleted_at));
         self.trash
             .signatures
+            .sort_by(|left, right| right.deleted_at.cmp(&left.deleted_at));
+        self.trash
+            .memos
+            .sort_by(|left, right| right.deleted_at.cmp(&left.deleted_at));
+        self.trash
+            .blocks
             .sort_by(|left, right| right.deleted_at.cmp(&left.deleted_at));
     }
 
@@ -219,11 +256,15 @@ mod tests {
 
     use super::StoreSnapshot;
     use crate::modules::{
+        blocks::{ContentBlock, ContentBlockCategory},
         drafts::{Draft, DraftHistoryEntry},
         memo::Memo,
         signatures::Signature,
         templates::Template,
-        trash::{TrashSnapshot, TrashedDraft, TrashedMemo, TrashedSignature, TrashedTemplate},
+        trash::{
+            TrashSnapshot, TrashedBlock, TrashedDraft, TrashedMemo, TrashedSignature,
+            TrashedTemplate,
+        },
     };
 
     fn sample_draft(id: &str, is_pinned: bool, updated_at: &str) -> Draft {
@@ -603,6 +644,34 @@ mod tests {
     }
 
     prop_compose! {
+        fn arb_block()(
+            id in arb_short_id(),
+            name in arb_text(),
+            category in prop_oneof![
+                Just(ContentBlockCategory::Greeting),
+                Just(ContentBlockCategory::Request),
+                Just(ContentBlockCategory::Thanks),
+                Just(ContentBlockCategory::Reminder),
+                Just(ContentBlockCategory::Decline),
+                Just(ContentBlockCategory::Other),
+            ],
+            body in arb_text(),
+            created_at in arb_timestamp(),
+            updated_at in arb_timestamp(),
+        ) -> ContentBlock {
+            ContentBlock {
+                id,
+                name,
+                category,
+                body,
+                tags: Vec::new(),
+                created_at,
+                updated_at,
+            }
+        }
+    }
+
+    prop_compose! {
         fn arb_trashed_draft()(
             draft in arb_draft(),
             history in vec(arb_draft_history_entry(), 0..3),
@@ -640,17 +709,28 @@ mod tests {
     }
 
     prop_compose! {
+        fn arb_trashed_block()(
+            block in arb_block(),
+            deleted_at in arb_timestamp(),
+        ) -> TrashedBlock {
+            TrashedBlock { block, deleted_at }
+        }
+    }
+
+    prop_compose! {
         fn arb_store_snapshot()(
             drafts in vec(arb_draft(), 0..4),
             draft_history in vec(arb_draft_history_entry(), 0..5),
             templates in vec(arb_template(), 0..4),
             signatures in vec(arb_signature(), 0..4),
             memos in vec(arb_memo(), 0..5),
+            blocks in vec(arb_block(), 0..5),
             legacy_memo in option::of(arb_memo()),
             trash_drafts in vec(arb_trashed_draft(), 0..3),
             trash_templates in vec(arb_trashed_template(), 0..3),
             trash_signatures in vec(arb_trashed_signature(), 0..3),
             trash_memos in vec(arb_trashed_memo(), 0..3),
+            trash_blocks in vec(arb_trashed_block(), 0..3),
         ) -> StoreSnapshot {
             StoreSnapshot {
                 drafts,
@@ -659,12 +739,14 @@ mod tests {
                 templates,
                 signatures,
                 memos,
+                blocks,
                 legacy_memo,
                 trash: TrashSnapshot {
                     drafts: trash_drafts,
                     templates: trash_templates,
                     signatures: trash_signatures,
                     memos: trash_memos,
+                    blocks: trash_blocks,
                 },
             }
         }
@@ -774,6 +856,14 @@ mod tests {
             assert_tags_normalized(&memo.tags);
         }
 
+        for block in &store.blocks {
+            assert_tags_normalized(&block.tags);
+        }
+
+        for preset in &store.variable_presets {
+            assert_tags_normalized(&preset.tags);
+        }
+
         assert_sorted(&store.drafts, |left, right| {
             right
                 .is_pinned
@@ -798,6 +888,9 @@ mod tests {
         assert_sorted(&store.memos, |left, right| {
             right.updated_at.cmp(&left.updated_at)
         });
+        assert_sorted(&store.blocks, |left, right| {
+            right.updated_at.cmp(&left.updated_at)
+        });
         assert_sorted(&store.trash.drafts, |left, right| {
             right.deleted_at.cmp(&left.deleted_at)
         });
@@ -805,6 +898,12 @@ mod tests {
             right.deleted_at.cmp(&left.deleted_at)
         });
         assert_sorted(&store.trash.signatures, |left, right| {
+            right.deleted_at.cmp(&left.deleted_at)
+        });
+        assert_sorted(&store.trash.memos, |left, right| {
+            right.deleted_at.cmp(&left.deleted_at)
+        });
+        assert_sorted(&store.trash.blocks, |left, right| {
             right.deleted_at.cmp(&left.deleted_at)
         });
     }

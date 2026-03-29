@@ -63,6 +63,7 @@ export function useMemoWorkspaceState({
   }, [snapshot]);
   const {
     activeMemoTagFilter,
+    availableMemoTagCounts,
     availableMemoTags,
     canStartDraftFromMemo,
     filteredMemos,
@@ -186,6 +187,7 @@ export function useMemoWorkspaceState({
       activeMemoUpdatedAt: selectedMemoUpdatedAt,
       autoSaveLabel,
       availableTags: availableMemoTags,
+      tagCounts: availableMemoTagCounts,
       availableSortOptions: MEMO_SORT_OPTIONS,
       canStartDraftFromMemo,
       memos: filteredMemos,

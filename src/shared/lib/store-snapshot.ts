@@ -1,3 +1,8 @@
+import {
+  type ContentBlockInput,
+  createEmptyContentBlock,
+  toContentBlockInput,
+} from "../../modules/blocks/model";
 import { createEmptyDraft, type DraftInput, toDraftInput } from "../../modules/drafts/model";
 import { createEmptyMemo, type Memo, type MemoInput, toMemoInput } from "../../modules/memo/model";
 import {
@@ -11,10 +16,12 @@ import {
   toTemplateInput,
 } from "../../modules/templates/model";
 import type {
+  DeleteBlockResult,
   DeleteDraftResult,
   DeleteMemoResult,
   DeleteSignatureResult,
   DeleteTemplateResult,
+  SaveBlockResult,
   SaveDraftResult,
   SaveSignatureResult,
   SaveTemplateResult,
@@ -72,6 +79,16 @@ export function pickTemplateInput(
   }
 
   return toTemplateInput(existing);
+}
+
+export function pickBlockInput(snapshot: StoreSnapshot, blockId: string | null): ContentBlockInput {
+  const existing = snapshot.blocks.find((block) => block.id === blockId) ?? snapshot.blocks[0];
+
+  if (!existing) {
+    return createEmptyContentBlock();
+  }
+
+  return toContentBlockInput(existing);
 }
 
 export function pickMemoInput(snapshot: StoreSnapshot, memoId: string | null): MemoInput {
@@ -179,6 +196,17 @@ export function applySavedTemplateResult(
   };
 }
 
+/** Patches one saved content block into the current snapshot. */
+export function applySavedBlockResult(
+  snapshot: StoreSnapshot,
+  savedBlock: SaveBlockResult,
+): StoreSnapshot {
+  return {
+    ...snapshot,
+    blocks: sortByUpdatedAt(upsertById(snapshot.blocks, savedBlock.block)),
+  };
+}
+
 /** Moves one deleted template into trash without replacing unrelated snapshot data. */
 export function applyDeletedTemplateResult(
   snapshot: StoreSnapshot,
@@ -200,6 +228,25 @@ export function applyDeletedTemplateResult(
   };
 }
 
+/** Moves one deleted content block into trash without replacing unrelated snapshot data. */
+export function applyDeletedBlockResult(
+  snapshot: StoreSnapshot,
+  deletedBlock: DeleteBlockResult,
+): StoreSnapshot {
+  return {
+    ...snapshot,
+    blocks: snapshot.blocks.filter((block) => block.id !== deletedBlock.trashedBlock.block.id),
+    trash: {
+      ...snapshot.trash,
+      blocks: upsertTrashEntry(
+        snapshot.trash.blocks,
+        deletedBlock.trashedBlock,
+        (entry) => entry.block.id,
+      ),
+    },
+  };
+}
+
 /** Restores one template from trash using the same compact shape as save. */
 export function applyRestoredTemplateResult(
   snapshot: StoreSnapshot,
@@ -215,6 +262,26 @@ export function applyRestoredTemplateResult(
         nextSnapshot.trash.templates,
         restoredTemplate.template.id,
         (entry) => entry.template.id,
+      ),
+    },
+  };
+}
+
+/** Restores one content block from trash using the same compact shape as save. */
+export function applyRestoredBlockResult(
+  snapshot: StoreSnapshot,
+  restoredBlock: SaveBlockResult,
+): StoreSnapshot {
+  const nextSnapshot = applySavedBlockResult(snapshot, restoredBlock);
+
+  return {
+    ...nextSnapshot,
+    trash: {
+      ...nextSnapshot.trash,
+      blocks: removeTrashEntry(
+        nextSnapshot.trash.blocks,
+        restoredBlock.block.id,
+        (entry) => entry.block.id,
       ),
     },
   };
@@ -376,4 +443,8 @@ function upsertById<T extends { id: string }>(items: T[], nextItem: T): T[] {
   const nextItems = [...items];
   nextItems[nextIndex] = nextItem;
   return nextItems;
+}
+
+function sortByUpdatedAt<T extends { updatedAt: string }>(items: T[]): T[] {
+  return [...items].sort((left, right) => Number(right.updatedAt) - Number(left.updatedAt));
 }

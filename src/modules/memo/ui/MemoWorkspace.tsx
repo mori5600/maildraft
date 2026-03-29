@@ -9,6 +9,7 @@ interface MemoWorkspaceProps {
   activeMemoUpdatedAt: string | null;
   autoSaveLabel: string;
   availableTags: string[];
+  tagCounts?: Record<string, number>;
   availableSortOptions: Array<{ value: MemoSortOption; label: string }>;
   canStartDraftFromMemo: boolean;
   memos: Memo[];
@@ -36,6 +37,7 @@ export function MemoWorkspace({
   activeMemoUpdatedAt,
   autoSaveLabel,
   availableTags,
+  tagCounts,
   availableSortOptions,
   canStartDraftFromMemo,
   memos,
@@ -62,6 +64,7 @@ export function MemoWorkspace({
       <MemoListPane
         activeTagFilter={activeTagFilter}
         availableTags={availableTags}
+        tagCounts={tagCounts}
         availableSortOptions={availableSortOptions}
         memos={memos}
         onChangeSearchQuery={onChangeSearchQuery}

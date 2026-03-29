@@ -1,3 +1,4 @@
+mod blocks;
 mod common;
 mod drafts;
 mod memo;
@@ -9,6 +10,9 @@ mod tests;
 mod trash;
 mod variable_presets;
 
+pub(crate) use blocks::{
+    delete_block, permanently_delete_block_from_trash, restore_block_from_trash, save_block,
+};
 pub(crate) use common::{load_snapshot, load_startup_notice};
 pub(crate) use drafts::{
     delete_draft, permanently_delete_draft_from_trash, restore_draft_from_trash,
@@ -31,4 +35,6 @@ pub(crate) use templates::{
     save_template,
 };
 pub(crate) use trash::empty_trash;
-pub(crate) use variable_presets::{delete_variable_preset, save_variable_preset};
+pub(crate) use variable_presets::{
+    delete_variable_preset, record_variable_preset_usage, save_variable_preset,
+};

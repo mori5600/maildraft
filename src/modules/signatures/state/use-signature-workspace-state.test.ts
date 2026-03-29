@@ -17,6 +17,7 @@ const snapshot: StoreSnapshot = {
   drafts: [],
   draftHistory: [],
   variablePresets: [],
+  blocks: [],
   templates: [],
   signatures: [
     {
@@ -43,6 +44,8 @@ const snapshot: StoreSnapshot = {
     drafts: [],
     templates: [],
     signatures: [],
+    memos: [],
+    blocks: [],
   },
 };
 
@@ -76,6 +79,7 @@ describe("signature workspace state", () => {
         drafts: [],
         draftHistory: [],
         variablePresets: [],
+        blocks: [],
         templates: [],
         signatures: [],
         memos: [],
@@ -83,6 +87,8 @@ describe("signature workspace state", () => {
           drafts: [],
           templates: [],
           signatures: [],
+          memos: [],
+          blocks: [],
         },
       }),
     ).toMatchObject({

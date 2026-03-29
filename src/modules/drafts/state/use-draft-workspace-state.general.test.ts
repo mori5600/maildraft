@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  createContentBlock,
   createDraft,
   createDraftInput,
   createSignature,
@@ -371,6 +372,47 @@ describe("useDraftWorkspaceState general", () => {
       }),
     );
     expect(result.current.workspaceProps.canCreateTemplate).toBe(true);
+  });
+
+  it("inserts a content block into the requested draft field and reports the action", () => {
+    const draftForm = createDraftInput({
+      body: "既存本文",
+      id: "draft-insert-block",
+    });
+    const { setDraftForm } = configureWorkspaceMocks(draftForm);
+    const onNotice = vi.fn();
+
+    const { result } = renderHook(() =>
+      useDraftWorkspaceState(
+        createStateOptions({
+          onNotice,
+          snapshot: createCleanSnapshot({
+            blocks: [
+              createContentBlock({
+                body: "ご確認をお願いいたします。",
+                id: "block-request",
+                name: "依頼",
+              }),
+            ],
+            signatures: [createSignature({ id: "signature-default", isDefault: true })],
+          }),
+        }),
+      ),
+    );
+
+    setDraftForm.mockClear();
+
+    act(() => {
+      result.current.workspaceProps.onInsertBlock("body", "block-request");
+    });
+
+    const updater = setDraftForm.mock.calls[0]?.[0] as (
+      input: typeof draftForm,
+    ) => typeof draftForm;
+    expect(updater(draftForm)).toMatchObject({
+      body: "既存本文\n\nご確認をお願いいたします。",
+    });
+    expect(onNotice).toHaveBeenCalledWith("文面ブロック「依頼」を本文に挿入しました。");
   });
 
   it("copies the rendered preview and reports both success and failure paths", async () => {

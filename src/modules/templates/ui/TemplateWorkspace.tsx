@@ -15,6 +15,7 @@ import { TemplatePreviewPane } from "./panes/TemplatePreviewPane";
 interface TemplateWorkspaceProps {
   activeTagFilter: string | null;
   availableTags: string[];
+  tagCounts?: Record<string, number>;
   templates: Template[];
   totalTemplateCount: number;
   signatures: Signature[];
@@ -43,6 +44,7 @@ interface TemplateWorkspaceProps {
 export function TemplateWorkspace({
   activeTagFilter,
   availableTags,
+  tagCounts,
   templates,
   totalTemplateCount,
   signatures,
@@ -79,6 +81,7 @@ export function TemplateWorkspace({
         <TemplateListPane
           activeTagFilter={activeTagFilter}
           availableTags={availableTags}
+          tagCounts={tagCounts}
           searchQuery={searchQuery}
           selectedTemplateId={selectedTemplateId}
           sort={sort}

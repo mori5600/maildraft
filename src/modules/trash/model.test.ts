@@ -78,12 +78,27 @@ const trash: TrashSnapshot = {
       deletedAt: "8",
     },
   ],
+  blocks: [
+    {
+      block: {
+        id: "block-1",
+        name: "催促",
+        category: "reminder",
+        body: "ご確認をお願いいたします。",
+        tags: [],
+        createdAt: "1",
+        updatedAt: "2",
+      },
+      deletedAt: "9",
+    },
+  ],
 };
 
 describe("trash model", () => {
   it("collects trash items in descending deleted order with fallback labels", () => {
     expect(collectTrashItems(trash).map((item) => [item.kind, item.label, item.key])).toEqual([
       ["template", "無題のテンプレート", "template:template-1"],
+      ["block", "催促 / 催促", "block:block-1"],
       ["memo", "確認メモ", "memo:memo-1"],
       ["signature", "無題の署名", "signature:signature-trash"],
       ["draft", "下書きA", "draft:draft-1"],
@@ -94,6 +109,7 @@ describe("trash model", () => {
     expect(buildTrashItemKey("draft", "draft-1")).toBe("draft:draft-1");
     expect(trashItemTypeLabel("draft")).toBe("下書き");
     expect(trashItemTypeLabel("template")).toBe("テンプレート");
+    expect(trashItemTypeLabel("block")).toBe("文面ブロック");
     expect(trashItemTypeLabel("signature")).toBe("署名");
     expect(trashItemTypeLabel("memo")).toBe("メモ");
   });

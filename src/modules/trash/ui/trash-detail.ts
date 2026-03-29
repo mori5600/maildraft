@@ -1,3 +1,4 @@
+import { contentBlockCategoryLabel } from "../../blocks/model";
 import { toDraftInput } from "../../drafts/model";
 import { memoCharacterCount, memoLineCount } from "../../memo/model";
 import { buildDraftRenderResult, renderTemplatePreview } from "../../renderer/render-draft";
@@ -47,6 +48,12 @@ export function buildTrashDetail(
         subject: "",
         body: item.memo.body,
         meta: `${memoLineCount(item.memo)} 行 / ${memoCharacterCount(item.memo)} 文字`,
+      };
+    case "block":
+      return {
+        subject: item.block.name,
+        body: item.block.body,
+        meta: `${contentBlockCategoryLabel(item.block.category)} / ${item.block.tags.length}個のタグ`,
       };
   }
 }

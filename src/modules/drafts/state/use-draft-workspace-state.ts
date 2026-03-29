@@ -3,11 +3,23 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { copyPlainText } from "../../../shared/lib/clipboard";
 import type { DraftSortOption } from "../../../shared/lib/list-sort";
 import { pickKnownSignatureId, templateExists } from "../../../shared/lib/store-snapshot";
-import { collectUniqueTags, resolveActiveTagFilter } from "../../../shared/lib/tags";
+import {
+  collectTagCounts,
+  collectUniqueTags,
+  resolveActiveTagFilter,
+} from "../../../shared/lib/tags";
 import type { StoreSnapshot } from "../../../shared/types/store";
+import { contentBlockLabel } from "../../blocks/model";
 import { renderDraftPreview } from "../../renderer/render-draft";
 import { createTemplateFromDraftInput, type TemplateInput } from "../../templates/model";
-import { applyTemplateToDraft, draftHasMeaningfulContent, type DraftInput } from "../model";
+import {
+  applyTemplateToDraft,
+  type DraftBlockInsertTarget,
+  draftBlockInsertTargetLabel,
+  draftHasMeaningfulContent,
+  type DraftInput,
+  insertContentBlockIntoDraft,
+} from "../model";
 import { formatDraftAutoSaveState, toDraftWorkspaceErrorMessage } from "./draft-workspace-helpers";
 import { useDraftPersistenceState } from "./use-draft-persistence-state";
 import { useDraftProofreadingState } from "./use-draft-proofreading-state";
@@ -74,6 +86,10 @@ export function useDraftWorkspaceState({
   const [draftSort, setDraftSort] = useState<DraftSortOption>("recent");
   const [draftTagFilterState, setDraftTagFilter] = useState<string | null>(null);
   const deferredDraftSearchQuery = useDeferredValue(draftSearchQuery);
+  const availableDraftTagCounts = useMemo(
+    () => collectTagCounts(snapshot.drafts),
+    [snapshot.drafts],
+  );
   const availableDraftTags = useMemo(() => collectUniqueTags(snapshot.drafts), [snapshot.drafts]);
   const activeDraftTagFilter = useMemo(
     () => resolveActiveTagFilter(availableDraftTags, draftTagFilterState),
@@ -240,6 +256,19 @@ export function useDraftWorkspaceState({
     onOpenTemplateInput(createTemplateFromDraftInput(draftForm));
   }
 
+  function insertBlock(target: DraftBlockInsertTarget, blockId: string) {
+    const block = snapshot.blocks.find((item) => item.id === blockId);
+    if (!block) {
+      return;
+    }
+
+    proofreadingState.markDetailedProofreadingPending();
+    setDraftForm((current) => insertContentBlockIntoDraft(current, target, block));
+    onNotice(
+      `文面ブロック「${contentBlockLabel(block)}」を${draftBlockInsertTargetLabel(target)}に挿入しました。`,
+    );
+  }
+
   return {
     handle: {
       copyPreview,
@@ -255,6 +284,8 @@ export function useDraftWorkspaceState({
       activeTagFilter: activeDraftTagFilter,
       autoSaveLabel: formatDraftAutoSaveState(draftAutoSaveState),
       availableTags: availableDraftTags,
+      tagCounts: availableDraftTagCounts,
+      blocks: snapshot.blocks,
       canApplyVariablePreset: variablePresetState.canApplyVariablePreset,
       canCreateTemplate,
       canDuplicate: selectedDraftId !== null,
@@ -268,6 +299,7 @@ export function useDraftWorkspaceState({
       onApplyIssueSuggestion: proofreadingState.onApplyIssueSuggestion,
       onApplyTemplate: applyTemplate,
       onApplyVariablePreset: variablePresetState.applyVariablePreset,
+      onApplyRecommendedVariablePreset: variablePresetState.applyVariablePresetById,
       onChangeDraft: changeDraft,
       onChangeDraftVariable: changeDraftVariable,
       onChangeSearchQuery: setDraftSearchQuery,
@@ -282,6 +314,7 @@ export function useDraftWorkspaceState({
       onDeleteVariablePreset: variablePresetState.deleteVariablePreset,
       onDisableIssueRule: proofreadingState.onDisableIssueRule,
       onDuplicateDraft: duplicateDraft,
+      onInsertBlock: insertBlock,
       onIgnoreIssue: proofreadingState.onIgnoreIssue,
       onRunDetailedCheck: proofreadingState.onRunDetailedCheck,
       onRestoreDraftHistory: restoreDraftHistoryWithReset,

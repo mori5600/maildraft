@@ -1,8 +1,4 @@
-use crate::modules::{
-    templates::TemplateInput,
-    trash::TrashedTemplate,
-    variable_presets::{VariablePreset, VariablePresetInput},
-};
+use crate::modules::{templates::TemplateInput, trash::TrashedTemplate};
 
 use super::StoreSnapshot;
 
@@ -34,25 +30,5 @@ impl StoreSnapshot {
         };
         self.trash.templates.push(trashed_template.clone());
         Some(trashed_template)
-    }
-
-    pub fn upsert_variable_preset(&mut self, input: VariablePresetInput, timestamp: &str) {
-        if let Some(existing) = self
-            .variable_presets
-            .iter_mut()
-            .find(|preset| preset.id == input.id)
-        {
-            existing.update(input, timestamp);
-            return;
-        }
-
-        self.variable_presets
-            .push(VariablePreset::new(input, timestamp));
-    }
-
-    pub fn delete_variable_preset(&mut self, id: &str) -> bool {
-        let initial_len = self.variable_presets.len();
-        self.variable_presets.retain(|preset| preset.id != id);
-        initial_len != self.variable_presets.len()
     }
 }

@@ -49,11 +49,15 @@ export const HELP_USAGE_GROUPS: HelpGuideGroup[] = [
       },
       {
         title: "差し込み値を保存する",
-        body: "差し込み項目で保存済みセットを作っておくと、会社名や担当者名などの差し込み値を次回以降まとめて再利用できます。",
+        body: "差し込み項目で保存済みセットを作っておくと、会社名や担当者名などの差し込み値を次回以降まとめて再利用できます。最近使ったセットや、今の下書きのタグ・件名に近いセットは `おすすめ` として先に表示されます。",
+      },
+      {
+        title: "文面ブロックを育てる",
+        body: "繰り返し使う短い言い回しは文面ブロックへ保存しておくと、挨拶や依頼文だけを部品として再利用できます。下書き画面の書き出し・本文・結びにある `挿入` から検索して差し込めます。テンプレートを 1 通丸ごと増やす前の置き場として使います。",
       },
       {
         title: "タグで整理する",
-        body: "下書き、テンプレート、メモにはタグを付けられます。入力欄では既存タグ候補から選ぶことも、新しいタグをそのまま追加することもできます。タグは一覧に表示され、検索や単一タグ絞り込みにも使えます。",
+        body: "下書き、テンプレート、メモ、文面ブロックにはタグを付けられます。入力欄では既存タグ候補から選ぶことも、新しいタグをそのまま追加することもできます。タグは一覧に表示され、検索や単一タグ絞り込みにも使えます。絞り込みピルには件数も表示されます。",
       },
       {
         title: "プレビューで確認してコピーする",
@@ -69,6 +73,10 @@ export const HELP_USAGE_GROUPS: HelpGuideGroup[] = [
       {
         title: "テンプレートを作る",
         body: "テンプレート画面で、よく使う件名や本文を保存します。`{{相手名}}` のような差し込み変数もそのまま保存できます。",
+      },
+      {
+        title: "短い定型文は文面ブロックへ分ける",
+        body: "挨拶や催促の一段落だけを再利用したいときは、文面ブロック画面に保存します。カテゴリとタグを付けておくと後から探しやすくなります。保存したブロックは下書き画面の `挿入` から検索して使います。",
       },
       {
         title: "下書きからテンプレート化する",
@@ -163,11 +171,12 @@ export const KEYBOARD_SHORTCUT_GROUPS: ShortcutGroup[] = [
     items: [
       { keys: "Ctrl/Cmd+1", description: "下書きへ移動" },
       { keys: "Ctrl/Cmd+2", description: "テンプレートへ移動" },
-      { keys: "Ctrl/Cmd+3", description: "署名へ移動" },
-      { keys: "Ctrl/Cmd+4", description: "メモへ移動" },
-      { keys: "Ctrl/Cmd+5", description: "ゴミ箱へ移動" },
-      { keys: "Ctrl/Cmd+6", description: "設定へ移動" },
-      { keys: "Ctrl/Cmd+7", description: "ヘルプへ移動" },
+      { keys: "Ctrl/Cmd+3", description: "文面ブロックへ移動" },
+      { keys: "Ctrl/Cmd+4", description: "署名へ移動" },
+      { keys: "Ctrl/Cmd+5", description: "メモへ移動" },
+      { keys: "Ctrl/Cmd+6", description: "ゴミ箱へ移動" },
+      { keys: "Ctrl/Cmd+7", description: "設定へ移動" },
+      { keys: "Ctrl/Cmd+8", description: "ヘルプへ移動" },
     ],
   },
   {
@@ -178,12 +187,12 @@ export const KEYBOARD_SHORTCUT_GROUPS: ShortcutGroup[] = [
       {
         keys: "Ctrl/Cmd+N",
         description: "現在の画面に応じて新規作成",
-        note: "ヘルプ・設定・ゴミ箱では新規下書き、メモでは新規メモ",
+        note: "文面ブロックでは新規ブロック、ヘルプ・設定・ゴミ箱では新規下書き、メモでは新規メモ",
       },
       {
         keys: "Ctrl/Cmd+S",
         description: "現在の編集内容を保存",
-        note: "メモではタイトル・本文・固定状態をまとめて保存",
+        note: "文面ブロックでは名前・カテゴリ・本文・タグ、メモではタイトル・本文・固定状態をまとめて保存",
       },
       {
         keys: "Ctrl/Cmd+Shift+P",
@@ -205,7 +214,7 @@ export const KEYBOARD_SHORTCUT_GROUPS: ShortcutGroup[] = [
       {
         keys: "Ctrl/Cmd+K",
         description: "現在の一覧の検索欄へ移動",
-        note: "下書き・テンプレート・署名・メモのみ。メモでは一覧の絞り込みに使います。",
+        note: "下書き・テンプレート・文面ブロック・署名・メモで使えます。メモでは一覧の絞り込みに使います。",
       },
     ],
   },
@@ -259,15 +268,17 @@ export function getViewShortcutHint(view: WorkspaceView): string {
       return "Ctrl/Cmd+1";
     case "templates":
       return "Ctrl/Cmd+2";
-    case "signatures":
+    case "blocks":
       return "Ctrl/Cmd+3";
-    case "memo":
+    case "signatures":
       return "Ctrl/Cmd+4";
-    case "trash":
+    case "memo":
       return "Ctrl/Cmd+5";
-    case "settings":
+    case "trash":
       return "Ctrl/Cmd+6";
-    case "help":
+    case "settings":
       return "Ctrl/Cmd+7";
+    case "help":
+      return "Ctrl/Cmd+8";
   }
 }

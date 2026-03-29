@@ -17,7 +17,8 @@ describe("DraftPreviewPane", () => {
     const handleSelectVariablePreset = vi.fn();
     const handleChangeVariablePresetName = vi.fn();
     const handleCreateVariablePreset = vi.fn();
-    const handleApplyVariablePreset = vi.fn();
+    const handleApplyVariablePreset = vi.fn(async () => {});
+    const handleApplyRecommendedVariablePreset = vi.fn(async () => {});
     const handleDisableIssueRule = vi.fn();
     const handleIgnoreIssue = vi.fn();
     const handleRunDetailedCheck = vi.fn();
@@ -33,7 +34,7 @@ describe("DraftPreviewPane", () => {
         canSaveVariablePreset
         detailedCheckStatus="ready"
         detailedCheckStatusLabel="textlint と prh の詳細チェック結果を反映しています。"
-        draftForm={createDraftInput()}
+        draftForm={createDraftInput({ subject: "A社向けのご案内", tags: ["社外"] })}
         draftHistoryCount={1}
         issues={[createIssue()]}
         previewBodyText="本文プレビュー"
@@ -44,9 +45,15 @@ describe("DraftPreviewPane", () => {
         showWhitespace={false}
         variableNames={["相手名"]}
         variablePresetName="A社向け"
-        variablePresets={[createVariablePreset()]}
+        variablePresets={[
+          createVariablePreset({
+            name: "A社向け",
+            tags: ["社外"],
+          }),
+        ]}
         onApplyIssueSuggestion={handleApplyIssueSuggestion}
         onApplyVariablePreset={handleApplyVariablePreset}
+        onApplyRecommendedVariablePreset={handleApplyRecommendedVariablePreset}
         onChangeDraftVariable={handleChangeDraftVariable}
         onChangeVariablePresetName={handleChangeVariablePresetName}
         onCopyPreview={handleCopyPreview}
@@ -83,6 +90,8 @@ describe("DraftPreviewPane", () => {
     expect(handleDisableIssueRule).toHaveBeenCalledWith("discouraged.understood");
     await user.click(screen.getByRole("button", { name: "今回のみ無視" }));
     expect(handleIgnoreIssue).toHaveBeenCalledWith("issue-1");
+    await user.click(screen.getByRole("button", { name: "A社向け" }));
+    expect(handleApplyRecommendedVariablePreset).toHaveBeenCalledWith("preset-1");
     await user.click(screen.getByRole("button", { name: "適用" }));
     expect(handleApplyVariablePreset).toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "新規セット" }));
@@ -119,7 +128,8 @@ describe("DraftPreviewPane", () => {
         variablePresetName="A 社向け"
         variablePresets={[createVariablePreset()]}
         onApplyIssueSuggestion={vi.fn()}
-        onApplyVariablePreset={vi.fn()}
+        onApplyVariablePreset={vi.fn(async () => {})}
+        onApplyRecommendedVariablePreset={vi.fn(async () => {})}
         onChangeDraftVariable={vi.fn()}
         onChangeVariablePresetName={vi.fn()}
         onCopyPreview={vi.fn(async () => {})}

@@ -3,6 +3,7 @@ use std::time::Instant;
 use serde_json::Map;
 
 use crate::app::logging::{LogEntry, LogLevel};
+use crate::modules::store::SaveBlockResult;
 use crate::modules::memo::Memo;
 use crate::modules::store::{
     SaveDraftResult, SaveSignatureResult, SaveTemplateResult, TrashMutationResult,
@@ -253,6 +254,50 @@ impl AppState {
         }
     }
 
+    /// Restores one content block from trash and persists the updated store.
+    pub fn restore_block_from_trash(&self, id: &str) -> AppResult<SaveBlockResult> {
+        let started_at = Instant::now();
+
+        let result = (|| {
+            let mut store = self.store.lock().map_err(|error| error.to_string())?;
+            let previous = store.clone();
+            let block = store
+                .restore_block_from_trash(id)
+                .ok_or_else(|| "指定した項目がゴミ箱に見つかりませんでした。".to_string())?;
+            store.ensure_consistency();
+            self.persist_locked_store_with_rollback(&mut store, previous)?;
+
+            Ok((SaveBlockResult { block }, snapshot_counts_context(&store)))
+        })();
+
+        match result {
+            Ok((restored_block, snapshot_context)) => {
+                self.log_event(LogEntry {
+                    level: LogLevel::Info,
+                    event_name: "trash.restore",
+                    module: "trash",
+                    result: "success",
+                    duration_ms: Some(elapsed_millis(started_at)),
+                    error_code: None,
+                    safe_context: merge_context(trash_kind_context("block"), snapshot_context),
+                });
+                Ok(restored_block)
+            }
+            Err(error) => {
+                self.log_event(LogEntry {
+                    level: LogLevel::Error,
+                    event_name: "trash.restore",
+                    module: "trash",
+                    result: "failure",
+                    duration_ms: Some(elapsed_millis(started_at)),
+                    error_code: Some("TRASH_ITEM_NOT_FOUND"),
+                    safe_context: trash_kind_context("block"),
+                });
+                Err(error)
+            }
+        }
+    }
+
     /// Permanently deletes one trashed draft and persists the updated store.
     ///
     /// The returned mutation updates only the trash collection because removing a trashed draft
@@ -338,6 +383,23 @@ impl AppState {
         self.permanently_delete_item_from_trash(
             "memo",
             |store| store.permanently_delete_memo_from_trash(id),
+            |store| TrashMutationResult {
+                drafts: None,
+                draft_history: None,
+                templates: None,
+                trash: store.trash.clone(),
+            },
+        )
+    }
+
+    /// Permanently deletes one trashed content block and persists the updated store.
+    pub fn permanently_delete_block_from_trash(
+        &self,
+        id: &str,
+    ) -> AppResult<TrashMutationResult> {
+        self.permanently_delete_item_from_trash(
+            "block",
+            |store| store.permanently_delete_block_from_trash(id),
             |store| TrashMutationResult {
                 drafts: None,
                 draft_history: None,

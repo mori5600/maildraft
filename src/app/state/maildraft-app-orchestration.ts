@@ -6,6 +6,7 @@ export const EMPTY_SNAPSHOT: StoreSnapshot = {
   drafts: [],
   draftHistory: [],
   variablePresets: [],
+  blocks: [],
   templates: [],
   signatures: [],
   memos: [],
@@ -14,10 +15,12 @@ export const EMPTY_SNAPSHOT: StoreSnapshot = {
     templates: [],
     signatures: [],
     memos: [],
+    blocks: [],
   },
 };
 
 export interface HydrateWorkspaceSnapshotActions {
+  hydrateBlockState: (snapshot: StoreSnapshot, blockId: string | null) => void;
   hydrateMemoState: (snapshot: StoreSnapshot) => void;
   hydrateSignatureState: (snapshot: StoreSnapshot, signatureId: string | null) => void;
   hydrateTemplateState: (snapshot: StoreSnapshot, templateId: string | null) => void;
@@ -31,6 +34,7 @@ export function hydrateWorkspaceSnapshot(
 ) {
   const hydratedState = buildHydratedWorkspaceState(nextSnapshot);
   actions.setSnapshot(nextSnapshot);
+  actions.hydrateBlockState(nextSnapshot, hydratedState.selectedBlockId);
   actions.hydrateMemoState(nextSnapshot);
   actions.hydrateTemplateState(nextSnapshot, hydratedState.selectedTemplateId);
   actions.hydrateSignatureState(nextSnapshot, hydratedState.selectedSignatureId);
@@ -41,6 +45,7 @@ type WorkspaceFlushAction = (() => void) | null;
 
 export interface ChangeWorkspaceViewActions {
   currentView: WorkspaceView;
+  flushBlocks: () => void;
   flushDrafts: () => void;
   flushMemo: () => void;
   flushSignatures: () => void;
@@ -54,6 +59,7 @@ const VIEW_FLUSHERS: Record<
 > = {
   drafts: "flushDrafts",
   templates: "flushTemplates",
+  blocks: "flushBlocks",
   signatures: "flushSignatures",
   memo: "flushMemo",
   trash: null,

@@ -1,5 +1,6 @@
 import { type RefObject, useMemo } from "react";
 
+import { useBlockWorkspaceState } from "../../modules/blocks/state/use-block-workspace-state";
 import type { DraftWorkspaceHandle } from "../../modules/drafts/ui/DraftWorkspaceScreen";
 import { useMemoWorkspaceState } from "../../modules/memo/state/use-memo-workspace-state";
 import { useSettingsWorkspaceState } from "../../modules/settings/state/use-settings-workspace-state";
@@ -29,6 +30,15 @@ import { useAppShortcuts } from "./use-app-shortcuts";
  */
 export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandle | null>) {
   const shell = useAppShellState(EMPTY_SNAPSHOT);
+  const blockState = useBlockWorkspaceState({
+    onClearError: shell.clearError,
+    onError: shell.setError,
+    onNotice: shell.setNotice,
+    onSnapshotChange: shell.setSnapshot,
+    onTrashItemSelect: shell.setSelectedTrashItemKey,
+    onViewChange: shell.setViewState,
+    snapshot: shell.snapshot,
+  });
   const memoState = useMemoWorkspaceState({
     onClearError: shell.clearError,
     onError: shell.setError,
@@ -73,6 +83,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
 
   function hydrateAll(nextSnapshot: StoreSnapshot) {
     hydrateWorkspaceSnapshot(nextSnapshot, {
+      hydrateBlockState: blockState.hydrateBlockState,
       hydrateMemoState: memoState.hydrateMemoState,
       hydrateSignatureState: signatureState.hydrateSignatureState,
       hydrateTemplateState: templateState.hydrateTemplateState,
@@ -96,6 +107,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
   const changeView = (nextView: WorkspaceView) =>
     changeWorkspaceView(nextView, {
       currentView: shell.view,
+      flushBlocks: blockState.flushPendingBlock,
       flushDrafts: () => draftWorkspaceRef.current?.flushPendingDraft(),
       flushMemo: memoState.flushPendingMemo,
       flushSignatures: signatureState.flushPendingSignature,
@@ -104,6 +116,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     });
 
   const trashState = useTrashWorkspaceState({
+    onBlockRestored: blockState.hydrateBlockState,
     onClearError: shell.clearError,
     onDraftRestored: (draftId, nextSnapshot) =>
       draftWorkspaceRef.current?.openDraftById(draftId, nextSnapshot),
@@ -126,6 +139,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
   const views = useMemo(
     () =>
       buildWorkspaceSummaries({
+        blockCount: shell.snapshot.blocks.length,
         draftCount: shell.snapshot.drafts.length,
         memoCount: shell.snapshot.memos.length,
         signatureCount: shell.snapshot.signatures.length,
@@ -133,6 +147,7 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
         trashItemCount: trashState.trashItems.length,
       }),
     [
+      shell.snapshot.blocks.length,
       shell.snapshot.drafts.length,
       shell.snapshot.memos.length,
       shell.snapshot.signatures.length,
@@ -148,6 +163,10 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
 
   function createMemo() {
     memoState.createMemo();
+  }
+
+  function createBlock() {
+    blockState.createBlock();
   }
 
   function toggleMemoPinned() {
@@ -170,10 +189,12 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     actions: {
       changeView,
       copyDraftPreview,
+      createBlock,
       createDraft,
       createMemo,
       createSignature: signatureState.createSignature,
       createTemplate: templateState.createTemplate,
+      saveBlock: blockState.saveBlock,
       saveDraft,
       saveSettingsSection: settingsState.saveSettingsSection,
       saveMemo: memoState.saveMemo,
@@ -204,6 +225,11 @@ export function useMaildraftApp(draftWorkspaceRef: RefObject<DraftWorkspaceHandl
     },
     error: shell.error,
     isLoading: shell.isLoading,
+    blockWorkspaceProps: {
+      ...blockState.blockWorkspaceProps,
+      editorSettings: settingsState.settingsWorkspaceProps.editorSettings,
+      showWhitespace: shell.showWhitespace,
+    },
     memoWorkspaceProps: {
       ...memoState.memoWorkspaceProps,
       editorSettings: settingsState.settingsWorkspaceProps.editorSettings,

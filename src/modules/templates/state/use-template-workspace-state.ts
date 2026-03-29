@@ -122,14 +122,19 @@ export function useTemplateWorkspaceState({
   useEffect(() => {
     snapshotRef.current = snapshot;
   }, [snapshot]);
-  const { activeTemplateTagFilter, availableTemplateTags, filteredTemplates, templatePreviewText } =
-    useTemplateWorkspaceDerivations({
-      deferredTemplateSearchQuery,
-      requestedTagFilter: templateTagFilterState,
-      snapshot,
-      templateForm,
-      templateSort,
-    });
+  const {
+    activeTemplateTagFilter,
+    availableTemplateTagCounts,
+    availableTemplateTags,
+    filteredTemplates,
+    templatePreviewText,
+  } = useTemplateWorkspaceDerivations({
+    deferredTemplateSearchQuery,
+    requestedTagFilter: templateTagFilterState,
+    snapshot,
+    templateForm,
+    templateSort,
+  });
 
   const { flushPendingTemplate, saveTemplate, setTemplateAutoSaveState, templateAutoSaveState } =
     useTemplateAutoSave({
@@ -292,6 +297,7 @@ export function useTemplateWorkspaceState({
       activeTagFilter: activeTemplateTagFilter,
       autoSaveLabel: formatTemplateAutoSaveState(templateAutoSaveState),
       availableTags: availableTemplateTags,
+      tagCounts: availableTemplateTagCounts,
       canDuplicate: selectedTemplateId !== null,
       onChangeSearchQuery: setTemplateSearchQuery,
       onChangeSort: setTemplateSort,

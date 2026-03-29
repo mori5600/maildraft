@@ -5,8 +5,10 @@ import {
   applyTemplateToDraft,
   createDraftFromMemoInput,
   createDraftFromTemplateInput,
+  draftBlockInsertTargetLabel,
   draftHasMeaningfulContent,
   draftInputsEqual,
+  insertContentBlockIntoDraft,
 } from "./model";
 
 const baseTemplate: TemplateInput = {
@@ -183,5 +185,79 @@ describe("draft model", () => {
         tags: ["社外"],
       }),
     ).toBe(true);
+  });
+
+  it("appends content blocks to the requested section with one blank line", () => {
+    expect(
+      insertContentBlockIntoDraft(
+        {
+          id: "draft-1",
+          title: "",
+          isPinned: false,
+          subject: "",
+          recipient: "",
+          opening: "いつもお世話になっております。",
+          body: "",
+          closing: "よろしくお願いいたします。",
+          templateId: null,
+          signatureId: null,
+          variableValues: {},
+          tags: [],
+        },
+        "opening",
+        {
+          body: "先日はありがとうございました。",
+        },
+      ),
+    ).toMatchObject({
+      opening: "いつもお世話になっております。\n\n先日はありがとうございました。",
+      body: "",
+      closing: "よろしくお願いいたします。",
+    });
+
+    expect(
+      insertContentBlockIntoDraft(
+        {
+          id: "draft-1",
+          title: "",
+          isPinned: false,
+          subject: "",
+          recipient: "",
+          opening: "",
+          body: "",
+          closing: "",
+          templateId: null,
+          signatureId: null,
+          variableValues: {},
+          tags: [],
+        },
+        "body",
+        {
+          body: "ご確認をお願いいたします。",
+        },
+      ),
+    ).toMatchObject({
+      body: "ご確認をお願いいたします。",
+    });
+  });
+
+  it("keeps the draft unchanged for empty content blocks and exposes target labels", () => {
+    const draft = {
+      id: "draft-1",
+      title: "",
+      isPinned: false,
+      subject: "",
+      recipient: "",
+      opening: "既存",
+      body: "",
+      closing: "",
+      templateId: null,
+      signatureId: null,
+      variableValues: {},
+      tags: [],
+    };
+
+    expect(insertContentBlockIntoDraft(draft, "opening", { body: "   " })).toBe(draft);
+    expect(draftBlockInsertTargetLabel("closing")).toBe("結び");
   });
 });

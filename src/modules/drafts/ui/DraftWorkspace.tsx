@@ -1,8 +1,9 @@
 import type { DraftSortOption } from "../../../shared/lib/list-sort";
 import type { EditorSettings } from "../../../shared/ui/code-editor/editor-settings";
+import type { ContentBlock } from "../../blocks/model";
 import type { Signature } from "../../signatures/model";
 import type { Template } from "../../templates/model";
-import type { Draft, DraftHistoryEntry, DraftInput } from "../model";
+import type { Draft, DraftBlockInsertTarget, DraftHistoryEntry, DraftInput } from "../model";
 import type { DraftProofreadingIssue } from "../proofreading/model";
 import type { VariablePreset } from "../variable-presets";
 import { createDraftWorkspaceViewModel } from "./draft-workspace-view-model";
@@ -16,9 +17,11 @@ import { useDraftWorkspaceUiState } from "./use-draft-workspace-ui-state";
 interface DraftWorkspaceProps {
   activeTagFilter: string | null;
   availableTags: string[];
+  tagCounts?: Record<string, number>;
   drafts: Draft[];
   totalDraftCount: number;
   draftHistory: DraftHistoryEntry[];
+  blocks: ContentBlock[];
   templates: Template[];
   signatures: Signature[];
   selectedDraftId: string | null;
@@ -52,7 +55,8 @@ interface DraftWorkspaceProps {
   onChangeVariablePresetName: (value: string) => void;
   onCreateVariablePreset: () => void;
   onApplyIssueSuggestion: (issueId: string) => void;
-  onApplyVariablePreset: () => void;
+  onApplyVariablePreset: () => Promise<void>;
+  onApplyRecommendedVariablePreset: (presetId: string) => Promise<void>;
   onSaveVariablePreset: () => Promise<void>;
   onDeleteVariablePreset: () => Promise<void>;
   onCopyPreview: () => Promise<void>;
@@ -60,6 +64,7 @@ interface DraftWorkspaceProps {
   onSaveDraft: () => Promise<void>;
   onDeleteDraft: () => Promise<void>;
   onDuplicateDraft: () => Promise<void>;
+  onInsertBlock: (target: DraftBlockInsertTarget, blockId: string) => void;
   onDisableIssueRule: (ruleId: string) => void;
   onIgnoreIssue: (issueId: string) => void;
   onRunDetailedCheck: () => void;
@@ -71,9 +76,11 @@ interface DraftWorkspaceProps {
 export function DraftWorkspace({
   activeTagFilter,
   availableTags,
+  tagCounts,
   drafts,
   totalDraftCount,
   draftHistory,
+  blocks,
   templates,
   signatures,
   selectedDraftId,
@@ -108,6 +115,7 @@ export function DraftWorkspace({
   onCreateVariablePreset,
   onApplyIssueSuggestion,
   onApplyVariablePreset,
+  onApplyRecommendedVariablePreset,
   onSaveVariablePreset,
   onDeleteVariablePreset,
   onCopyPreview,
@@ -115,6 +123,7 @@ export function DraftWorkspace({
   onSaveDraft,
   onDeleteDraft,
   onDuplicateDraft,
+  onInsertBlock,
   onDisableIssueRule,
   onIgnoreIssue,
   onRunDetailedCheck,
@@ -138,6 +147,7 @@ export function DraftWorkspace({
         <DraftListPane
           activeTagFilter={activeTagFilter}
           availableTags={availableTags}
+          tagCounts={tagCounts}
           drafts={drafts}
           searchQuery={searchQuery}
           selectedDraftId={selectedDraftId}
@@ -155,6 +165,7 @@ export function DraftWorkspace({
           activeIssue={viewModel.activeIssue}
           activeIssueRequestKey={uiState.selectedIssueRequestKey}
           autoSaveLabel={autoSaveLabel}
+          blocks={blocks}
           canCreateTemplate={canCreateTemplate}
           canDuplicate={canDuplicate}
           draftForm={draftForm}
@@ -168,6 +179,7 @@ export function DraftWorkspace({
           onCreateTemplateFromDraft={onCreateTemplateFromDraft}
           onDeleteDraft={onDeleteDraft}
           onDuplicateDraft={onDuplicateDraft}
+          onInsertBlock={onInsertBlock}
           onSaveDraft={onSaveDraft}
           onTogglePinned={onTogglePinned}
         />
@@ -193,6 +205,7 @@ export function DraftWorkspace({
           variablePresets={variablePresets}
           onApplyIssueSuggestion={onApplyIssueSuggestion}
           onApplyVariablePreset={onApplyVariablePreset}
+          onApplyRecommendedVariablePreset={onApplyRecommendedVariablePreset}
           onChangeDraftVariable={onChangeDraftVariable}
           onChangeVariablePresetName={onChangeVariablePresetName}
           onCopyPreview={onCopyPreview}

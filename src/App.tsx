@@ -5,6 +5,7 @@ import { useRef } from "react";
 
 import { useMaildraftApp } from "./app/state/use-maildraft-app";
 import { WORKSPACE_VIEW_STRATEGIES } from "./app/workspace-view-strategies";
+import { BlockWorkspace } from "./modules/blocks/ui/BlockWorkspace";
 import {
   type DraftWorkspaceHandle,
   DraftWorkspaceScreen,
@@ -158,6 +159,7 @@ function App() {
             {app.view === "templates" ? (
               <TemplateWorkspace {...app.templateWorkspaceProps} />
             ) : null}
+            {app.view === "blocks" ? <BlockWorkspace {...app.blockWorkspaceProps} /> : null}
             {app.view === "signatures" ? (
               <SignatureWorkspace {...app.signatureWorkspaceProps} />
             ) : null}

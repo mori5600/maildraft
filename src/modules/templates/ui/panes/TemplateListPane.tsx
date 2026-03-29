@@ -13,6 +13,7 @@ import type { Template } from "../../model";
 interface TemplateListPaneProps {
   activeTagFilter: string | null;
   availableTags: string[];
+  tagCounts?: Record<string, number>;
   templates: Template[];
   totalTemplateCount: number;
   selectedTemplateId: string | null;
@@ -28,6 +29,7 @@ interface TemplateListPaneProps {
 export const TemplateListPane = memo(function TemplateListPane({
   activeTagFilter,
   availableTags,
+  tagCounts,
   templates,
   totalTemplateCount,
   selectedTemplateId,
@@ -104,6 +106,7 @@ export const TemplateListPane = memo(function TemplateListPane({
           <TagFilterBar
             activeTag={activeTagFilter}
             availableTags={availableTags}
+            tagCounts={tagCounts}
             onChangeTag={onChangeTagFilter}
           />
         </div>

@@ -39,10 +39,11 @@ describe("DraftWorkspaceScreen", () => {
           drafts: [],
           draftHistory: [],
           variablePresets: [],
+          blocks: [],
           templates: [],
           signatures: [],
           memos: [],
-          trash: { drafts: [], templates: [], signatures: [], memos: [] },
+          trash: { drafts: [], templates: [], signatures: [], memos: [], blocks: [] },
         }}
         onClearError={vi.fn()}
         onError={vi.fn()}

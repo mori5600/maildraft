@@ -1,5 +1,6 @@
 type TagList = readonly string[] | null | undefined;
 type TaggedItem = { tags?: TagList };
+export type TagCountMap = Record<string, number>;
 
 export const MAX_TAGS_PER_ITEM = 20;
 export const MAX_TAG_LENGTH = 40;
@@ -44,6 +45,9 @@ export function matchesTagFilter(tags: TagList, activeTag: string | null): boole
   return toTagArray(tags).includes(activeTag);
 }
 
+/**
+ * Reconciles the requested tag filter against the tags that still exist in the active collection.
+ */
 export function resolveActiveTagFilter(
   availableTags: readonly string[],
   activeTag: string | null,
@@ -51,22 +55,32 @@ export function resolveActiveTagFilter(
   return activeTag !== null && availableTags.includes(activeTag) ? activeTag : null;
 }
 
+/**
+ * Collects tags in first-seen order across the provided active collection.
+ */
 export function collectUniqueTags(items: TaggedItem[]): string[] {
+  return Object.keys(collectTagCounts(items));
+}
+
+/**
+ * Counts how many items in the provided active collection contain each tag.
+ */
+export function collectTagCounts(items: TaggedItem[]): TagCountMap {
   const seen = new Set<string>();
-  const uniqueTags: string[] = [];
+  const tagCounts: TagCountMap = {};
 
   for (const item of items) {
     for (const tag of toTagArray(item.tags)) {
-      if (seen.has(tag)) {
-        continue;
+      if (!seen.has(tag)) {
+        seen.add(tag);
+        tagCounts[tag] = 0;
       }
 
-      seen.add(tag);
-      uniqueTags.push(tag);
+      tagCounts[tag] += 1;
     }
   }
 
-  return uniqueTags;
+  return tagCounts;
 }
 
 export function mergeUniqueTags(primary: TagList, secondary: TagList): string[] {

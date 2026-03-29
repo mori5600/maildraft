@@ -1,3 +1,4 @@
+mod block_commands;
 mod context;
 mod draft_commands;
 mod internal;

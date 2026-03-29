@@ -44,6 +44,7 @@ const VARIABLE_PRESET_INPUT: VariablePresetInput = {
     会社名: "株式会社〇〇",
     担当者名: "山田様",
   },
+  tags: ["社外"],
 };
 
 const TEMPLATE_INPUT: TemplateInput = {
@@ -130,6 +131,10 @@ describe("maildraftApi", () => {
     {
       expectedArgs: ["save_variable_preset", { input: VARIABLE_PRESET_INPUT }],
       run: () => maildraftApi.saveVariablePreset(VARIABLE_PRESET_INPUT),
+    },
+    {
+      expectedArgs: ["record_variable_preset_usage", { id: "preset-1" }],
+      run: () => maildraftApi.recordVariablePresetUsage("preset-1"),
     },
     {
       expectedArgs: ["delete_variable_preset", { id: "preset-1" }],

@@ -20,6 +20,7 @@ import { useTrashWorkspaceState } from "./use-trash-workspace-state";
 
 function createBaseCallbacks() {
   return {
+    onBlockRestored: vi.fn(),
     onClearError: vi.fn(),
     onDraftRestored: vi.fn(),
     onError: vi.fn(),
@@ -344,6 +345,8 @@ describe("trash workspace state", () => {
         drafts: [],
         templates: [],
         signatures: [],
+        memos: [],
+        blocks: [],
       },
     });
     const snapshot = {
@@ -357,6 +360,8 @@ describe("trash workspace state", () => {
             deletedAt: "30",
           },
         ],
+        memos: [],
+        blocks: [],
       },
     };
     const callbacks = createBaseCallbacks();
@@ -379,6 +384,8 @@ describe("trash workspace state", () => {
         drafts: [],
         templates: [],
         signatures: [],
+        memos: [],
+        blocks: [],
       },
     });
 
@@ -428,6 +435,8 @@ describe("trash workspace state", () => {
         drafts: [],
         templates: [],
         signatures: [],
+        memos: [],
+        blocks: [],
       },
     };
     const callbacks = createBaseCallbacks();
@@ -484,6 +493,8 @@ describe("trash workspace state", () => {
         drafts: [],
         templates: [],
         signatures: [],
+        memos: [],
+        blocks: [],
       },
     };
     const callbacks = createBaseCallbacks();
@@ -584,6 +595,8 @@ describe("trash workspace state", () => {
         drafts: [],
         templates: [],
         signatures: [],
+        memos: [],
+        blocks: [],
       },
     };
     const callbacks = createBaseCallbacks();

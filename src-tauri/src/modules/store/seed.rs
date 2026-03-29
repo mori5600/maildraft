@@ -61,6 +61,7 @@ impl StoreSnapshot {
             templates: vec![template],
             signatures: vec![signature],
             memos: Vec::new(),
+            blocks: Vec::new(),
             legacy_memo: None,
             trash: TrashSnapshot::default(),
         }

@@ -7,7 +7,7 @@ mod tests;
 use std::collections::HashSet;
 
 pub use input::{
-    validate_app_settings, validate_draft_input, validate_memo_input,
+    validate_app_settings, validate_block_input, validate_draft_input, validate_memo_input,
     validate_proofreading_settings_input, validate_signature_input, validate_template_input,
     validate_variable_preset_input,
 };

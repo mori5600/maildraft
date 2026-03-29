@@ -4,6 +4,7 @@ import {
   forwardRef,
   type InputHTMLAttributes,
   type PropsWithChildren,
+  type ReactNode,
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from "react";
@@ -72,16 +73,27 @@ export function Button({
 export function Field({
   label,
   hint,
+  action,
   children,
   wrapWithLabel = true,
-}: PropsWithChildren<{ label: string; hint?: string; wrapWithLabel?: boolean }>) {
+}: PropsWithChildren<{
+  action?: ReactNode;
+  label: string;
+  hint?: string;
+  wrapWithLabel?: boolean;
+}>) {
   const body = (
     <>
       <div className="flex items-baseline justify-between gap-2">
         <div className="text-[10px] font-medium tracking-[0.14em] text-(--color-text-subtle) uppercase">
           {label}
         </div>
-        {hint ? <div className="text-[11px] text-(--color-text-hint)">{hint}</div> : null}
+        {hint || action ? (
+          <div className="flex shrink-0 items-center gap-2">
+            {hint ? <div className="text-[11px] text-(--color-text-hint)">{hint}</div> : null}
+            {action}
+          </div>
+        ) : null}
       </div>
       {children}
     </>
@@ -94,17 +106,20 @@ export function Field({
   return <label className="flex flex-col gap-1.5">{body}</label>;
 }
 
-export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      className={cn(
-        "mail-focus-ring w-full rounded-[7px] border border-(--color-field-border) bg-(--color-field-bg) px-3 py-2 text-[13px] text-(--color-text-strong) transition-colors outline-none placeholder:text-(--color-text-placeholder)",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
+export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
+  function Input({ className, ...props }, ref) {
+    return (
+      <input
+        ref={ref}
+        className={cn(
+          "mail-focus-ring w-full rounded-[7px] border border-(--color-field-border) bg-(--color-field-bg) px-3 py-2 text-[13px] text-(--color-text-strong) transition-colors outline-none placeholder:text-(--color-text-placeholder)",
+          className,
+        )}
+        {...props}
+      />
+    );
+  },
+);
 
 export function Textarea({
   className,

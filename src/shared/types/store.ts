@@ -1,9 +1,11 @@
+import type { ContentBlock } from "../../modules/blocks/model";
 import type { Draft, DraftHistoryEntry } from "../../modules/drafts/model";
 import type { VariablePreset } from "../../modules/drafts/variable-presets";
 import type { Memo } from "../../modules/memo/model";
 import type { Signature } from "../../modules/signatures/model";
 import type { Template } from "../../modules/templates/model";
 import type {
+  TrashedBlock,
   TrashedDraft,
   TrashedMemo,
   TrashedSignature,
@@ -16,6 +18,7 @@ export interface StoreSnapshot {
   drafts: Draft[];
   draftHistory: DraftHistoryEntry[];
   variablePresets: VariablePreset[];
+  blocks: ContentBlock[];
   templates: Template[];
   signatures: Signature[];
   memos: Memo[];
@@ -42,6 +45,14 @@ export interface DeleteTemplateResult {
 
 export interface DeleteMemoResult {
   trashedMemo: TrashedMemo;
+}
+
+export interface SaveBlockResult {
+  block: ContentBlock;
+}
+
+export interface DeleteBlockResult {
+  trashedBlock: TrashedBlock;
 }
 
 export interface SaveSignatureResult {
@@ -73,6 +84,7 @@ export interface StartupNoticeSnapshot {
 export type WorkspaceView =
   | "drafts"
   | "templates"
+  | "blocks"
   | "signatures"
   | "memo"
   | "trash"

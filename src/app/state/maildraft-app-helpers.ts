@@ -1,4 +1,9 @@
 import {
+  type ContentBlockInput,
+  createEmptyContentBlock,
+  toContentBlockInput,
+} from "../../modules/blocks/model";
+import {
   createEmptySignature,
   type SignatureInput,
   toSignatureInput,
@@ -20,14 +25,17 @@ export interface WorkspaceSummary {
 }
 
 export interface HydratedWorkspaceState {
+  selectedBlockId: string | null;
   selectedSignatureId: string | null;
   selectedTemplateId: string | null;
   selectedTrashItemKey: string | null;
+  blockForm: ContentBlockInput;
   signatureForm: SignatureInput;
   templateForm: TemplateInput;
 }
 
 export interface WorkspaceSummaryCounts {
+  blockCount: number;
   draftCount: number;
   memoCount: number;
   signatureCount: number;
@@ -46,11 +54,13 @@ export type ShortcutIntent =
 
 export type CreateShortcutAction =
   | "createDraft"
+  | "createBlock"
   | "createMemo"
   | "createTemplate"
   | "createSignature";
 export type SaveShortcutAction =
   | "saveDraft"
+  | "saveBlock"
   | "saveMemo"
   | "saveTemplate"
   | "saveSignature"
@@ -66,6 +76,7 @@ type ShortcutIntentResolver = (input: { currentView: WorkspaceView }) => Shortcu
 const CREATE_SHORTCUT_ACTIONS = {
   drafts: "createDraft",
   templates: "createTemplate",
+  blocks: "createBlock",
   signatures: "createSignature",
   memo: "createMemo",
   trash: "createDraft",
@@ -76,6 +87,7 @@ const CREATE_SHORTCUT_ACTIONS = {
 const SAVE_SHORTCUT_ACTIONS = {
   drafts: "saveDraft",
   templates: "saveTemplate",
+  blocks: "saveBlock",
   signatures: "saveSignature",
   memo: "saveMemo",
   trash: null,
@@ -87,6 +99,7 @@ const PIN_SHORTCUT_ACTIONS = {
   drafts: "toggleDraftPinned",
   memo: "toggleMemoPinned",
   templates: "toggleTemplatePinned",
+  blocks: null,
   signatures: "toggleSignaturePinned",
   trash: null,
   settings: null,
@@ -96,16 +109,18 @@ const PIN_SHORTCUT_ACTIONS = {
 const CHANGE_VIEW_SHORTCUT_INTENT_RESOLVERS: Record<string, ShortcutIntentResolver> = {
   "1": () => ({ kind: "changeView", view: "drafts" }),
   "2": () => ({ kind: "changeView", view: "templates" }),
-  "3": () => ({ kind: "changeView", view: "signatures" }),
-  "4": () => ({ kind: "changeView", view: "memo" }),
-  "5": () => ({ kind: "changeView", view: "trash" }),
-  "6": () => ({ kind: "changeView", view: "settings" }),
-  "7": () => ({ kind: "changeView", view: "help" }),
+  "3": () => ({ kind: "changeView", view: "blocks" }),
+  "4": () => ({ kind: "changeView", view: "signatures" }),
+  "5": () => ({ kind: "changeView", view: "memo" }),
+  "6": () => ({ kind: "changeView", view: "trash" }),
+  "7": () => ({ kind: "changeView", view: "settings" }),
+  "8": () => ({ kind: "changeView", view: "help" }),
 };
 
 const COPY_SHORTCUT_INTENTS = {
   drafts: { kind: "copyDraftPreview" },
   templates: { kind: "none" },
+  blocks: { kind: "none" },
   signatures: { kind: "none" },
   memo: { kind: "none" },
   trash: { kind: "none" },
@@ -137,6 +152,7 @@ export function buildWorkspaceSummaries(counts: WorkspaceSummaryCounts): Workspa
   return [
     { id: "drafts", label: "下書き", count: counts.draftCount },
     { id: "templates", label: "テンプレート", count: counts.templateCount },
+    { id: "blocks", label: "文面ブロック", count: counts.blockCount },
     { id: "signatures", label: "署名", count: counts.signatureCount },
     { id: "memo", label: "メモ", count: counts.memoCount },
     { id: "trash", label: "ゴミ箱", count: counts.trashItemCount },
@@ -153,13 +169,16 @@ export function buildWorkspaceSummaries(counts: WorkspaceSummaryCounts): Workspa
  * reset template, signature, and trash selections to values that still exist in the new snapshot.
  */
 export function buildHydratedWorkspaceState(snapshot: StoreSnapshot): HydratedWorkspaceState {
+  const firstBlock = snapshot.blocks[0];
   const firstTemplate = snapshot.templates[0];
   const firstSignature = snapshot.signatures[0];
 
   return {
+    selectedBlockId: firstBlock?.id ?? null,
     selectedSignatureId: firstSignature?.id ?? null,
     selectedTemplateId: firstTemplate?.id ?? null,
     selectedTrashItemKey: collectTrashItems(snapshot.trash)[0]?.key ?? null,
+    blockForm: firstBlock ? toContentBlockInput(firstBlock) : createEmptyContentBlock(),
     templateForm: firstTemplate
       ? toTemplateInput(firstTemplate)
       : createEmptyTemplate(getDefaultSignatureId(snapshot)),

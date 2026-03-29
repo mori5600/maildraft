@@ -25,9 +25,16 @@ fn save_template_and_variable_preset_persist_store_updates() {
             id: "preset-a".to_string(),
             name: "A社向け".to_string(),
             values: BTreeMap::from([("会社名".to_string(), "株式会社〇〇".to_string())]),
+            tags: vec!["社外".to_string()],
         })
         .expect("save preset");
     assert_eq!(snapshot.variable_presets.len(), 1);
+    assert_eq!(snapshot.variable_presets[0].tags, vec!["社外".to_string()]);
+
+    let snapshot = state
+        .record_variable_preset_usage("preset-a")
+        .expect("use preset");
+    assert_eq!(snapshot.variable_presets[0].last_used_at.is_some(), true);
 
     let snapshot = state
         .delete_variable_preset("preset-a")

@@ -1,5 +1,8 @@
 use crate::modules::store::StoreSnapshot;
-use crate::modules::{memo::Memo, signatures::Signature, templates::Template, trash::TrashedDraft};
+use crate::modules::{
+    blocks::ContentBlock, memo::Memo, signatures::Signature, templates::Template,
+    trash::TrashedDraft,
+};
 
 impl StoreSnapshot {
     pub fn restore_draft_from_trash(&mut self, id: &str) -> Option<TrashedDraft> {
@@ -80,6 +83,25 @@ impl StoreSnapshot {
         Some(entry.memo)
     }
 
+    pub fn restore_block_from_trash(&mut self, id: &str) -> Option<ContentBlock> {
+        if self.blocks.iter().any(|block| block.id == id) {
+            return None;
+        }
+
+        let Some(index) = self
+            .trash
+            .blocks
+            .iter()
+            .position(|entry| entry.block.id == id)
+        else {
+            return None;
+        };
+
+        let entry = self.trash.blocks.remove(index);
+        self.blocks.push(entry.block.clone());
+        Some(entry.block)
+    }
+
     pub fn permanently_delete_draft_from_trash(&mut self, id: &str) -> bool {
         let initial_len = self.trash.drafts.len();
         self.trash.drafts.retain(|entry| entry.draft.id != id);
@@ -104,5 +126,11 @@ impl StoreSnapshot {
         let initial_len = self.trash.memos.len();
         self.trash.memos.retain(|entry| entry.memo.id != id);
         initial_len != self.trash.memos.len()
+    }
+
+    pub fn permanently_delete_block_from_trash(&mut self, id: &str) -> bool {
+        let initial_len = self.trash.blocks.len();
+        self.trash.blocks.retain(|entry| entry.block.id != id);
+        initial_len != self.trash.blocks.len()
     }
 }

@@ -7,10 +7,12 @@ function createActions(): ShortcutActionSet {
   return {
     changeView: vi.fn(),
     copyDraftPreview: vi.fn(async () => {}),
+    createBlock: vi.fn(),
     createDraft: vi.fn(),
     createMemo: vi.fn(),
     createSignature: vi.fn(),
     createTemplate: vi.fn(),
+    saveBlock: vi.fn(async () => {}),
     saveDraft: vi.fn(async () => {}),
     saveSettingsSection: vi.fn(async () => {}),
     saveMemo: vi.fn(async () => {}),
@@ -55,7 +57,7 @@ function dispatchShortcutWithFlags(
 interface ShortcutHookProps {
   currentActions: ShortcutActionSet;
   isLoading: boolean;
-  view: "drafts" | "templates" | "signatures" | "memo" | "trash" | "settings" | "help";
+  view: "drafts" | "templates" | "blocks" | "signatures" | "memo" | "trash" | "settings" | "help";
 }
 
 describe("app shortcuts", () => {

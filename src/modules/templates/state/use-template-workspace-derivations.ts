@@ -1,7 +1,11 @@
 import { useMemo } from "react";
 
 import type { TemplateSortOption } from "../../../shared/lib/list-sort";
-import { collectUniqueTags, resolveActiveTagFilter } from "../../../shared/lib/tags";
+import {
+  collectTagCounts,
+  collectUniqueTags,
+  resolveActiveTagFilter,
+} from "../../../shared/lib/tags";
 import type { StoreSnapshot } from "../../../shared/types/store";
 import { renderTemplatePreview } from "../../renderer/render-draft";
 import { findTrashSignature } from "../../trash/model";
@@ -36,6 +40,10 @@ export function useTemplateWorkspaceDerivations({
     () => createTemplateSearchIndex(snapshot.templates),
     [snapshot.templates],
   );
+  const availableTemplateTagCounts = useMemo(
+    () => collectTagCounts(snapshot.templates),
+    [snapshot.templates],
+  );
   const availableTemplateTags = useMemo(
     () => collectUniqueTags(snapshot.templates),
     [snapshot.templates],
@@ -57,6 +65,7 @@ export function useTemplateWorkspaceDerivations({
 
   return {
     activeTemplateTagFilter,
+    availableTemplateTagCounts,
     availableTemplateTags,
     filteredTemplates,
     templatePreviewText,

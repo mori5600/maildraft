@@ -14,6 +14,7 @@ import { draftLabel } from "../../model";
 interface DraftListPaneProps {
   activeTagFilter: string | null;
   availableTags: string[];
+  tagCounts?: Record<string, number>;
   drafts: Draft[];
   totalDraftCount: number;
   selectedDraftId: string | null;
@@ -29,6 +30,7 @@ interface DraftListPaneProps {
 export const DraftListPane = memo(function DraftListPane({
   activeTagFilter,
   availableTags,
+  tagCounts,
   drafts,
   totalDraftCount,
   selectedDraftId,
@@ -105,6 +107,7 @@ export const DraftListPane = memo(function DraftListPane({
           <TagFilterBar
             activeTag={activeTagFilter}
             availableTags={availableTags}
+            tagCounts={tagCounts}
             onChangeTag={onChangeTagFilter}
           />
         </div>

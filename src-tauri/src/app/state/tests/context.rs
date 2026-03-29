@@ -57,6 +57,7 @@ fn input_context_builders_capture_safe_lengths_and_flags() {
         id: "preset-1".to_string(),
         name: "A".to_string(),
         values: BTreeMap::from([("company".to_string(), "ACME".to_string())]),
+        tags: vec!["社外".to_string()],
     };
     let signature = SignatureInput {
         id: "signature-1".to_string(),
@@ -94,6 +95,7 @@ fn input_context_builders_capture_safe_lengths_and_flags() {
     let preset_values = variable_preset_context(&preset);
     assert_eq!(preset_values.get("name_length"), Some(&json!(1)));
     assert_eq!(preset_values.get("value_count"), Some(&json!(1)));
+    assert_eq!(preset_values.get("tag_count"), Some(&json!(1)));
 
     let signature_values = super::super::context::signature_context(&signature);
     assert_eq!(signature_values.get("name_length"), Some(&json!(3)));

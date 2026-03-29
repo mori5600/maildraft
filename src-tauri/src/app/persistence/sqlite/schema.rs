@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-const SQLITE_SCHEMA_VERSION: i32 = 3;
+const SQLITE_SCHEMA_VERSION: i32 = 5;
 
 pub(super) fn apply_migrations(connection: &Connection) -> Result<(), String> {
     let current_version = connection
@@ -270,6 +270,59 @@ pub(super) fn apply_migrations(connection: &Connection) -> Result<(), String> {
                     sort_order INTEGER NOT NULL,
                     PRIMARY KEY (memo_id, tag),
                     UNIQUE (memo_id, sort_order)
+                );
+                "#,
+            )
+            .map_err(|error| error.to_string())?;
+    }
+
+    if current_version < 4 {
+        connection
+            .execute_batch(
+                r#"
+                CREATE TABLE IF NOT EXISTS blocks (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    category TEXT NOT NULL CHECK (
+                        category IN ('greeting', 'request', 'thanks', 'reminder', 'decline', 'other')
+                    ),
+                    body TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    in_trash INTEGER NOT NULL CHECK (in_trash IN (0, 1)),
+                    deleted_at TEXT,
+                    sort_order INTEGER NOT NULL,
+                    CHECK (
+                        (in_trash = 0 AND deleted_at IS NULL)
+                        OR (in_trash = 1 AND deleted_at IS NOT NULL)
+                    ),
+                    UNIQUE (in_trash, sort_order)
+                );
+
+                CREATE TABLE IF NOT EXISTS block_tags (
+                    block_id TEXT NOT NULL REFERENCES blocks (id) ON DELETE CASCADE,
+                    tag TEXT NOT NULL,
+                    sort_order INTEGER NOT NULL,
+                    PRIMARY KEY (block_id, tag),
+                    UNIQUE (block_id, sort_order)
+                );
+                "#,
+            )
+            .map_err(|error| error.to_string())?;
+    }
+
+    if current_version < 5 {
+        connection
+            .execute_batch(
+                r#"
+                ALTER TABLE variable_presets ADD COLUMN last_used_at TEXT;
+
+                CREATE TABLE IF NOT EXISTS variable_preset_tags (
+                    preset_id TEXT NOT NULL REFERENCES variable_presets (id) ON DELETE CASCADE,
+                    tag TEXT NOT NULL,
+                    sort_order INTEGER NOT NULL,
+                    PRIMARY KEY (preset_id, tag),
+                    UNIQUE (preset_id, sort_order)
                 );
                 "#,
             )

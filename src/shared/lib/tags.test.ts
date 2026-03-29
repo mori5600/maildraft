@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   addTag,
   canAddTag,
+  collectTagCounts,
   collectUniqueTags,
   matchesTagFilter,
   mergeUniqueTags,
@@ -29,6 +30,17 @@ describe("tags", () => {
         { tags: undefined },
       ]),
     ).toEqual(["社外", "営業", "採用"]);
+    expect(
+      collectTagCounts([
+        { tags: ["社外", "営業"] },
+        { tags: ["営業", "採用"] },
+        { tags: ["社外"] },
+      ]),
+    ).toEqual({
+      社外: 2,
+      営業: 2,
+      採用: 1,
+    });
     expect(mergeUniqueTags(["社外", "営業"], ["営業", "採用"])).toEqual(["社外", "営業", "採用"]);
   });
 

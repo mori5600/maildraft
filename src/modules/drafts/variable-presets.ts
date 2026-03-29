@@ -2,14 +2,38 @@ export interface VariablePreset {
   id: string;
   name: string;
   values: Record<string, string>;
+  tags: string[];
   createdAt: string;
   updatedAt: string;
+  lastUsedAt: string | null;
 }
 
 export interface VariablePresetInput {
   id: string;
   name: string;
   values: Record<string, string>;
+  tags: string[];
+}
+
+function toTimestamp(value: string | null): number {
+  return Number(value ?? "0");
+}
+
+function compareVariablePresetRecency(left: VariablePreset, right: VariablePreset): number {
+  const leftRecent = toTimestamp(left.lastUsedAt ?? left.updatedAt);
+  const rightRecent = toTimestamp(right.lastUsedAt ?? right.updatedAt);
+  const leftUpdatedAt = toTimestamp(left.updatedAt);
+  const rightUpdatedAt = toTimestamp(right.updatedAt);
+
+  return (
+    rightRecent - leftRecent ||
+    rightUpdatedAt - leftUpdatedAt ||
+    left.name.localeCompare(right.name, "ja")
+  );
+}
+
+function pickNewerLastUsedAt(left: string | null, right: string | null): string | null {
+  return toTimestamp(left) >= toTimestamp(right) ? left : right;
 }
 
 export function applyVariablePresetValues(
@@ -50,4 +74,41 @@ export function hasMeaningfulVariableValues(
   values: Record<string, string>,
 ): boolean {
   return Object.keys(collectMeaningfulVariableValues(variableNames, values)).length > 0;
+}
+
+/**
+ * Orders presets by the most recent meaningful activity shown in the picker.
+ */
+export function sortVariablePresetsByRecent(variablePresets: VariablePreset[]): VariablePreset[] {
+  return [...variablePresets].sort(compareVariablePresetRecency);
+}
+
+/**
+ * Merges compact preset payloads without letting an older usage response overwrite newer state.
+ */
+export function mergeVariablePresetCollectionsByRecency(
+  currentPresets: VariablePreset[],
+  incomingPresets: VariablePreset[],
+): VariablePreset[] {
+  const mergedPresets = new Map(currentPresets.map((preset) => [preset.id, preset]));
+
+  for (const preset of incomingPresets) {
+    const currentPreset = mergedPresets.get(preset.id);
+
+    if (!currentPreset) {
+      mergedPresets.set(preset.id, preset);
+      continue;
+    }
+
+    const basePreset =
+      toTimestamp(preset.updatedAt) >= toTimestamp(currentPreset.updatedAt)
+        ? preset
+        : currentPreset;
+    mergedPresets.set(preset.id, {
+      ...basePreset,
+      lastUsedAt: pickNewerLastUsedAt(currentPreset.lastUsedAt, preset.lastUsedAt),
+    });
+  }
+
+  return sortVariablePresetsByRecent([...mergedPresets.values()]);
 }

@@ -17,6 +17,7 @@ const populatedSnapshot: StoreSnapshot = {
   drafts: [],
   draftHistory: [],
   variablePresets: [],
+  blocks: [],
   templates: [
     {
       id: "template-1",
@@ -77,6 +78,8 @@ const populatedSnapshot: StoreSnapshot = {
       },
     ],
     signatures: [],
+    memos: [],
+    blocks: [],
   },
 };
 
@@ -128,6 +131,7 @@ describe("maildraft app helpers", () => {
   it("builds workspace summaries in the fixed sidebar order", () => {
     expect(
       buildWorkspaceSummaries({
+        blockCount: 0,
         draftCount: 1,
         memoCount: 1,
         templateCount: 1,
@@ -137,6 +141,7 @@ describe("maildraft app helpers", () => {
     ).toEqual([
       { id: "drafts", label: "下書き", count: 1 },
       { id: "templates", label: "テンプレート", count: 1 },
+      { id: "blocks", label: "文面ブロック", count: 0 },
       { id: "signatures", label: "署名", count: 1 },
       { id: "memo", label: "メモ", count: 1 },
       { id: "trash", label: "ゴミ箱", count: 2 },
@@ -165,6 +170,7 @@ describe("maildraft app helpers", () => {
         drafts: [],
         draftHistory: [],
         variablePresets: [],
+        blocks: [],
         templates: [],
         signatures: [],
         memos: [],
@@ -172,6 +178,8 @@ describe("maildraft app helpers", () => {
           drafts: [],
           templates: [],
           signatures: [],
+          memos: [],
+          blocks: [],
         },
       }),
     ).toMatchObject({
@@ -198,10 +206,12 @@ describe("maildraft app helpers", () => {
 
   it("resolves sidebar shortcut actions without view-specific branching in the hook", () => {
     expect(resolveCreateShortcutAction("drafts")).toBe("createDraft");
+    expect(resolveCreateShortcutAction("blocks")).toBe("createBlock");
     expect(resolveCreateShortcutAction("memo")).toBe("createMemo");
     expect(resolveCreateShortcutAction("trash")).toBe("createDraft");
 
     expect(resolveSaveShortcutAction("templates")).toBe("saveTemplate");
+    expect(resolveSaveShortcutAction("blocks")).toBe("saveBlock");
     expect(resolveSaveShortcutAction("memo")).toBe("saveMemo");
     expect(resolveSaveShortcutAction("settings")).toBe("saveSettingsSection");
     expect(resolveSaveShortcutAction("help")).toBeNull();
@@ -209,6 +219,7 @@ describe("maildraft app helpers", () => {
     expect(resolvePinShortcutAction("drafts")).toBe("toggleDraftPinned");
     expect(resolvePinShortcutAction("signatures")).toBe("toggleSignaturePinned");
     expect(resolvePinShortcutAction("memo")).toBe("toggleMemoPinned");
+    expect(resolvePinShortcutAction("blocks")).toBeNull();
     expect(resolvePinShortcutAction("settings")).toBeNull();
   });
 
@@ -240,11 +251,18 @@ describe("maildraft app helpers", () => {
         key: "4",
         shiftKey: false,
       }),
-    ).toEqual({ kind: "changeView", view: "memo" });
+    ).toEqual({ kind: "changeView", view: "signatures" });
     expect(
       resolveShortcutIntent({
         currentView: "settings",
         key: "5",
+        shiftKey: false,
+      }),
+    ).toEqual({ kind: "changeView", view: "memo" });
+    expect(
+      resolveShortcutIntent({
+        currentView: "settings",
+        key: "6",
         shiftKey: false,
       }),
     ).toEqual({ kind: "changeView", view: "trash" });

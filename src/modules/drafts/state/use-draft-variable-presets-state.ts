@@ -11,6 +11,7 @@ import {
   applyVariablePresetValues,
   collectMeaningfulVariableValues,
   hasMeaningfulVariableValues,
+  mergeVariablePresetCollectionsByRecency,
 } from "../variable-presets";
 import { toDraftWorkspaceErrorMessage } from "./draft-workspace-helpers";
 
@@ -30,8 +31,10 @@ interface DraftVariablePresetsStateOptions {
  *
  * @remarks
  * Preset selection is resolved against the current snapshot on every render so deleted presets do
- * not leave stale local state behind. Save and delete operations patch only the preset collection
- * into the current snapshot.
+ * not leave stale local state behind. Applying a preset updates the draft form first and records
+ * usage asynchronously, so the hook keeps its snapshot ref in sync with every local patch before
+ * parent rerenders land. Save, delete, and usage updates patch only the preset collection into the
+ * current snapshot.
  */
 export function useDraftVariablePresetsState({
   draftForm,
@@ -74,6 +77,11 @@ export function useDraftVariablePresetsState({
     selectedVariablePreset !== null &&
     draftVariableNames.some((name) => typeof selectedVariablePreset.values[name] === "string");
 
+  function commitSnapshotChange(nextSnapshot: StoreSnapshot) {
+    snapshotRef.current = nextSnapshot;
+    onSnapshotChange(nextSnapshot);
+  }
+
   function resetVariablePresetSelection() {
     setSelectedVariablePresetId(null);
     setVariablePresetName("");
@@ -102,8 +110,9 @@ export function useDraftVariablePresetsState({
     setVariablePresetName(value);
   }
 
-  function applyVariablePreset() {
-    if (!selectedVariablePreset) {
+  async function applyPresetById(presetId: string) {
+    const preset = snapshotRef.current.variablePresets.find((item) => item.id === presetId);
+    if (!preset) {
       return;
     }
 
@@ -111,11 +120,46 @@ export function useDraftVariablePresetsState({
       ...current,
       variableValues: applyVariablePresetValues(
         current.variableValues,
-        selectedVariablePreset.values,
+        preset.values,
         draftVariableNames,
       ),
     }));
-    onNotice(`変数値セット「${selectedVariablePreset.name}」を適用しました。`);
+    onNotice(`変数値セット「${preset.name}」を適用しました。`);
+
+    try {
+      onClearError();
+      const recordedVariablePreset = await maildraftApi.recordVariablePresetUsage(preset.id);
+      const nextSnapshot = applyVariablePresetResult(snapshotRef.current, {
+        variablePresets: mergeVariablePresetCollectionsByRecency(
+          snapshotRef.current.variablePresets,
+          recordedVariablePreset.variablePresets,
+        ),
+      });
+      commitSnapshotChange(nextSnapshot);
+    } catch (usageError) {
+      onError(
+        `変数値セットは適用しましたが、使用履歴の更新に失敗しました。${toDraftWorkspaceErrorMessage(usageError)}`,
+      );
+    }
+  }
+
+  async function applyVariablePreset() {
+    if (!selectedVariablePreset) {
+      return;
+    }
+
+    await applyPresetById(selectedVariablePreset.id);
+  }
+
+  async function applyVariablePresetById(id: string) {
+    const preset = snapshotRef.current.variablePresets.find((item) => item.id === id);
+    if (!preset) {
+      return;
+    }
+
+    setSelectedVariablePresetId(preset.id);
+    setVariablePresetName(preset.name);
+    await applyPresetById(preset.id);
   }
 
   async function saveVariablePreset() {
@@ -127,13 +171,14 @@ export function useDraftVariablePresetsState({
       id: resolvedSelectedVariablePresetId ?? crypto.randomUUID(),
       name: resolvedVariablePresetName.trim(),
       values: collectMeaningfulVariableValues(draftVariableNames, draftForm.variableValues),
+      tags: [...draftForm.tags],
     };
 
     try {
       onClearError();
       const savedVariablePreset = await maildraftApi.saveVariablePreset(input);
       const nextSnapshot = applyVariablePresetResult(snapshotRef.current, savedVariablePreset);
-      onSnapshotChange(nextSnapshot);
+      commitSnapshotChange(nextSnapshot);
       setSelectedVariablePresetId(input.id);
       setVariablePresetName(input.name);
       onNotice(
@@ -171,7 +216,7 @@ export function useDraftVariablePresetsState({
         selectedVariablePreset.id,
       );
       const nextSnapshot = applyVariablePresetResult(snapshotRef.current, deletedVariablePreset);
-      onSnapshotChange(nextSnapshot);
+      commitSnapshotChange(nextSnapshot);
       resetVariablePresetSelection();
       onNotice("変数値セットを削除しました。");
     } catch (deleteError) {
@@ -181,6 +226,7 @@ export function useDraftVariablePresetsState({
 
   return {
     applyVariablePreset,
+    applyVariablePresetById,
     canApplyVariablePreset,
     canSaveVariablePreset,
     changeVariablePresetName,

@@ -15,6 +15,7 @@ use crate::{
         storage::LoadOutcome,
         validation::{validate_app_settings, validate_store_snapshot},
     },
+    modules::blocks::ContentBlockCategory,
     modules::store::StoreSnapshot,
 };
 
@@ -233,6 +234,22 @@ fn decode_logging_mode(value: &str) -> Result<LoggingMode, rusqlite::Error> {
         "off" => Ok(LoggingMode::Off),
         "errors_only" => Ok(LoggingMode::ErrorsOnly),
         "standard" => Ok(LoggingMode::Standard),
+        _ => Err(rusqlite::Error::InvalidQuery),
+    }
+}
+
+fn encode_block_category(value: ContentBlockCategory) -> &'static str {
+    value.as_str()
+}
+
+fn decode_block_category(value: &str) -> Result<ContentBlockCategory, rusqlite::Error> {
+    match value {
+        "greeting" => Ok(ContentBlockCategory::Greeting),
+        "request" => Ok(ContentBlockCategory::Request),
+        "thanks" => Ok(ContentBlockCategory::Thanks),
+        "reminder" => Ok(ContentBlockCategory::Reminder),
+        "decline" => Ok(ContentBlockCategory::Decline),
+        "other" => Ok(ContentBlockCategory::Other),
         _ => Err(rusqlite::Error::InvalidQuery),
     }
 }

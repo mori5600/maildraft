@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 
+import type { ContentBlockInput } from "../../modules/blocks/model";
 import type { DraftInput } from "../../modules/drafts/model";
 import type { VariablePresetInput } from "../../modules/drafts/variable-presets";
 import type { Memo, MemoInput } from "../../modules/memo/model";
@@ -16,10 +17,12 @@ import type {
 import type { SignatureInput } from "../../modules/signatures/model";
 import type { TemplateInput } from "../../modules/templates/model";
 import type {
+  DeleteBlockResult,
   DeleteDraftResult,
   DeleteMemoResult,
   DeleteSignatureResult,
   DeleteTemplateResult,
+  SaveBlockResult,
   SaveDraftResult,
   SaveSignatureResult,
   SaveTemplateResult,
@@ -41,6 +44,22 @@ export const maildraftApi = {
 
   saveDraft(input: DraftInput) {
     return invoke<SaveDraftResult>("save_draft", { input });
+  },
+
+  saveBlock(input: ContentBlockInput) {
+    return invoke<SaveBlockResult>("save_block", { input });
+  },
+
+  deleteBlock(id: string) {
+    return invoke<DeleteBlockResult>("delete_block", { id });
+  },
+
+  restoreBlockFromTrash(id: string) {
+    return invoke<SaveBlockResult>("restore_block_from_trash", { id });
+  },
+
+  permanentlyDeleteBlockFromTrash(id: string) {
+    return invoke<TrashMutationResult>("permanently_delete_block_from_trash", { id });
   },
 
   saveMemo(input: MemoInput) {
@@ -77,6 +96,10 @@ export const maildraftApi = {
 
   saveVariablePreset(input: VariablePresetInput) {
     return invoke<VariablePresetResult>("save_variable_preset", { input });
+  },
+
+  recordVariablePresetUsage(id: string) {
+    return invoke<VariablePresetResult>("record_variable_preset_usage", { id });
   },
 
   deleteVariablePreset(id: string) {

@@ -1,3 +1,5 @@
+import type { TagCountMap } from "../lib/tags";
+
 function cn(...classNames: Array<string | false | null | undefined>): string {
   return classNames.filter(Boolean).join(" ");
 }
@@ -5,6 +7,7 @@ function cn(...classNames: Array<string | false | null | undefined>): string {
 interface TagFilterBarProps {
   activeTag: string | null;
   availableTags: string[];
+  tagCounts?: TagCountMap;
   onChangeTag: (tag: string | null) => void;
 }
 
@@ -17,7 +20,12 @@ function filterButtonClassName(isActive: boolean): string {
   );
 }
 
-export function TagFilterBar({ activeTag, availableTags, onChangeTag }: TagFilterBarProps) {
+export function TagFilterBar({
+  activeTag,
+  availableTags,
+  tagCounts,
+  onChangeTag,
+}: TagFilterBarProps) {
   if (availableTags.length === 0) {
     return null;
   }
@@ -43,6 +51,9 @@ export function TagFilterBar({ activeTag, availableTags, onChangeTag }: TagFilte
             onClick={() => onChangeTag(activeTag === tag ? null : tag)}
           >
             {tag}
+            {typeof tagCounts?.[tag] === "number" ? (
+              <span className="ml-1 text-[9px] text-(--color-text-subtle)">({tagCounts[tag]})</span>
+            ) : null}
           </button>
         ))}
       </div>

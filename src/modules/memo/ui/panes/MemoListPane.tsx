@@ -13,6 +13,7 @@ import { type Memo, memoExcerpt, memoLabel } from "../../model";
 interface MemoListPaneProps {
   activeTagFilter: string | null;
   availableTags: string[];
+  tagCounts?: Record<string, number>;
   availableSortOptions: Array<{ value: MemoSortOption; label: string }>;
   memos: Memo[];
   onChangeSearchQuery: (value: string) => void;
@@ -29,6 +30,7 @@ interface MemoListPaneProps {
 export function MemoListPane({
   activeTagFilter,
   availableTags,
+  tagCounts,
   availableSortOptions,
   memos,
   onChangeSearchQuery,
@@ -107,6 +109,7 @@ export function MemoListPane({
           <TagFilterBar
             activeTag={activeTagFilter}
             availableTags={availableTags}
+            tagCounts={tagCounts}
             onChangeTag={onChangeTagFilter}
           />
         </div>

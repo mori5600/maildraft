@@ -13,10 +13,12 @@ export interface ShortcutActionSet {
   changeView: (nextView: WorkspaceView) => void;
   copyDraftPreview: () => Promise<void>;
   createDraft: () => void;
+  createBlock: () => void;
   createMemo: () => void;
   createSignature: () => void;
   createTemplate: () => void;
   saveDraft: () => Promise<void>;
+  saveBlock: () => Promise<void>;
   saveSettingsSection: () => Promise<void>;
   saveMemo: () => Promise<void>;
   saveSignature: () => Promise<void>;

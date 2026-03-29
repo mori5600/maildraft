@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  createContentBlock,
   createDraft,
   createDraftHistoryEntry,
   createDraftInput,
@@ -22,6 +23,7 @@ describe("DraftWorkspace", () => {
         activeTagFilter={null}
         autoSaveLabel="自動保存済み"
         availableTags={["社外"]}
+        blocks={[createContentBlock()]}
         canApplyVariablePreset
         canCreateTemplate
         canDuplicate
@@ -61,7 +63,8 @@ describe("DraftWorkspace", () => {
         variablePresets={[createVariablePreset()]}
         onApplyIssueSuggestion={vi.fn()}
         onApplyTemplate={vi.fn()}
-        onApplyVariablePreset={vi.fn()}
+        onApplyVariablePreset={vi.fn(async () => {})}
+        onApplyRecommendedVariablePreset={vi.fn(async () => {})}
         onChangeDraft={vi.fn()}
         onChangeDraftVariable={vi.fn()}
         onChangeSearchQuery={vi.fn()}
@@ -76,6 +79,7 @@ describe("DraftWorkspace", () => {
         onDeleteVariablePreset={vi.fn(async () => {})}
         onDisableIssueRule={vi.fn()}
         onDuplicateDraft={vi.fn(async () => {})}
+        onInsertBlock={vi.fn()}
         onIgnoreIssue={vi.fn()}
         onRunDetailedCheck={vi.fn()}
         onRestoreDraftHistory={handleRestoreDraftHistory}

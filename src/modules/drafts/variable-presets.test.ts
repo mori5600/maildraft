@@ -4,6 +4,8 @@ import {
   applyVariablePresetValues,
   collectMeaningfulVariableValues,
   hasMeaningfulVariableValues,
+  mergeVariablePresetCollectionsByRecency,
+  sortVariablePresetsByRecent,
 } from "./variable-presets";
 
 describe("variable-presets", () => {
@@ -48,5 +50,92 @@ describe("variable-presets", () => {
     expect(hasMeaningfulVariableValues(["会社名", "担当者名"], { 会社名: " ", 担当者名: "" })).toBe(
       false,
     );
+  });
+
+  it("sorts variable presets by recent use, then updated time", () => {
+    expect(
+      sortVariablePresetsByRecent([
+        {
+          id: "preset-older",
+          name: "older",
+          values: {},
+          tags: [],
+          createdAt: "1",
+          updatedAt: "10",
+          lastUsedAt: "10",
+        },
+        {
+          id: "preset-recent",
+          name: "recent",
+          values: {},
+          tags: [],
+          createdAt: "1",
+          updatedAt: "20",
+          lastUsedAt: "20",
+        },
+        {
+          id: "preset-never-used",
+          name: "never",
+          values: {},
+          tags: [],
+          createdAt: "1",
+          updatedAt: "15",
+          lastUsedAt: null,
+        },
+      ]).map((preset) => preset.id),
+    ).toEqual(["preset-recent", "preset-never-used", "preset-older"]);
+  });
+
+  it("keeps newer variable preset fields when usage responses arrive out of order", () => {
+    expect(
+      mergeVariablePresetCollectionsByRecency(
+        [
+          {
+            id: "preset-a",
+            name: "A社向け",
+            values: {},
+            tags: [],
+            createdAt: "1",
+            updatedAt: "30",
+            lastUsedAt: "30",
+          },
+          {
+            id: "preset-b",
+            name: "B社向け",
+            values: {},
+            tags: [],
+            createdAt: "1",
+            updatedAt: "40",
+            lastUsedAt: "40",
+          },
+        ],
+        [
+          {
+            id: "preset-a",
+            name: "A社向け",
+            values: {},
+            tags: [],
+            createdAt: "1",
+            updatedAt: "35",
+            lastUsedAt: "35",
+          },
+          {
+            id: "preset-b",
+            name: "B社向け",
+            values: {},
+            tags: [],
+            createdAt: "1",
+            updatedAt: "20",
+            lastUsedAt: null,
+          },
+        ],
+      ).map((preset) => ({
+        id: preset.id,
+        lastUsedAt: preset.lastUsedAt,
+      })),
+    ).toEqual([
+      { id: "preset-b", lastUsedAt: "40" },
+      { id: "preset-a", lastUsedAt: "35" },
+    ]);
   });
 });

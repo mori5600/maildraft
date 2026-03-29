@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use crate::modules::{
+    blocks::ContentBlock,
     drafts::{Draft, DraftHistoryEntry},
     memo::Memo,
     signatures::Signature,
@@ -25,6 +26,7 @@ pub fn validate_store_snapshot(snapshot: &StoreSnapshot) -> Result<(), String> {
     )?;
     validate_collection_size("署名", snapshot.signatures.len(), MAX_COLLECTION_ITEMS)?;
     validate_collection_size("メモ", snapshot.memos.len(), MAX_COLLECTION_ITEMS)?;
+    validate_collection_size("文面ブロック", snapshot.blocks.len(), MAX_COLLECTION_ITEMS)?;
     validate_collection_size(
         "変数値セット",
         snapshot.variable_presets.len(),
@@ -84,6 +86,16 @@ pub fn validate_store_snapshot(snapshot: &StoreSnapshot) -> Result<(), String> {
                 .map(|entry| entry.memo.id.as_str()),
         ),
         "メモID",
+    )?;
+    validate_unique_ids(
+        snapshot.blocks.iter().map(|block| block.id.as_str()).chain(
+            snapshot
+                .trash
+                .blocks
+                .iter()
+                .map(|entry| entry.block.id.as_str()),
+        ),
+        "文面ブロックID",
     )?;
     validate_unique_ids(
         snapshot
@@ -151,10 +163,19 @@ pub fn validate_store_snapshot(snapshot: &StoreSnapshot) -> Result<(), String> {
         validate_memo(&entry.memo)?;
     }
 
+    for block in &snapshot.blocks {
+        validate_block(block)?;
+    }
+
+    for entry in &snapshot.trash.blocks {
+        validate_block(&entry.block)?;
+    }
+
     for preset in &snapshot.variable_presets {
         validate_id_like(&preset.id, "変数値セットID", MAX_ID_LENGTH)?;
         validate_text_length(&preset.name, "変数値セット名", MAX_NAME_LENGTH)?;
         validate_variables(&preset.values)?;
+        validate_tags(&preset.tags, "タグ")?;
     }
 
     Ok(())
@@ -199,6 +220,14 @@ fn validate_signature(signature: &Signature) -> Result<(), String> {
     validate_id_like(&signature.id, "署名ID", MAX_ID_LENGTH)?;
     validate_text_length(&signature.name, "署名名", MAX_NAME_LENGTH)?;
     validate_text_length(&signature.body, "署名本文", MAX_SIGNATURE_BODY_LENGTH)?;
+    Ok(())
+}
+
+fn validate_block(block: &ContentBlock) -> Result<(), String> {
+    validate_id_like(&block.id, "文面ブロックID", MAX_ID_LENGTH)?;
+    validate_text_length(&block.name, "文面ブロック名", MAX_NAME_LENGTH)?;
+    validate_text_length(&block.body, "文面ブロック本文", MAX_TEXT_FIELD_LENGTH)?;
+    validate_tags(&block.tags, "タグ")?;
     Ok(())
 }
 

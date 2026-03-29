@@ -10,6 +10,7 @@ use super::{
     load_proofreading_settings, load_recent_logs, load_snapshot, load_startup_notice,
     permanently_delete_draft_from_trash, permanently_delete_memo_from_trash,
     permanently_delete_signature_from_trash, permanently_delete_template_from_trash,
+    record_variable_preset_usage,
     restore_draft_from_trash, restore_draft_history, restore_memo_from_trash,
     restore_signature_from_trash, restore_template_from_trash, save_draft, save_editor_settings,
     save_logging_settings, save_memo, save_proofreading_settings, save_signature, save_template,
@@ -49,7 +50,9 @@ use super::templates::{
     restore_template_from_trash_impl, save_template_impl,
 };
 use super::trash::empty_trash_impl;
-use super::variable_presets::{delete_variable_preset_impl, save_variable_preset_impl};
+use super::variable_presets::{
+    delete_variable_preset_impl, record_variable_preset_usage_impl, save_variable_preset_impl,
+};
 
 fn make_state() -> (AppState, tempfile::TempDir) {
     let directory = tempdir().expect("tempdir");
@@ -173,10 +176,16 @@ fn template_signature_and_variable_preset_commands_round_trip() {
             id: "preset-command".to_string(),
             name: "A社".to_string(),
             values: BTreeMap::from([("会社名".to_string(), "株式会社〇〇".to_string())]),
+            tags: vec!["社外".to_string()],
         },
     )
     .expect("save preset");
     assert_eq!(presets.variable_presets.len(), 1);
+    assert_eq!(presets.variable_presets[0].tags, vec!["社外".to_string()]);
+
+    let used_presets =
+        record_variable_preset_usage_impl(&state, "preset-command".to_string()).expect("use preset");
+    assert_eq!(used_presets.variable_presets[0].last_used_at.is_some(), true);
 
     let without_preset =
         delete_variable_preset_impl(&state, "preset-command".to_string()).expect("delete preset");
@@ -917,10 +926,19 @@ fn tauri_command_wrappers_round_trip_mutations_without_leaking_other_collections
             id: "preset-wrapper".to_string(),
             name: "preset".to_string(),
             values: BTreeMap::from([("会社名".to_string(), "株式会社MailDraft".to_string())]),
+            tags: vec!["社外".to_string()],
         },
     )
     .expect("save preset");
     assert_eq!(saved_preset.variable_presets.len(), 1);
+    assert_eq!(saved_preset.variable_presets[0].tags, vec!["社外".to_string()]);
+
+    let used_preset = record_variable_preset_usage(
+        as_tauri_state(&state),
+        "preset-wrapper".to_string(),
+    )
+    .expect("use preset");
+    assert_eq!(used_preset.variable_presets[0].last_used_at.is_some(), true);
 
     let deleted_preset =
         delete_variable_preset(as_tauri_state(&state), "preset-wrapper".to_string())

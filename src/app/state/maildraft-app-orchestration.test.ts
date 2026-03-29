@@ -25,9 +25,11 @@ describe("maildraft app orchestration", () => {
         templates: [],
         signatures: [],
         memos: [],
+        blocks: [],
       },
     });
     const actions = {
+      hydrateBlockState: vi.fn(),
       hydrateMemoState: vi.fn(),
       hydrateSignatureState: vi.fn(),
       hydrateTemplateState: vi.fn(),
@@ -38,6 +40,7 @@ describe("maildraft app orchestration", () => {
     hydrateWorkspaceSnapshot(nextSnapshot, actions);
 
     expect(actions.setSnapshot).toHaveBeenCalledWith(nextSnapshot);
+    expect(actions.hydrateBlockState).toHaveBeenCalledWith(nextSnapshot, "block-1");
     expect(actions.hydrateMemoState).toHaveBeenCalledWith(nextSnapshot);
     expect(actions.hydrateTemplateState).toHaveBeenCalledWith(nextSnapshot, "template-imported");
     expect(actions.hydrateSignatureState).toHaveBeenCalledWith(nextSnapshot, "signature-imported");
@@ -47,6 +50,7 @@ describe("maildraft app orchestration", () => {
   it("flushes only the current workspace before changing view", () => {
     const actions = {
       currentView: "templates" as const,
+      flushBlocks: vi.fn(),
       flushDrafts: vi.fn(),
       flushMemo: vi.fn(),
       flushSignatures: vi.fn(),
@@ -57,6 +61,7 @@ describe("maildraft app orchestration", () => {
     changeWorkspaceView("signatures", actions);
 
     expect(actions.flushTemplates).toHaveBeenCalledTimes(1);
+    expect(actions.flushBlocks).not.toHaveBeenCalled();
     expect(actions.flushDrafts).not.toHaveBeenCalled();
     expect(actions.flushMemo).not.toHaveBeenCalled();
     expect(actions.flushSignatures).not.toHaveBeenCalled();
@@ -81,6 +86,7 @@ describe("maildraft app orchestration", () => {
       drafts: [],
       draftHistory: [],
       variablePresets: [],
+      blocks: [],
       templates: [],
       signatures: [],
       memos: [],
@@ -89,6 +95,7 @@ describe("maildraft app orchestration", () => {
         templates: [],
         signatures: [],
         memos: [],
+        blocks: [],
       },
     });
   });

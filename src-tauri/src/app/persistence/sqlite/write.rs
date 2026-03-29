@@ -5,6 +5,7 @@ use rusqlite::{params, Transaction};
 use crate::{
     app::settings::AppSettings,
     modules::{
+        blocks::ContentBlock,
         drafts::{Draft, DraftHistoryEntry},
         memo::Memo,
         signatures::Signature,
@@ -99,8 +100,11 @@ pub(super) fn clear_store_tables(transaction: &Transaction<'_>) -> Result<(), St
         "DELETE FROM draft_tags",
         "DELETE FROM draft_variable_values",
         "DELETE FROM drafts",
+        "DELETE FROM variable_preset_tags",
         "DELETE FROM variable_preset_values",
         "DELETE FROM variable_presets",
+        "DELETE FROM block_tags",
+        "DELETE FROM blocks",
         "DELETE FROM memo_tags",
         "DELETE FROM memos",
         "DELETE FROM template_tags",
@@ -154,6 +158,19 @@ pub(super) fn insert_store_snapshot(
             &trashed_memo.memo,
             true,
             Some(&trashed_memo.deleted_at),
+            sort_order,
+        )?;
+    }
+
+    for (sort_order, block) in snapshot.blocks.iter().enumerate() {
+        insert_block(transaction, block, false, None, sort_order)?;
+    }
+    for (sort_order, trashed_block) in snapshot.trash.blocks.iter().enumerate() {
+        insert_block(
+            transaction,
+            &trashed_block.block,
+            true,
+            Some(&trashed_block.deleted_at),
             sort_order,
         )?;
     }
@@ -300,6 +317,40 @@ fn insert_memo(
     Ok(())
 }
 
+fn insert_block(
+    transaction: &Transaction<'_>,
+    block: &ContentBlock,
+    in_trash: bool,
+    deleted_at: Option<&str>,
+    sort_order: usize,
+) -> Result<(), String> {
+    transaction
+        .execute(
+            r#"
+            INSERT INTO blocks (
+                id, name, category, body, created_at, updated_at, in_trash, deleted_at,
+                sort_order
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+            "#,
+            params![
+                &block.id,
+                &block.name,
+                super::encode_block_category(block.category),
+                &block.body,
+                &block.created_at,
+                &block.updated_at,
+                super::encode_bool(in_trash),
+                deleted_at,
+                sort_order as i64
+            ],
+        )
+        .map_err(|error| error.to_string())?;
+
+    insert_tags(transaction, "block_tags", "block_id", &block.id, &block.tags)?;
+
+    Ok(())
+}
+
 fn insert_variable_preset(
     transaction: &Transaction<'_>,
     preset: &VariablePreset,
@@ -308,14 +359,15 @@ fn insert_variable_preset(
     transaction
         .execute(
             r#"
-            INSERT INTO variable_presets (id, name, created_at, updated_at, sort_order)
-            VALUES (?1, ?2, ?3, ?4, ?5)
+            INSERT INTO variable_presets (id, name, created_at, updated_at, last_used_at, sort_order)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6)
             "#,
             params![
                 &preset.id,
                 &preset.name,
                 &preset.created_at,
                 &preset.updated_at,
+                &preset.last_used_at,
                 sort_order as i64
             ],
         )
@@ -327,6 +379,14 @@ fn insert_variable_preset(
         "preset_id",
         &preset.id,
         &preset.values,
+    )?;
+
+    insert_tags(
+        transaction,
+        "variable_preset_tags",
+        "preset_id",
+        &preset.id,
+        &preset.tags,
     )
 }
 

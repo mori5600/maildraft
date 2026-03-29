@@ -7,12 +7,16 @@ use crate::{
         AppSettings, EditorIndentStyle, EditorSettings, LoggingSettings, ProofreadingSettings,
     },
     modules::{
+        blocks::ContentBlock,
         drafts::{Draft, DraftHistoryEntry},
         memo::Memo,
         signatures::Signature,
         store::StoreSnapshot,
         templates::Template,
-        trash::{TrashSnapshot, TrashedDraft, TrashedMemo, TrashedSignature, TrashedTemplate},
+        trash::{
+            TrashSnapshot, TrashedBlock, TrashedDraft, TrashedMemo, TrashedSignature,
+            TrashedTemplate,
+        },
         variable_presets::VariablePreset,
     },
 };
@@ -77,6 +81,8 @@ pub(super) fn load_store_snapshot(connection: &Connection) -> Result<StoreSnapsh
     let trashed_templates = load_trashed_templates(connection)?;
     let memos = load_memos(connection, false)?;
     let trashed_memos = load_trashed_memos(connection)?;
+    let blocks = load_blocks(connection, false)?;
+    let trashed_blocks = load_trashed_blocks(connection)?;
     let variable_presets = load_variable_presets(connection)?;
     let drafts = load_drafts(connection, false)?;
     let trashed_drafts = load_trashed_drafts(connection)?;
@@ -89,12 +95,14 @@ pub(super) fn load_store_snapshot(connection: &Connection) -> Result<StoreSnapsh
         templates,
         signatures,
         memos,
+        blocks,
         legacy_memo: None,
         trash: TrashSnapshot {
             drafts: trashed_drafts,
             templates: trashed_templates,
             signatures: trashed_signatures,
             memos: trashed_memos,
+            blocks: trashed_blocks,
         },
     })
 }
@@ -335,7 +343,7 @@ fn load_variable_presets(connection: &Connection) -> Result<Vec<VariablePreset>,
     let mut statement = connection
         .prepare(
             r#"
-            SELECT id, name, created_at, updated_at
+            SELECT id, name, created_at, updated_at, last_used_at
             FROM variable_presets
             ORDER BY sort_order ASC
             "#,
@@ -347,8 +355,10 @@ fn load_variable_presets(connection: &Connection) -> Result<Vec<VariablePreset>,
                 id: row.get(0)?,
                 name: row.get(1)?,
                 values: BTreeMap::new(),
+                tags: Vec::new(),
                 created_at: row.get(2)?,
                 updated_at: row.get(3)?,
+                last_used_at: row.get(4)?,
             })
         })
         .map_err(|error| error.to_string())?;
@@ -362,10 +372,89 @@ fn load_variable_presets(connection: &Connection) -> Result<Vec<VariablePreset>,
             "preset_id",
             &preset.id,
         )?;
+        preset.tags = load_tags(
+            connection,
+            "variable_preset_tags",
+            "preset_id",
+            &preset.id,
+        )?;
         presets.push(preset);
     }
 
     Ok(presets)
+}
+
+fn load_blocks(connection: &Connection, in_trash: bool) -> Result<Vec<ContentBlock>, String> {
+    let mut statement = connection
+        .prepare(
+            r#"
+            SELECT id, name, category, body, created_at, updated_at
+            FROM blocks
+            WHERE in_trash = ?1
+            ORDER BY sort_order ASC
+            "#,
+        )
+        .map_err(|error| error.to_string())?;
+    let rows = statement
+        .query_map([super::encode_bool(in_trash)], |row| {
+            Ok(ContentBlock {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                category: super::decode_block_category(&row.get::<_, String>(2)?)?,
+                body: row.get(3)?,
+                tags: Vec::new(),
+                created_at: row.get(4)?,
+                updated_at: row.get(5)?,
+            })
+        })
+        .map_err(|error| error.to_string())?;
+
+    let mut blocks = Vec::new();
+    for row in rows {
+        let mut block = row.map_err(|error| error.to_string())?;
+        block.tags = load_tags(connection, "block_tags", "block_id", &block.id)?;
+        blocks.push(block);
+    }
+
+    Ok(blocks)
+}
+
+fn load_trashed_blocks(connection: &Connection) -> Result<Vec<TrashedBlock>, String> {
+    let mut statement = connection
+        .prepare(
+            r#"
+            SELECT id, name, category, body, created_at, updated_at, deleted_at
+            FROM blocks
+            WHERE in_trash = 1
+            ORDER BY sort_order ASC
+            "#,
+        )
+        .map_err(|error| error.to_string())?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok(TrashedBlock {
+                block: ContentBlock {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    category: super::decode_block_category(&row.get::<_, String>(2)?)?,
+                    body: row.get(3)?,
+                    tags: Vec::new(),
+                    created_at: row.get(4)?,
+                    updated_at: row.get(5)?,
+                },
+                deleted_at: row.get(6)?,
+            })
+        })
+        .map_err(|error| error.to_string())?;
+
+    let mut blocks = Vec::new();
+    for row in rows {
+        let mut entry = row.map_err(|error| error.to_string())?;
+        entry.block.tags = load_tags(connection, "block_tags", "block_id", &entry.block.id)?;
+        blocks.push(entry);
+    }
+
+    Ok(blocks)
 }
 
 fn load_drafts(connection: &Connection, in_trash: bool) -> Result<Vec<Draft>, String> {

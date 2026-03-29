@@ -1,10 +1,10 @@
 import { PaneHeader } from "../../../../shared/ui/PaneHeader";
-import { Button, Field, Panel, Select } from "../../../../shared/ui/primitives";
-import { WhitespaceInput } from "../../../../shared/ui/WhitespaceInput";
+import { Button, Panel } from "../../../../shared/ui/primitives";
 import type { DraftInput } from "../../model";
 import type { DraftProofreadingIssue } from "../../proofreading/model";
 import type { VariablePreset } from "../../variable-presets";
 import { DraftIssueList } from "./DraftIssueList";
+import { DraftVariablePresetPanel } from "./DraftVariablePresetPanel";
 
 interface DraftPreviewPaneProps {
   detailedCheckStatus: "idle" | "pending" | "running" | "ready" | "error";
@@ -33,7 +33,8 @@ interface DraftPreviewPaneProps {
   onSelectVariablePreset: (id: string | null) => void;
   onChangeVariablePresetName: (value: string) => void;
   onCreateVariablePreset: () => void;
-  onApplyVariablePreset: () => void;
+  onApplyVariablePreset: () => Promise<void>;
+  onApplyRecommendedVariablePreset: (presetId: string) => Promise<void>;
   onDisableIssueRule: (ruleId: string) => void;
   onIgnoreIssue: (issueId: string) => void;
   onSaveVariablePreset: () => Promise<void>;
@@ -70,6 +71,7 @@ export function DraftPreviewPane({
   onChangeVariablePresetName,
   onCreateVariablePreset,
   onApplyVariablePreset,
+  onApplyRecommendedVariablePreset,
   onDisableIssueRule,
   onIgnoreIssue,
   onSaveVariablePreset,
@@ -114,91 +116,24 @@ export function DraftPreviewPane({
             差し込み項目
           </div>
           <div className="mt-2.5 space-y-2.5">
-            {variableNames.length === 0 ? (
-              <div className="rounded-[7px] border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3 py-2.5 text-[13px] leading-6 text-(--color-text-muted)">
-                この下書きには差し込み変数がありません。
-              </div>
-            ) : (
-              <>
-                <div className="rounded-[7px] border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3 py-3">
-                  <div className="grid gap-3">
-                    <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                      <Field label="差し込みセット">
-                        <Select
-                          value={selectedVariablePresetId ?? ""}
-                          onChange={(event) =>
-                            onSelectVariablePreset(event.currentTarget.value || null)
-                          }
-                        >
-                          <option value="">保存済みセットを選択</option>
-                          {variablePresets.map((preset) => (
-                            <option key={preset.id} value={preset.id}>
-                              {preset.name}
-                            </option>
-                          ))}
-                        </Select>
-                      </Field>
-
-                      <Field label="セット名">
-                        <WhitespaceInput
-                          placeholder="A社向け"
-                          showWhitespace={showWhitespace}
-                          value={variablePresetName}
-                          onChange={(event) =>
-                            onChangeVariablePresetName(event.currentTarget.value)
-                          }
-                        />
-                      </Field>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        disabled={!canApplyVariablePreset}
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => void onApplyVariablePreset()}
-                      >
-                        適用
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={onCreateVariablePreset}>
-                        新規セット
-                      </Button>
-                      <Button
-                        disabled={!canSaveVariablePreset}
-                        size="sm"
-                        variant="primary"
-                        onClick={() => void onSaveVariablePreset()}
-                      >
-                        値を保存
-                      </Button>
-                      <Button
-                        disabled={!selectedVariablePresetId}
-                        size="sm"
-                        variant="danger"
-                        onClick={() => void onDeleteVariablePreset()}
-                      >
-                        削除
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                {variableNames.map((name) => (
-                  <Field key={name} hint={`{{${name}}}`} label={name}>
-                    <WhitespaceInput
-                      placeholder={`{{${name}}} に入れる値`}
-                      showWhitespace={showWhitespace}
-                      value={draftForm.variableValues[name] ?? ""}
-                      onChange={(event) => onChangeDraftVariable(name, event.currentTarget.value)}
-                    />
-                  </Field>
-                ))}
-                <div className="rounded-[7px] border border-(--color-panel-border-strong) bg-(--color-field-bg) px-3 py-2.5 text-[13px] leading-6 text-(--color-text-muted)">
-                  本文中の <code>{`{{...}}`}</code>{" "}
-                  はそのまま保存し、プレビューとコピー時に差し込みます。
-                </div>
-              </>
-            )}
+            <DraftVariablePresetPanel
+              canApplyVariablePreset={canApplyVariablePreset}
+              canSaveVariablePreset={canSaveVariablePreset}
+              draftForm={draftForm}
+              selectedVariablePresetId={selectedVariablePresetId}
+              showWhitespace={showWhitespace}
+              variableNames={variableNames}
+              variablePresetName={variablePresetName}
+              variablePresets={variablePresets}
+              onApplyRecommendedVariablePreset={onApplyRecommendedVariablePreset}
+              onApplyVariablePreset={onApplyVariablePreset}
+              onChangeDraftVariable={onChangeDraftVariable}
+              onChangeVariablePresetName={onChangeVariablePresetName}
+              onCreateVariablePreset={onCreateVariablePreset}
+              onDeleteVariablePreset={onDeleteVariablePreset}
+              onSaveVariablePreset={onSaveVariablePreset}
+              onSelectVariablePreset={onSelectVariablePreset}
+            />
           </div>
         </div>
 

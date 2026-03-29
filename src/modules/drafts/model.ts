@@ -1,4 +1,5 @@
 import { mergeUniqueTags, tagsEqual } from "../../shared/lib/tags";
+import type { ContentBlock, ContentBlockInput } from "../blocks/model";
 import type { Memo, MemoInput, MemoLike } from "../memo/model";
 import { memoLabel } from "../memo/model";
 import type { Template, TemplateInput } from "../templates/model";
@@ -50,6 +51,14 @@ export interface DraftInput {
   variableValues: Record<string, string>;
   tags: string[];
 }
+
+export type DraftBlockInsertTarget = "opening" | "body" | "closing";
+
+const DRAFT_BLOCK_INSERT_TARGET_LABELS = {
+  opening: "書き出し",
+  body: "本文",
+  closing: "結び",
+} satisfies Record<DraftBlockInsertTarget, string>;
 
 export function createEmptyDraft(defaultSignatureId: string | null): DraftInput {
   return {
@@ -206,6 +215,26 @@ export function draftHasMeaningfulContent(draft: DraftInput): boolean {
   );
 }
 
+export function draftBlockInsertTargetLabel(target: DraftBlockInsertTarget): string {
+  return DRAFT_BLOCK_INSERT_TARGET_LABELS[target];
+}
+
+export function insertContentBlockIntoDraft(
+  draft: DraftInput,
+  target: DraftBlockInsertTarget,
+  block: Pick<ContentBlock | ContentBlockInput, "body">,
+): DraftInput {
+  const nextBody = appendContentBlock(draft[target], block.body);
+  if (nextBody === draft[target]) {
+    return draft;
+  }
+
+  return {
+    ...draft,
+    [target]: nextBody,
+  };
+}
+
 export function draftInputsEqual(left: DraftInput, right: DraftInput | null): boolean {
   if (!right) {
     return false;
@@ -261,4 +290,16 @@ function variableValuesEqual(left: Record<string, string>, right: Record<string,
 
 function withCopySuffix(value: string): string {
   return value.trim() ? `${value.trim()} コピー` : "コピー";
+}
+
+function appendContentBlock(existing: string, blockBody: string): string {
+  if (!blockBody.trim()) {
+    return existing;
+  }
+
+  if (!existing.trim()) {
+    return blockBody;
+  }
+
+  return `${existing}\n\n${blockBody}`;
 }
